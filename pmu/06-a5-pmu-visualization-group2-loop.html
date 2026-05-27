@@ -12,11 +12,16 @@
 <meta name="viewport" content="width=1440">
 <title>A5 PMU · Group 2 Pipeline Balance · Diagnosis Loop</title>
 
-<link rel="stylesheet" href="../design-system-share/tokens/foundation.css">
-<link rel="stylesheet" href="../design-system-share/tokens/semantic.css">
-<link rel="stylesheet" href="../design-system-share/tokens/components.css">
-<link rel="stylesheet" href="../design-system-share/css/style.css">
-<script src="../design-system-share/patterns/swimlane-task/pattern.js"></script>
+<link rel="stylesheet" href="../vendor/pto-design-system/tokens/foundation.css">
+<link rel="stylesheet" href="../vendor/pto-design-system/tokens/semantic.css">
+<link rel="stylesheet" href="../vendor/pto-design-system/tokens/components.css">
+<link rel="stylesheet" href="../vendor/pto-design-system/css/style.css">
+<link rel="stylesheet" href="../vendor/pto-design-system/patterns/workbench-shell/pattern.css">
+<link rel="stylesheet" href="../vendor/pto-design-system/patterns/ide-frame/pattern.css">
+<link rel="stylesheet" href="../vendor/pto-design-system/patterns/swimlane-task/pattern.css">
+<script src="../vendor/pto-design-system/patterns/workbench-shell/pattern.js"></script>
+<script src="../vendor/pto-design-system/patterns/ide-frame/pattern.js"></script>
+<script src="../vendor/pto-design-system/patterns/swimlane-task/pattern.js"></script>
 
 <style data-bundled-from="styles/tokens.css">
 /* ===================================================================
@@ -64,6 +69,7 @@
   --cyan: #39d0d8;
   --cyan-dim: rgba(57,208,216,0.15);
   --indigo: #7c8cff;
+  --aiv-blueviolet: #8fa2ff;
   --teal: #2dc7a2;
   --amber: #e3a93a;
   --coral: #ff8a65;
@@ -82,7 +88,7 @@
   /* lane group tints */
   --lane-tint-cpu: rgba(88,166,255,0.06);
   --lane-tint-aic: rgba(188,140,255,0.05);
-  --lane-tint-aiv: rgba(247,120,186,0.04);
+  --lane-tint-aiv: rgba(143,162,255,0.045);
   --lane-tint-mte: rgba(219,109,40,0.06);
   --lane-tint-wrap-odd: rgba(63,185,80,0.03);
   --lane-tint-wrap-even: rgba(188,140,255,0.04);
@@ -114,6 +120,7 @@ body {
   -webkit-font-smoothing: antialiased;
   display: flex;
   flex-direction: column;
+  align-items: stretch;
 }
 code, .mono { font-family: var(--font-mono); }
 
@@ -127,7 +134,7 @@ code, .mono { font-family: var(--font-mono); }
 .bad { color: var(--red); }
 .muted { color: var(--text-tertiary); }
 
-/* Buttons use design-system-share .btn / .btn-solid / .btn-ghost. */
+/* Buttons use pto-design-system .btn / .btn-solid / .btn-ghost. */
 .btn .ico { font-family: var(--font-mono); font-weight: 700; opacity: 0.9; }
 
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
@@ -159,27 +166,6 @@ code, .mono { font-family: var(--font-mono); }
 }
 .topbar > * { flex-shrink: 0; }
 .brand { display: flex; align-items: center; gap: 10px; padding-right: 12px; border-right: 1px solid var(--border); }
-.brand-home {
-  width: 26px; height: 26px;
-  background: var(--bg-elev-3);
-  color: var(--text-secondary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  display: flex; align-items: center; justify-content: center;
-  text-decoration: none;
-}
-.brand-home:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
-}
-.brand-home svg {
-  width: 15px; height: 15px;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  fill: none;
-}
 .brand-name { font-weight: 600; font-size: 13px; letter-spacing: 0; }
 .brand-name .secondary { color: var(--text-tertiary); font-weight: 400; margin-left: 6px; font-size: 11px; }
 
@@ -195,6 +181,7 @@ code, .mono { font-family: var(--font-mono); }
 .ctrl-group {
   display: flex; align-items: center; gap: 6px;
   padding-left: 12px;
+  /* PTO-owned toolbar divider, not a card/panel container rail. */
   border-left: 1px solid var(--border);
   height: 30px;
 }
@@ -220,6 +207,7 @@ code, .mono { font-family: var(--font-mono); }
   font-size: 11px;
   position: relative;
 }
+/* PTO-owned sampled-state dot for tab metadata. */
 .group-tab[data-sampled="true"]:not(.is-selected)::after {
   content: '●';
   position: absolute;
@@ -232,25 +220,60 @@ code, .mono { font-family: var(--font-mono); }
   cursor: not-allowed;
 }
 
-.mix-toggle {
-  min-height: var(--button-height-sm);
-  gap: var(--space-2);
-  padding-left: var(--space-1);
+.pmu-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  min-height: 22px;
+  padding: 0 8px 0 4px;
+  border: 1px solid var(--comp-tag-border);
   border-radius: var(--radius-pill);
+  background: var(--comp-tag-bg);
+  color: var(--text-secondary);
   font-family: var(--font-mono);
+  font-size: 10.5px;
+  line-height: 1;
+  cursor: pointer;
+  appearance: none;
 }
-.mix-toggle .mix-knob {
-  width: 18px; height: 18px;
+.pmu-switch:hover {
+  background: var(--state-hover);
+  color: var(--text-primary);
+}
+.pmu-switch:focus-visible {
+  outline: 1px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+.pmu-switch-track {
+  width: 26px;
+  height: 14px;
+  padding: 1px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-4);
+  border: 1px solid var(--border-subtle);
+  display: inline-flex;
+  align-items: center;
+}
+.pmu-switch-thumb {
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   background: var(--text-tertiary);
-  transition: all 0.18s ease;
+  transition: transform 0.16s ease, background 0.16s ease;
 }
-.mix-toggle[data-on="true"] {
-  background: var(--yellow-dim);
-  border-color: var(--yellow-strong);
-  color: var(--yellow);
+.pmu-switch[data-on="true"] {
+  color: var(--text-primary);
+  border-color: color-mix(in srgb, var(--primary) 28%, var(--comp-tag-border));
 }
-.mix-toggle[data-on="true"] .mix-knob { background: var(--yellow); }
+.pmu-switch[data-on="true"] .pmu-switch-track {
+  background: color-mix(in srgb, var(--primary) 28%, var(--surface-4));
+  border-color: color-mix(in srgb, var(--primary) 34%, var(--border-subtle));
+}
+.pmu-switch[data-on="true"] .pmu-switch-thumb {
+  transform: translateX(12px);
+  background: var(--primary);
+}
 
 .topbar-spacer { flex: 1; }
 
@@ -272,11 +295,16 @@ code, .mono { font-family: var(--font-mono); }
 /* ---------- Workspace ---------- */
 .workspace {
   flex: 1;
-  display: grid;
-  grid-template-columns: var(--left-w) minmax(0, 1fr) var(--right-w);
-  gap: var(--workbench-frame-gap);
+  display: flex;
   padding: var(--workbench-frame-padding);
   background: var(--background);
+  min-height: 0;
+}
+.workspace-split {
+  flex: 1 1 auto;
+  display: flex;
+  width: 100%;
+  min-width: 0;
   min-height: 0;
 }
 .left-panel,
@@ -291,8 +319,15 @@ code, .mono { font-family: var(--font-mono); }
   display: flex;
   flex-direction: column;
 }
-.left-panel { border-right: 0; }
-.right-panel { border-left: 0; }
+.left-panel {
+  flex: 0 0 var(--left-w);
+  border-right: 0;
+}
+.center-panel { flex: 1 1 0%; }
+.right-panel {
+  flex: 0 0 var(--right-w);
+  border-left: 0;
+} /* removed legacy pane divider; shared panel-shell owns pane boundaries. */
 
 </style>
 <style data-bundled-from="styles/swimlane.css">
@@ -301,30 +336,51 @@ code, .mono { font-family: var(--font-mono); }
  * =================================================================== */
 
 .sl-toolbar {
-  flex: 0 0 36px;
+  flex: 0 0 54px;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   padding: 0 14px;
   background: transparent;
   border-bottom: 1px solid var(--border-subtle);
   font-size: 12px;
 }
+.sl-title-block {
+  min-width: 220px;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  min-height: 42px;
+  overflow: hidden;
+}
 .sl-title {
   color: var(--text-primary);
   font-weight: 600;
+  font-size: 13px;
+  line-height: 1.2;
 }
 .sl-legend {
-  flex: 1;
+  min-width: 0;
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
   align-items: center;
   font-family: var(--font-mono);
-  font-size: 10.5px;
+  font-size: 10px;
+  line-height: 1.1;
   color: var(--text-secondary);
   overflow: hidden;
   white-space: nowrap;
+  max-height: 14px;
+}
+.sl-ctrl-group {
+  height: 28px;
+  padding-left: 10px;
+}
+.sl-ctrl-group .ctrl-label {
+  letter-spacing: 0.04em;
 }
 .sl-legend .lg {
   display: inline-flex;
@@ -366,7 +422,7 @@ code, .mono { font-family: var(--font-mono); }
 }
 .sl-lane-label.is-section { fill: var(--text-primary); font-weight: 600; }
 .sl-lane-label.is-aic { fill: var(--purple); }
-.sl-lane-label.is-aiv { fill: var(--pink); }
+.sl-lane-label.is-aiv { fill: var(--aiv-blueviolet); }
 .sl-lane-label.is-mte { fill: var(--orange); }
 .sl-lane-label.is-cpu { fill: var(--blue); }
 
@@ -377,6 +433,16 @@ code, .mono { font-family: var(--font-mono); }
 .sl-lane-bg.is-wrap-critical { fill: var(--lane-tint-wrap-critical); }
 .sl-lane-bg.is-cpu-section { fill: var(--lane-tint-cpu); }
 .sl-lane-bg.is-mte-section { fill: var(--lane-tint-mte); }
+.sl-lane-bg.is-highlighted {
+  fill: color-mix(in srgb, var(--primary) 14%, transparent);
+}
+.sl-lane-bg.is-counter-highlighted {
+  fill: color-mix(in srgb, var(--yellow) 10%, transparent);
+}
+.sl-lane-label.is-highlighted {
+  fill: var(--text-primary);
+  font-weight: 700;
+}
 
 /* divider line between sections */
 .sl-section-divider { stroke: var(--border); stroke-width: 1; stroke-dasharray: 2 3; }
@@ -388,6 +454,10 @@ code, .mono { font-family: var(--font-mono); }
   stroke-width: 1;
 }
 .sl-wrap-tab.is-critical { fill: var(--yellow-dim); stroke: var(--yellow-strong); }
+.sl-wrap-tab.is-highlighted {
+  fill: color-mix(in srgb, var(--primary) 20%, var(--bg-elev-2));
+  stroke: var(--primary);
+}
 .sl-wrap-tab-text {
   fill: var(--text-secondary);
   font-family: var(--font-mono);
@@ -396,6 +466,10 @@ code, .mono { font-family: var(--font-mono); }
   text-anchor: middle;
 }
 .sl-wrap-tab-text.is-critical { fill: var(--yellow); }
+.sl-wrap-tab-text.is-highlighted {
+  fill: var(--text-primary);
+  font-weight: 700;
+}
 
 /* task bar */
 .sl-task-pattern {
@@ -411,6 +485,8 @@ code, .mono { font-family: var(--font-mono); }
 .sl-task.is-critical { stroke: var(--yellow); stroke-width: 1; }
 .sl-task.is-suspect-wait { stroke: var(--red); stroke-width: 1; }
 .sl-task.is-suspect-overlap { stroke: var(--purple); stroke-width: 1; }
+.sl-task.is-highlighted { stroke: var(--primary); stroke-width: 1.4; }
+.sl-task.is-counter-highlighted { stroke: var(--yellow); stroke-width: 1.2; }
 
 /* task internal composition segments (mix mode) */
 .sl-seg { pointer-events: none; }
@@ -477,49 +553,7 @@ code, .mono { font-family: var(--font-mono); }
 .sl-marker.is-hw .sl-marker-shape { fill: var(--cyan); }
 .sl-marker.is-critical .sl-marker-shape { fill: var(--yellow); }
 
-/* tooltip */
-.sl-tooltip {
-  position: absolute;
-  display: none;
-  background: var(--bg-elev-3);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-md);
-  padding: 8px 10px;
-  font-size: 11px;
-  z-index: 12;
-  pointer-events: none;
-  box-shadow: var(--shadow-md);
-  min-width: 220px;
-  max-width: 340px;
-}
-.sl-tooltip.visible { display: block; animation: fade-in 0.1s ease; }
-.tt-op {
-  font-family: var(--font-mono);
-  font-weight: 700;
-  color: var(--text-primary);
-  font-size: 11.5px;
-  margin-bottom: 6px;
-  padding-bottom: 4px;
-  border-bottom: 1px solid var(--border);
-}
-.tt-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  line-height: 1.5;
-}
-.tt-k { color: var(--text-tertiary); font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
-.tt-v { color: var(--text-primary); font-family: var(--font-mono); }
-.tt-mini-bar {
-  margin-top: 4px;
-  display: flex;
-  width: 100%;
-  height: 4px;
-  border-radius: 2px;
-  overflow: hidden;
-  background: var(--bg-base);
-}
-.tt-mini-bar > span { display: block; height: 100%; }
+/* Tooltip chrome and behavior come from pto-design-system/patterns/swimlane-task. */
 
 </style>
 <style data-bundled-from="styles/panel.css">
@@ -569,14 +603,34 @@ code, .mono { font-family: var(--font-mono); }
   border-radius: var(--inspector-soft-card-radius);
   padding: var(--inspector-soft-card-padding);
 }
+.sum-card.is-interactive {
+  cursor: pointer;
+  transition: background 0.12s ease, outline-color 0.12s ease, transform 0.12s ease;
+}
+.sum-card.is-interactive:hover {
+  background: var(--inspector-soft-card-bg-hover);
+}
+.sum-card.is-active {
+  outline: 1px solid color-mix(in srgb, var(--primary) 55%, transparent);
+  outline-offset: -1px;
+}
 .sum-card.is-critical {
   background: color-mix(in srgb, var(--warning) 8%, var(--inspector-soft-card-bg));
+}
+.sum-card.is-critical.is-interactive:hover {
+  background: color-mix(in srgb, var(--warning) 14%, var(--inspector-soft-card-bg));
 }
 .sum-card.is-wait {
   background: color-mix(in srgb, var(--danger) 8%, var(--inspector-soft-card-bg));
 }
+.sum-card.is-wait.is-interactive:hover {
+  background: color-mix(in srgb, var(--danger) 14%, var(--inspector-soft-card-bg));
+}
 .sum-card.is-overlap {
   background: color-mix(in srgb, var(--purple) 8%, var(--inspector-soft-card-bg));
+}
+.sum-card.is-overlap.is-interactive:hover {
+  background: color-mix(in srgb, var(--purple) 14%, var(--inspector-soft-card-bg));
 }
 .sum-card.is-suggestion {
   background: color-mix(in srgb, var(--primary) 8%, var(--inspector-soft-card-bg));
@@ -639,6 +693,7 @@ code, .mono { font-family: var(--font-mono); }
   text-underline-offset: 3px;
 }
 .sum-inline-action:focus-visible {
+  /* PTO-owned keyboard focus state. */
   outline: 1px solid var(--focus-ring);
   outline-offset: 2px;
   border-radius: 3px;
@@ -662,6 +717,9 @@ code, .mono { font-family: var(--font-mono); }
   transition: background 0.1s;
 }
 .wrap-rank-list li:hover { background: var(--state-hover); }
+.wrap-rank-list li.is-active {
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+}
 .wrap-rank-list li:last-child { border-bottom: none; }
 .wr-name { font-family: var(--font-mono); color: var(--text-primary); }
 .wr-counter { color: var(--text-secondary); font-family: var(--font-mono); font-size: 10.5px; }
@@ -703,11 +761,11 @@ code, .mono { font-family: var(--font-mono); }
   background: color-mix(in srgb, var(--success) 8%, var(--inspector-soft-card-bg));
 }
 .dp-conclusion-badge {
-  display: inline-block;
-  padding: 2px 7px;
-  border-radius: 10px;
-  font-size: 10px;
-  font-weight: 700;
+  min-height: 18px;
+  padding-inline: 6px;
+  font-size: 10.5px;
+  line-height: 1;
+  font-weight: 600;
   letter-spacing: 0.04em;
   margin-bottom: 6px;
   font-family: var(--font-mono);
@@ -778,30 +836,30 @@ code, .mono { font-family: var(--font-mono); }
   gap: 6px;
 }
 .dp-chip {
-  display: inline-flex;
-  align-items: center;
   gap: 4px;
-  padding: 3px 8px;
-  background: var(--state-muted);
-  border: 0;
-  border-radius: 11px;
   font-family: var(--font-mono);
+  min-height: 18px;
+  padding-inline: 6px;
   font-size: 10.5px;
-  color: var(--text-secondary);
+  line-height: 1;
+  font-weight: 500;
 }
 .dp-chip .k { color: var(--text-tertiary); }
 .dp-chip .v { color: var(--text-primary); }
 .dp-chip.is-bad {
   background: color-mix(in srgb, var(--danger) 10%, var(--state-muted));
+  border-color: transparent;
   color: var(--red);
 }
 .dp-chip.is-bad .v { color: var(--red); }
 .dp-chip.is-ok {
   background: color-mix(in srgb, var(--success) 10%, var(--state-muted));
+  border-color: transparent;
   color: var(--green);
 }
 .dp-chip.is-warn {
   background: color-mix(in srgb, var(--warning) 10%, var(--state-muted));
+  border-color: transparent;
   color: var(--yellow);
 }
 
@@ -860,30 +918,13 @@ code, .mono { font-family: var(--font-mono); }
   gap: 6px;
 }
 .dp-jump-btn {
-  padding: var(--space-2) 10px;
-  background: var(--inspector-soft-card-bg);
-  border: 0;
-  border-radius: var(--inspector-soft-card-radius);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
+  min-height: 42px;
+  padding: 7px 10px 7px 7px;
   gap: 8px;
-  text-align: left;
-  transition: all 0.12s;
-}
-.dp-jump-btn:hover {
-  background: var(--inspector-soft-card-bg-hover);
-}
-.dp-jump-btn:disabled { opacity: 0.42; cursor: not-allowed; }
-.dp-jump-btn:disabled:hover {
-  background: var(--inspector-soft-card-bg);
-  box-shadow: none;
 }
 .dp-jump-ico {
   width: 24px; height: 24px;
-  background: var(--bg-elev-3);
   border-radius: var(--radius-sm);
-  display: flex; align-items: center; justify-content: center;
   font-family: var(--font-mono);
   font-weight: 700;
   font-size: 11px;
@@ -972,10 +1013,6 @@ code, .mono { font-family: var(--font-mono); }
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: var(--bg-elev-1);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
   min-width: 820px;
   max-width: 92vw;
   max-height: 86vh;
@@ -1061,8 +1098,9 @@ code, .mono { font-family: var(--font-mono); }
 }
 .src-line.is-hot {
   background: var(--yellow-dim);
-  border-left: 3px solid var(--yellow);
-  padding-left: 11px;
+  border: 1px solid var(--yellow-strong);
+  border-radius: var(--radius-sm);
+  padding: 0 13px;
 }
 .src-line.is-hot .ln { color: var(--yellow); font-weight: 700; }
 .src-line.is-hot .code-text { color: var(--text-primary); }
@@ -1099,7 +1137,8 @@ code, .mono { font-family: var(--font-mono); }
 .call-node .meta { color: var(--text-tertiary); font-size: 10.5px; }
 .call-node.is-target {
   background: var(--blue-dim);
-  border-left: 3px solid var(--blue);
+  border: 1px solid var(--blue-strong);
+  padding: 3px 7px;
 }
 .call-node.is-target .op { color: var(--text-primary); }
 .call-node.is-target .magic { color: var(--blue); }
@@ -1284,13 +1323,6 @@ code, .mono { font-family: var(--font-mono); }
 <!-- ===================== Top Bar ===================== -->
 <header class="topbar" id="topbar">
   <div class="brand">
-    <a class="brand-home" href="../launch.html" aria-label="返回首页" title="返回首页">
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M3 10.8 12 3l9 7.8"></path>
-        <path d="M5 10v10h14V10"></path>
-        <path d="M9.5 20v-6h5v6"></path>
-      </svg>
-    </a>
     <div class="brand-name">PMU Diagnostic Workbench<span class="secondary">v0.1 · L3 demo</span></div>
   </div>
 
@@ -1308,19 +1340,6 @@ code, .mono { font-family: var(--font-mono); }
     </select>
   </div>
 
-  <div class="ctrl-group" id="group-group">
-    <label class="ctrl-label">PMU Group</label>
-    <div class="group-tabs segmented-control segmented-control-muted" id="group-tabs"><!-- populated by topbar.js --></div>
-  </div>
-
-  <div class="ctrl-group">
-    <label class="ctrl-label">Mix Mode</label>
-    <button class="btn btn-sm mix-toggle" id="mix-toggle" data-on="false">
-      <span class="mix-knob"></span>
-      <span class="mix-label">OFF</span>
-    </button>
-  </div>
-
   <div class="topbar-spacer"></div>
 
   <div class="health-pill" id="health-pill">
@@ -1333,18 +1352,32 @@ code, .mono { font-family: var(--font-mono); }
 </header>
 
 <!-- ===================== Workspace ===================== -->
-<main class="workspace workbench-frame">
+<main class="workspace workbench-frame" data-ide-frame data-host="standalone">
+  <div class="workspace-split" data-ide-split="pmu-workspace" data-pixel-sizes="280,0,400" data-sizes="20,51,29" data-min-size="240,520,320" data-gutter-size="12" data-storage-key="pmu-group2-workspace-split-v1">
 
   <!-- LEFT: Immediate Attention -->
-  <aside class="left-panel workbench-pane panel-shell-quiet" id="summary-panel">
+  <aside class="left-panel workbench-pane panel-shell-quiet" id="summary-panel" data-ide-pane="summary">
     <!-- populated by summary.js -->
   </aside>
 
   <!-- CENTER: Swimlane -->
-  <section class="center-panel workbench-pane panel-shell-quiet">
+  <section class="center-panel workbench-pane panel-shell-quiet" data-ide-pane="swimlane">
     <div class="sl-toolbar">
-      <div class="sl-title" id="sl-title">Pipeline Balance · 默认顺序</div>
-      <div class="sl-legend" id="sl-legend"><!-- populated by swimlane.js --></div>
+      <div class="sl-title-block">
+        <div class="sl-title" id="sl-title">Pipeline Balance · 默认顺序</div>
+        <div class="sl-legend" id="sl-legend"><!-- populated by swimlane.js --></div>
+      </div>
+      <div class="ctrl-group sl-ctrl-group" id="group-group">
+        <label class="ctrl-label">PMU View</label>
+        <div class="group-tabs segmented-control segmented-control-muted" id="group-tabs"><!-- populated by topbar.js --></div>
+      </div>
+      <div class="ctrl-group sl-ctrl-group">
+        <label class="ctrl-label">Mix</label>
+        <button class="pmu-switch mix-toggle" id="mix-toggle" data-on="false" role="switch" aria-checked="false">
+          <span class="pmu-switch-track" aria-hidden="true"><span class="pmu-switch-thumb"></span></span>
+          <span class="mix-label">OFF</span>
+        </button>
+      </div>
       <div class="sl-tools">
         <button class="btn btn-ghost btn-icon btn-sm sl-tool" id="sl-zoom-out" title="缩小">−</button>
         <span class="sl-zoom-val mono" id="sl-zoom-val">1.0×</span>
@@ -1358,10 +1391,11 @@ code, .mono { font-family: var(--font-mono); }
   </section>
 
   <!-- RIGHT: Detail Panel -->
-  <aside class="right-panel workbench-pane panel-shell-quiet" id="detail-panel">
+  <aside class="right-panel workbench-pane panel-shell-quiet" id="detail-panel" data-ide-pane="detail">
     <!-- populated by detail-panel.js -->
   </aside>
 
+  </div>
 </main>
 
 <!-- ===================== Modal mount ===================== -->
@@ -1750,6 +1784,11 @@ const state = {
   zoom: 1.0,            // 1.0 = fit horizontally
   scrollLeft: 0,
   highlightedWrapId: null,
+  highlightedLaneId: null,
+  highlightedCounter: null,
+  hoveredWrapId: null,
+  hoveredLaneId: null,
+  hoveredCounter: null,
   openModal: null,      // null | { type: 'source'|'call'|'blockgraph'|'hw', task, derived }
 };
 
@@ -2130,23 +2169,43 @@ function getGroup(id) {
 
 function renderTopbar() {
   const tabsEl = document.getElementById('group-tabs');
+  if (!tabsEl) return;
   tabsEl.innerHTML = '';
+  const labels = {
+    1: 'G1 Cube',
+    2: 'G2 Pipeline',
+    4: 'G4 Memory',
+    5: 'G5 L0',
+    6: 'G6 Issue',
+    7: 'G7 Buffer',
+    8: 'G8 L2',
+  };
   for (const g of Object.values(GROUP_REGISTRY)) {
     const btn = document.createElement('button');
     btn.className = 'btn btn-sm group-tab' + (state.groupId === g.id ? ' is-selected' : '');
-    btn.textContent = `G${g.id}`;
+    btn.textContent = labels[g.id] || `G${g.id}`;
     btn.dataset.groupId = String(g.id);
     btn.dataset.sampled = String(g.sampled);
     btn.dataset.disabled = String(!g.sampled && !g.available);
+    btn.disabled = !g.sampled && !g.available;
     btn.title = g.sampled
       ? `${g.title} · 本次 run 已采集`
-      : `${g.title} · 本次未采集，切换后展示空状态`;
-    btn.addEventListener('click', () => setState({ groupId: g.id, selectedTaskId: null }));
+      : `${g.title} · 本次 run 未采集，可从右侧建议复制下一次采集参数`;
+    if (g.sampled || g.available) {
+      btn.addEventListener('click', () => setState({
+        groupId: g.id,
+        selectedTaskId: null,
+        highlightedLaneId: null,
+        highlightedWrapId: null,
+        highlightedCounter: null,
+      }));
+    }
     tabsEl.appendChild(btn);
   }
 
   const mix = document.getElementById('mix-toggle');
   mix.dataset.on = String(state.mixMode);
+  mix.setAttribute('aria-checked', String(state.mixMode));
   mix.querySelector('.mix-label').textContent = state.mixMode ? 'ON' : 'OFF';
   mix.onclick = () => setState({ mixMode: !state.mixMode });
 }
@@ -2218,6 +2277,18 @@ function colorForTaskIdentity(taskOrKey) {
   return '#6f6a64';
 }
 
+function applySharedCounterPalette() {
+  const root = document.documentElement;
+  root.style.setProperty('--c-compute', colorForTaskIdentity('matmul'));
+  root.style.setProperty('--c-scalar', colorForTaskIdentity('cpu_sched'));
+  root.style.setProperty('--c-mte1', colorForTaskIdentity('mte_load'));
+  root.style.setProperty('--c-mte2', colorForTaskIdentity('vec_elementwise'));
+  root.style.setProperty('--c-mte3', colorForTaskIdentity('vec_reduce'));
+  root.style.setProperty('--c-fixpipe', colorForTaskIdentity('vec_layernorm'));
+}
+
+applySharedCounterPalette();
+
 function resolveCssColor(color, fallback = '#5f6775', depth = 0) {
   if (!color) return fallback;
   const raw = String(color).trim();
@@ -2282,13 +2353,22 @@ function renderSharedTaskBarImage(task, x, y, width, height, baseColor, options 
 }
 
 let host;
-let tooltipEl;
+let swimlaneTooltip;
 
 function initSwimlane(containerId) {
   host = document.getElementById(containerId);
-  tooltipEl = document.createElement('div');
-  tooltipEl.className = 'sl-tooltip';
-  host.appendChild(tooltipEl);
+  const pattern = window.PtoSwimlaneTaskPattern;
+  if (pattern?.initHoverTooltip) {
+    swimlaneTooltip = pattern.initHoverTooltip({
+      root: host,
+      targets: '.sl-task, .sl-marker',
+      appendTo: host,
+      bounds: host,
+      durationUnit: 'µs',
+      getTask: resolveTooltipTask,
+      getTooltipHtml: (task) => pattern.formatTaskTooltip?.(task, { durationUnit: 'µs' }),
+    });
+  }
 }
 
 // Compute lane ordering for the current state.
@@ -2335,6 +2415,9 @@ function renderSwimlane() {
   if (!host) return;
   const mix = state.mixMode;
   const group = getGroup(state.groupId)?.impl;
+  const activeLaneId = state.hoveredLaneId || state.highlightedLaneId;
+  const activeWrapId = state.hoveredWrapId || state.highlightedWrapId;
+  const activeCounter = state.hoveredCounter || state.highlightedCounter;
 
   // ---- compute geometry ----
   const rows = computeLaneOrder(mix);
@@ -2376,13 +2459,14 @@ function renderSwimlane() {
       // wrap tab (left) + tinted background spanning 3 lane rows
       const wrap = row.wrapHeader;
       const isCritical = CRITICAL_WRAPS.has(wrap.id);
+      const isHighlighted = wrap.id === activeWrapId;
       const blockTopY = y;
       const blockH = WRAP_GUTTER + LANE_H * 3;
       // background for whole wrap block
-      svg += `<rect class="sl-lane-bg ${isCritical ? 'is-wrap-critical' : (wrap.index % 2 === 0 ? 'is-wrap-even' : 'is-wrap-odd')}" x="${WRAP_TAB_W}" y="${blockTopY}" width="${totalWidth - WRAP_TAB_W}" height="${blockH}"/>`;
+      svg += `<rect class="sl-lane-bg ${isCritical ? 'is-wrap-critical' : (wrap.index % 2 === 0 ? 'is-wrap-even' : 'is-wrap-odd')} ${isHighlighted ? 'is-highlighted' : ''}" x="${WRAP_TAB_W}" y="${blockTopY}" width="${totalWidth - WRAP_TAB_W}" height="${blockH}"/>`;
       // wrap tab
-      svg += `<rect class="sl-wrap-tab ${isCritical ? 'is-critical' : ''}" x="0" y="${blockTopY}" width="${WRAP_TAB_W}" height="${blockH - 1}" rx="2"/>`;
-      svg += `<text class="sl-wrap-tab-text ${isCritical ? 'is-critical' : ''}" x="${WRAP_TAB_W / 2}" y="${blockTopY + blockH / 2}" transform="rotate(-90 ${WRAP_TAB_W / 2} ${blockTopY + blockH / 2})">W${wrap.index}${isCritical ? ' ●' : ''}</text>`;
+      svg += `<rect class="sl-wrap-tab ${isCritical ? 'is-critical' : ''} ${isHighlighted ? 'is-highlighted' : ''}" x="0" y="${blockTopY}" width="${WRAP_TAB_W}" height="${blockH - 1}" rx="2"/>`;
+      svg += `<text class="sl-wrap-tab-text ${isCritical ? 'is-critical' : ''} ${isHighlighted ? 'is-highlighted' : ''}" x="${WRAP_TAB_W / 2}" y="${blockTopY + blockH / 2}" transform="rotate(-90 ${WRAP_TAB_W / 2} ${blockTopY + blockH / 2})">W${wrap.index}${isCritical ? ' ●' : ''}</text>`;
       continue;
     }
     // lane row
@@ -2390,7 +2474,9 @@ function renderSwimlane() {
     const tintClass =
       (lane.kind === 'AICCtrl' || lane.kind === 'AICSched') ? 'is-cpu-section' :
       (lane.kind === 'MTEIn' || lane.kind === 'MTEOut') ? 'is-mte-section' : '';
-    svg += `<rect class="sl-lane-bg ${tintClass}" x="${mix && row.wrap ? WRAP_TAB_W : 0}" y="${y}" width="${totalWidth - (mix && row.wrap ? WRAP_TAB_W : 0)}" height="${h}"/>`;
+    const rowHighlighted = lane.id === activeLaneId || row.wrap?.id === activeWrapId;
+    const rowCounterHighlighted = Boolean(activeCounter && (TASKS_BY_LANE[lane.id] || []).some((task) => task.g2 && group?.derive(task)?.composition.some((seg) => seg.counter === activeCounter)));
+    svg += `<rect class="sl-lane-bg ${tintClass} ${rowHighlighted ? 'is-highlighted' : ''} ${rowCounterHighlighted ? 'is-counter-highlighted' : ''}" x="${mix && row.wrap ? WRAP_TAB_W : 0}" y="${y}" width="${totalWidth - (mix && row.wrap ? WRAP_TAB_W : 0)}" height="${h}"/>`;
 
     // lane label
     const labelClass =
@@ -2398,7 +2484,7 @@ function renderSwimlane() {
       (lane.kind === 'AIV') ? 'is-aiv' :
       (lane.kind === 'MTEIn' || lane.kind === 'MTEOut') ? 'is-mte' :
       'is-cpu';
-    svg += `<text class="sl-lane-label ${labelClass}" x="${(mix && row.wrap ? WRAP_TAB_W : 0) + 6}" y="${y + h / 2}">${lane.label}</text>`;
+    svg += `<text class="sl-lane-label ${labelClass} ${rowHighlighted || rowCounterHighlighted ? 'is-highlighted' : ''}" x="${(mix && row.wrap ? WRAP_TAB_W : 0) + 6}" y="${y + h / 2}">${lane.label}</text>`;
   }
 
   // time-axis ticks
@@ -2429,8 +2515,9 @@ function renderSwimlane() {
   const wrapper = document.createElement('div');
   wrapper.innerHTML = svg;
   host.appendChild(wrapper.firstChild);
-  // re-attach tooltip
-  host.appendChild(tooltipEl);
+  if (swimlaneTooltip?.tooltip && !swimlaneTooltip.tooltip.parentElement) {
+    host.appendChild(swimlaneTooltip.tooltip);
+  }
 
   attachInteractions();
 }
@@ -2443,8 +2530,19 @@ function renderTask(task, ts, y, h, mix, group) {
   const barH = h - 2;
 
   const derived = group && task.g2 ? group.derive(task) : null;
+  const hasCompositionRail = Boolean(mix && task.g2 && derived);
+  const railH = hasCompositionRail ? 2 : 0;
+  const railGap = hasCompositionRail ? 1 : 0;
+  const mainBarH = hasCompositionRail ? Math.max(7, barH - railH - railGap) : barH;
+  const railY = top + mainBarH + railGap;
   const isSelected = task.id === state.selectedTaskId;
   const isCritical = CRITICAL_WRAPS.has(task.wrapId) && task.isWrapPrimary;
+  const activeLaneId = state.hoveredLaneId || state.highlightedLaneId;
+  const activeWrapId = state.hoveredWrapId || state.highlightedWrapId;
+  const activeCounter = state.hoveredCounter || state.highlightedCounter;
+  const isLaneHighlighted = task.laneId === activeLaneId;
+  const isWrapHighlighted = task.wrapId && task.wrapId === activeWrapId;
+  const isCounterHighlighted = Boolean(activeCounter && derived?.composition?.some((seg) => seg.counter === activeCounter));
   let suspectClass = '';
   if (derived?.status === 'wait' && mix && task.isWrapPrimary) suspectClass = 'is-suspect-wait';
   else if (derived?.status === 'overlap' && mix && task.isWrapPrimary) suspectClass = 'is-suspect-overlap';
@@ -2456,7 +2554,8 @@ function renderTask(task, ts, y, h, mix, group) {
     // shared colormap: stable op identity color
     fill = colorForTaskIdentity(task);
   } else if (task.g2 && derived) {
-    fill = 'var(--bg-elev-2)'; // base canvas, segments drawn on top
+    // Keep the task identity hue visible; PMU composition segments sit on top.
+    fill = colorForTaskIdentity(task);
   } else {
     // non-AIC/AIV in mix mode keep shared identity color
     fill = colorForTaskIdentity(task);
@@ -2464,41 +2563,37 @@ function renderTask(task, ts, y, h, mix, group) {
 
   let out = '';
   out += `<g class="sl-task-group">`;
-  out += renderSharedTaskBarImage(task, x1, top, w, barH, fill, {
+  out += renderSharedTaskBarImage(task, x1, top, w, mainBarH, fill, {
     isSelected,
     isEmphasized: Boolean(suspectClass),
   });
 
-  // composition segments (mix mode + has g2)
-  if (mix && task.g2 && derived) {
-    out += renderComposition(task, derived, ts, top, barH, group);
-  }
-
-  // In mix mode, PMU composition overlays the shared task-bar text, so keep a direct task label.
-  if (mix && task.g2 && w > 36) {
-    const fontSize = w > 80 ? 9 : 8;
-    const labelX = x1 + 4;
-    const labelMaxW = Math.max(20, w - 8);
-    const labelClass = (mix && task.g2) ? 'is-dark-bg' : '';
-    out += `<text class="sl-task-name ${labelClass}" x="${labelX}" y="${top + barH / 2}" font-size="${fontSize}" clip-path="inset(0 ${Math.max(0, w - labelMaxW)}px 0 0)">${task.opName}</text>`;
+  if (hasCompositionRail) {
+    out += renderComposition(task, derived, ts, railY, railH, group);
   }
 
   // status badge (right tip) for primary wrap tasks in mix mode
   if (mix && derived && task.isWrapPrimary && w > 28) {
     const bx = x2 - 14;
     const by = top + 1;
-    const bw = 12, bh = barH - 2;
+    const bw = 12, bh = mainBarH - 2;
     const klass = derived.status; // 'wait' | 'accounted' | 'overlap'
     const sym = klass === 'wait' ? '!' : klass === 'overlap' ? '◇' : '✓';
     out += `<g class="sl-badge"><rect class="sl-badge-r ${klass}" x="${bx}" y="${by}" width="${bw}" height="${bh}" rx="2"/><text class="sl-badge-t ${klass}" x="${bx + bw / 2}" y="${by + bh / 2}">${sym}</text></g>`;
   }
 
-  out += `<rect class="sl-task ${isSelected ? 'is-selected' : ''} ${suspectClass}" data-task-id="${task.id}" x="${x1}" y="${top}" width="${w}" height="${barH}" rx="2" fill="transparent" pointer-events="all"/>`;
+  const highlightClass = [
+    isSelected ? 'is-selected' : '',
+    suspectClass,
+    (isLaneHighlighted || isWrapHighlighted) ? 'is-highlighted' : '',
+    isCounterHighlighted ? 'is-counter-highlighted' : '',
+  ].filter(Boolean).join(' ');
+  out += `<rect class="sl-task ${highlightClass}" data-task-id="${task.id}" x="${x1}" y="${top}" width="${w}" height="${barH}" rx="2" fill="transparent" pointer-events="all"/>`;
   out += `</g>`;
   return out;
 }
 
-function renderComposition(task, derived, ts, top, barH, group) {
+function renderComposition(task, derived, ts, railY, railH, group) {
   const x1 = ts(task.start);
   const x2 = ts(task.end);
   const w = x2 - x1;
@@ -2513,18 +2608,18 @@ function renderComposition(task, derived, ts, top, barH, group) {
       const family = group.familyOf(seg.counter);
       const segW = (seg.value / derived.clcCycle) * usedW;
       if (segW < 0.4) continue;
-      out += `<rect class="sl-seg" x="${cursor}" y="${top}" width="${segW}" height="${barH}" fill="${group.familyColor(family)}" fill-opacity="0.72"/>`;
+      out += `<rect class="sl-seg" x="${cursor}" y="${railY}" width="${segW}" height="${railH}" fill="${group.familyColor(family)}" fill-opacity="0.92"/>`;
       cursor += segW;
     }
     // uncovered (striped via diagonal pattern made of overlay)
     const uncoveredW = x2 - cursor;
     if (uncoveredW > 0.5) {
-      out += `<rect class="sl-seg sl-seg-uncovered" x="${cursor}" y="${top}" width="${uncoveredW}" height="${barH}"/>`;
+      out += `<rect class="sl-seg sl-seg-uncovered" x="${cursor}" y="${railY}" width="${uncoveredW}" height="${railH}"/>`;
       // diagonal hatch lines
       const hatchN = Math.floor(uncoveredW / 4);
       for (let h = 0; h < hatchN; h++) {
         const hx = cursor + h * 4;
-        out += `<line stroke="var(--c-uncovered)" stroke-opacity="0.65" stroke-width="0.7" x1="${hx}" y1="${top}" x2="${hx + 4}" y2="${top + barH}"/>`;
+        out += `<line stroke="var(--c-uncovered)" stroke-opacity="0.85" stroke-width="0.7" x1="${hx}" y1="${railY}" x2="${hx + 3}" y2="${railY + railH}"/>`;
       }
     }
   } else if (derived.status === 'overlap') {
@@ -2534,15 +2629,15 @@ function renderComposition(task, derived, ts, top, barH, group) {
       const family = group.familyOf(seg.counter);
       const segW = (seg.value / derived.clcCycle) * w;
       if (segW < 0.4) continue;
-      out += `<rect class="sl-seg" x="${cursor}" y="${top}" width="${Math.min(w - (cursor - x1), segW)}" height="${barH}" fill="${group.familyColor(family)}" fill-opacity="0.68"/>`;
+      out += `<rect class="sl-seg" x="${cursor}" y="${railY}" width="${Math.min(w - (cursor - x1), segW)}" height="${railH}" fill="${group.familyColor(family)}" fill-opacity="0.88"/>`;
       cursor += segW;
     }
-    out += `<rect class="sl-seg sl-seg-overlap" x="${x1}" y="${top}" width="${w}" height="${barH}"/>`;
+    out += `<rect class="sl-seg sl-seg-overlap" x="${x1}" y="${railY}" width="${w}" height="${railH}"/>`;
     // marker bar at right showing how much overflow
     const overflowRatio = Math.min(0.4, (derived.clcCycle - task.totalCycle) / task.totalCycle);
     const tickX = x2 + 1;
     const tickW = Math.max(2, overflowRatio * w);
-    out += `<rect class="sl-seg" x="${tickX}" y="${top + barH / 2 - 1}" width="${tickW}" height="2" fill="var(--c-overlap)" fill-opacity="0.85"/>`;
+    out += `<rect class="sl-seg" x="${tickX}" y="${railY}" width="${tickW}" height="${railH}" fill="var(--c-overlap)" fill-opacity="0.85"/>`;
   } else {
     // accounted: layout segments by clc fraction of total
     let cursor = x1;
@@ -2550,7 +2645,7 @@ function renderComposition(task, derived, ts, top, barH, group) {
       const family = group.familyOf(seg.counter);
       const segW = (seg.value / derived.clcCycle) * w;
       if (segW < 0.4) continue;
-      out += `<rect class="sl-seg" x="${cursor}" y="${top}" width="${Math.min(w - (cursor - x1), segW)}" height="${barH}" fill="${group.familyColor(family)}" fill-opacity="0.72"/>`;
+      out += `<rect class="sl-seg" x="${cursor}" y="${railY}" width="${Math.min(w - (cursor - x1), segW)}" height="${railH}" fill="${group.familyColor(family)}" fill-opacity="0.92"/>`;
       cursor += segW;
     }
   }
@@ -2617,48 +2712,30 @@ function attachInteractions() {
       if (id) setState({ selectedTaskId: id });
       e.stopPropagation();
     });
-    el.addEventListener('mouseenter', e => {
-      const id = el.dataset.taskId;
-      const task = TASKS.find(t => t.id === id);
-      if (task) showTooltip(task, e);
-    });
-    el.addEventListener('mousemove', moveTooltip);
-    el.addEventListener('mouseleave', hideTooltip);
   });
 }
 
-function showTooltip(task, e) {
+function resolveTooltipTask(target) {
+  const id = target?.dataset?.taskId;
+  const task = TASKS.find(t => t.id === id);
+  if (!task) return null;
   const group = getGroup(state.groupId)?.impl;
   const derived = task.g2 && group ? group.derive(task) : null;
-  let html = `<div class="tt-op">${task.opName}</div>`;
-  html += `<div class="tt-row"><span class="tt-k">lane</span><span class="tt-v">${task.laneKind} · ${task.laneId}</span></div>`;
-  html += `<div class="tt-row"><span class="tt-k">total</span><span class="tt-v">${task.totalCycle.toFixed(0)} µs</span></div>`;
-  if (derived) {
-    html += `<div class="tt-row"><span class="tt-k">clc</span><span class="tt-v">${derived.clcCycle.toFixed(0)} µs</span></div>`;
-    const gapStr = derived.gap >= 0 ? `+${derived.gap.toFixed(0)}` : `${derived.gap.toFixed(0)}`;
-    html += `<div class="tt-row"><span class="tt-k">gap</span><span class="tt-v">${gapStr} µs (${(derived.gapRatio * 100).toFixed(1)}%)</span></div>`;
-    html += `<div class="tt-row"><span class="tt-k">status</span><span class="tt-v ${derived.status === 'wait' ? 'bad' : derived.status === 'overlap' ? 'warn-fg' : 'ok'}">${derived.status}</span></div>`;
-    if (derived.dominantCounter) {
-      html += `<div class="tt-row"><span class="tt-k">dominant</span><span class="tt-v">${derived.dominantCounter}</span></div>`;
-    }
-  }
-  if (task.wrapId) {
-    html += `<div class="tt-row"><span class="tt-k">wrap</span><span class="tt-v">${task.wrapId}</span></div>`;
-  }
-  tooltipEl.innerHTML = html;
-  tooltipEl.classList.add('visible');
-  moveTooltip(e);
-}
-function moveTooltip(e) {
-  if (!tooltipEl.classList.contains('visible')) return;
-  const rect = host.getBoundingClientRect();
-  const x = e.clientX - rect.left + 14;
-  const y = e.clientY - rect.top + 14;
-  tooltipEl.style.left = `${Math.min(x, host.clientWidth - 280)}px`;
-  tooltipEl.style.top = `${Math.min(y, host.clientHeight - 160)}px`;
-}
-function hideTooltip() {
-  tooltipEl.classList.remove('visible');
+  return {
+    ...task,
+    label: task.opName,
+    displayName: task.opName,
+    opName: task.opName,
+    laneKind: task.laneKind,
+    laneId: task.laneId,
+    totalCycle: task.totalCycle,
+    clcCycle: derived?.clcCycle,
+    gap: derived?.gap,
+    gapRatio: derived?.gapRatio,
+    status: derived?.status,
+    dominantCounter: derived?.dominantCounter,
+    wrapId: task.wrapId,
+  };
 }
 
 // scroll to a task
@@ -2683,12 +2760,40 @@ function scrollToTask(taskId) {
   host.scrollTo({ top: Math.max(0, y - host.clientHeight / 2), left: target, behavior: 'smooth' });
 }
 
+function scrollToLane(laneId) {
+  if (!host || !laneId) return;
+  const rows = computeLaneOrder(state.mixMode);
+  let y = TIME_AXIS_H + MARKER_H;
+  for (const row of rows) {
+    if (row.separator) { y += SECTION_GAP; continue; }
+    if (row.wrapHeader) { y += WRAP_GUTTER; continue; }
+    if (row.lane.id === laneId) break;
+    y += LANE_H;
+  }
+  host.scrollTo({ top: Math.max(0, y - host.clientHeight / 2), behavior: 'smooth' });
+}
+
+function scrollToWrap(wrapId) {
+  const task = TASKS.find(t => t.wrapId === wrapId && t.isWrapPrimary) || TASKS.find(t => t.wrapId === wrapId);
+  if (task) scrollToTask(task.id);
+}
+
+function scrollToCounter(counter) {
+  const group = getGroup(state.groupId)?.impl;
+  if (!group || !counter) return;
+  const task = TASKS.find(t => t.g2 && group.derive(t)?.composition.some(seg => seg.counter === counter));
+  if (task) scrollToTask(task.id);
+}
+
   __exports.initSwimlane = initSwimlane;
   __exports.computeLaneOrder = computeLaneOrder;
   __exports.renderSwimlane = renderSwimlane;
   __exports.renderLegend = renderLegend;
   __exports.renderTitle = renderTitle;
   __exports.scrollToTask = scrollToTask;
+  __exports.scrollToLane = scrollToLane;
+  __exports.scrollToWrap = scrollToWrap;
+  __exports.scrollToCounter = scrollToCounter;
 })(__PYPTOUX_MODULES__['js/view/swimlane.js'] = {});
 
 /* === inlined module: js/view/summary.js === */
@@ -2697,7 +2802,7 @@ function scrollToTask(taskId) {
   const { LANES, WRAPS, TASKS, TASKS_BY_LANE } = __PYPTOUX_MODULES__['js/data/tasks.js'];
   const { getGroup } = __PYPTOUX_MODULES__['js/groups/registry.js'];
   const { COUNTER_META } = __PYPTOUX_MODULES__['js/data/hw-map.js'];
-  const { scrollToTask } = __PYPTOUX_MODULES__['js/view/swimlane.js'];
+  const { scrollToTask, scrollToLane, scrollToWrap, scrollToCounter } = __PYPTOUX_MODULES__['js/view/swimlane.js'];
 // Immediate Attention panel (left)
 
 
@@ -2726,6 +2831,9 @@ function renderSummary() {
   const ratioClass = summary.explainRatio < 0.7 ? 'is-bad' : summary.explainRatio < 0.9 ? 'is-warn' : 'is-ok';
 
   const next = headWrap ? impl.suggestNextGroup(headWrap.critical, headWrap.criticalDerived) : null;
+  const activeLaneClass = state.highlightedLaneId === criticalLane?.id ? 'is-active' : '';
+  const activeWrapClass = state.highlightedWrapId === headWrap?.wrapId ? 'is-active' : '';
+  const activeCounterClass = state.highlightedCounter === headDominant ? 'is-active' : '';
 
   el.innerHTML = `
     <div class="panel-head">
@@ -2733,19 +2841,19 @@ function renderSummary() {
       <div class="panel-headline">${impl.shortTitle}</div>
       <div class="sum-row" style="margin-top:8px;">
         <span class="k">explain ratio</span>
-        <span class="v"><span class="dp-chip ${ratioClass}"><span class="k">clc/total</span><span class="v">${ratioPct}%</span></span></span>
+        <span class="v"><span class="stat-chip dp-chip ${ratioClass}"><span class="k">clc/total</span><span class="v">${ratioPct}%</span></span></span>
       </div>
     </div>
 
     <div class="panel-body inspector-rail">
 
-      <div class="sum-card inspector-soft-card is-critical">
+      <div class="sum-card inspector-soft-card is-critical is-interactive ${activeLaneClass}" data-focus-kind="lane" data-lane-id="${criticalLane?.id || ''}" tabindex="0" role="button">
         <div class="sum-eyebrow"><span class="dot"></span>Critical lane</div>
         <div class="sum-title">${criticalLane?.label || '—'}</div>
         <div class="sum-desc">在 24 个 Wrap 中，该 lane 出现在 critical path 的累计 severity 最高。</div>
       </div>
 
-      <div class="sum-card inspector-soft-card is-${headStatus === 'wait' ? 'wait' : headStatus === 'overlap' ? 'overlap' : 'critical'}">
+      <div class="sum-card inspector-soft-card is-interactive ${activeWrapClass} is-${headStatus === 'wait' ? 'wait' : headStatus === 'overlap' ? 'overlap' : 'critical'}" data-focus-kind="wrap" data-wrap-id="${headWrap?.wrapId || ''}" data-task-id="${headWrap?.critical?.id || ''}" tabindex="0" role="button">
         <div class="sum-eyebrow"><span class="dot"></span>Critical Wrap · top suspect</div>
         <div class="sum-title">Wrap ${headWrap?.wrapIndex || '—'} <span class="muted mono" style="font-weight:400;font-size:11px;">${headWrap?.status || ''}</span></div>
         <div class="sum-desc">${describeWrap(headWrap)}</div>
@@ -2754,7 +2862,7 @@ function renderSummary() {
         </div>
       </div>
 
-      <div class="sum-card inspector-soft-card">
+      <div class="sum-card inspector-soft-card is-interactive ${activeCounterClass}" data-focus-kind="counter" data-counter="${headDominant || ''}" tabindex="0" role="button">
         <div class="sum-eyebrow"><span class="dot" style="background:var(--c-mte2)"></span>Dominant counter · Wrap ${headWrap?.wrapIndex || '—'}</div>
         <div class="sum-title mono">${headDominant || '—'}</div>
         <div class="sum-desc">${dom?.explain || ''}</div>
@@ -2770,7 +2878,7 @@ function renderSummary() {
             const absGap = Math.abs(gap);
             const cls = absGap > 0.30 ? 'high' : absGap > 0.15 ? 'mid' : 'low';
             const sign = gap > 0 ? '+' : '';
-            return `<li data-wrap-id="${w.wrapId}" data-task-id="${w.critical.id}">
+            return `<li class="${state.highlightedWrapId === w.wrapId ? 'is-active' : ''}" data-focus-kind="wrap" data-wrap-id="${w.wrapId}" data-task-id="${w.critical.id}" tabindex="0" role="button">
               <span class="wr-name">W${w.wrapIndex}</span>
               <span class="wr-counter">${w.dominantCounter || '—'}</span>
               <span class="wr-ratio ${cls}">${sign}${r}%</span>
@@ -2792,18 +2900,19 @@ function renderSummary() {
   `;
 
   // bindings
-  const focusBtn = el.querySelector('#sum-focus-head');
-  if (focusBtn && headWrap) {
-    focusBtn.addEventListener('click', () => {
-      setState({ selectedTaskId: headWrap.critical.id });
-      scrollToTask(headWrap.critical.id);
+  el.querySelectorAll('[data-focus-kind]').forEach(target => {
+    target.addEventListener('mouseenter', () => previewSummaryTarget(target));
+    target.addEventListener('mouseleave', clearSummaryPreview);
+    target.addEventListener('focus', () => previewSummaryTarget(target));
+    target.addEventListener('blur', clearSummaryPreview);
+    target.addEventListener('click', (event) => {
+      if (event.target.closest?.('button') && event.target.id !== 'sum-focus-head') return;
+      lockSummaryTarget(target);
     });
-  }
-  el.querySelectorAll('#wrap-rank-list li').forEach(li => {
-    li.addEventListener('click', () => {
-      const tid = li.dataset.taskId;
-      setState({ selectedTaskId: tid });
-      scrollToTask(tid);
+    target.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      lockSummaryTarget(target);
     });
   });
   const copyBtn = el.querySelector('#sum-copy-cmd');
@@ -2812,6 +2921,61 @@ function renderSummary() {
       navigator.clipboard?.writeText(next.cmd);
       toast(`已复制：${next.cmd}`);
     });
+  }
+}
+
+function previewSummaryTarget(target) {
+  setState({
+    hoveredLaneId: target.dataset.focusKind === 'lane' ? target.dataset.laneId : null,
+    hoveredWrapId: target.dataset.focusKind === 'wrap' ? target.dataset.wrapId : null,
+    hoveredCounter: target.dataset.focusKind === 'counter' ? target.dataset.counter : null,
+    hoveredTaskId: target.dataset.taskId || null,
+  });
+}
+
+function clearSummaryPreview() {
+  setState({
+    hoveredLaneId: null,
+    hoveredWrapId: null,
+    hoveredCounter: null,
+    hoveredTaskId: null,
+  });
+}
+
+function lockSummaryTarget(target) {
+  const kind = target.dataset.focusKind;
+  if (kind === 'lane') {
+    const laneId = target.dataset.laneId;
+    setState({
+      highlightedLaneId: laneId,
+      highlightedWrapId: null,
+      highlightedCounter: null,
+      selectedTaskId: null,
+    });
+    scrollToLane(laneId);
+    return;
+  }
+  if (kind === 'wrap') {
+    const wrapId = target.dataset.wrapId;
+    const taskId = target.dataset.taskId || null;
+    setState({
+      highlightedLaneId: null,
+      highlightedWrapId: wrapId,
+      highlightedCounter: null,
+      selectedTaskId: taskId,
+    });
+    taskId ? scrollToTask(taskId) : scrollToWrap(wrapId);
+    return;
+  }
+  if (kind === 'counter') {
+    const counter = target.dataset.counter;
+    setState({
+      highlightedLaneId: null,
+      highlightedWrapId: null,
+      highlightedCounter: counter,
+      selectedTaskId: null,
+    });
+    scrollToCounter(counter);
   }
 }
 
@@ -3324,7 +3488,7 @@ function openModal(type, ctx) {
 
   root.innerHTML = `
     <div class="modal-backdrop" id="modal-backdrop"></div>
-    <div class="modal-window" role="dialog">
+    <div class="modal-window panel-shell" role="dialog">
       <div class="modal-head">
         <div>
           <div class="modal-kicker">${t.kicker}</div>
@@ -3396,8 +3560,8 @@ function renderDetail() {
       <div class="panel-title">Detail · ${task.laneKind} ${task.wrapId ? '· ' + task.wrapId : ''}</div>
       <div class="panel-headline mono">${task.opName}</div>
       <div class="dp-derived" style="margin-top:6px;">
-        <span class="dp-chip"><span class="k">total</span><span class="v">${task.totalCycle.toFixed(0)} µs</span></span>
-        ${derived ? `<span class="dp-chip"><span class="k">clc</span><span class="v">${derived.clcCycle.toFixed(0)} µs</span></span>` : ''}
+        <span class="stat-chip dp-chip"><span class="k">total</span><span class="v">${task.totalCycle.toFixed(0)} µs</span></span>
+        ${derived ? `<span class="stat-chip dp-chip"><span class="k">clc</span><span class="v">${derived.clcCycle.toFixed(0)} µs</span></span>` : ''}
         ${derived ? renderGapChip(derived) : ''}
       </div>
     </div>
@@ -3428,12 +3592,12 @@ function renderDetail() {
       <div class="dp-section inspector-section">
         <div class="dp-section-title">Jump · 一跳定位</div>
         <div class="dp-jumps">
-          <button class="dp-jump-btn" data-jump="source"><span class="dp-jump-ico">{ }</span><span class="dp-jump-meta"><span class="dp-jump-name">源码</span><span class="dp-jump-sub">${task.traceLinks.source.path}:${task.traceLinks.source.hotLine}</span></span></button>
-          <button class="dp-jump-btn" data-jump="call"><span class="dp-jump-ico">CL</span><span class="dp-jump-meta"><span class="dp-jump-name">CALL</span><span class="dp-jump-sub">${task.traceLinks.callOpMagic}</span></span></button>
-          <button class="dp-jump-btn" data-jump="blockgraph"><span class="dp-jump-ico">BG</span><span class="dp-jump-meta"><span class="dp-jump-name">Block Graph</span><span class="dp-jump-sub">leaf ${task.traceLinks.leafHash.slice(0, 14)}…</span></span></button>
-          <button class="dp-jump-btn" data-jump="hw" ${dominantMeta ? '' : 'disabled'}><span class="dp-jump-ico">HW</span><span class="dp-jump-meta"><span class="dp-jump-name">硬件路径</span><span class="dp-jump-sub">${dominantMeta ? dominantMeta.pipe : '需要 group 2 数据'}</span></span></button>
-          <button class="dp-jump-btn" data-jump="peer" ${peers.length > 0 ? '' : 'disabled'}><span class="dp-jump-ico">PR</span><span class="dp-jump-meta"><span class="dp-jump-name">Peer 视图</span><span class="dp-jump-sub">${state.mixMode ? '已开启 Mix' : '建议开启 Mix 模式'}</span></span></button>
-          <button class="dp-jump-btn" data-jump="next" ${next ? '' : 'disabled'}><span class="dp-jump-ico">▶︎</span><span class="dp-jump-meta"><span class="dp-jump-name">下次采集</span><span class="dp-jump-sub">${next ? 'Group ' + next.group : '—'}</span></span></button>
+          <button class="cp-btn dp-jump-btn" data-jump="source"><span class="cp-btn-icon dp-jump-ico">{ }</span><span class="cp-btn-text dp-jump-meta"><span class="cp-btn-label dp-jump-name">源码</span><span class="cp-btn-sub dp-jump-sub">${task.traceLinks.source.path}:${task.traceLinks.source.hotLine}</span></span></button>
+          <button class="cp-btn dp-jump-btn" data-jump="call"><span class="cp-btn-icon dp-jump-ico">CL</span><span class="cp-btn-text dp-jump-meta"><span class="cp-btn-label dp-jump-name">CALL</span><span class="cp-btn-sub dp-jump-sub">${task.traceLinks.callOpMagic}</span></span></button>
+          <button class="cp-btn dp-jump-btn" data-jump="blockgraph"><span class="cp-btn-icon dp-jump-ico">BG</span><span class="cp-btn-text dp-jump-meta"><span class="cp-btn-label dp-jump-name">Block Graph</span><span class="cp-btn-sub dp-jump-sub">leaf ${task.traceLinks.leafHash.slice(0, 14)}…</span></span></button>
+          <button class="cp-btn dp-jump-btn" data-jump="hw" ${dominantMeta ? '' : 'disabled'}><span class="cp-btn-icon dp-jump-ico">HW</span><span class="cp-btn-text dp-jump-meta"><span class="cp-btn-label dp-jump-name">硬件路径</span><span class="cp-btn-sub dp-jump-sub">${dominantMeta ? dominantMeta.pipe : '需要 group 2 数据'}</span></span></button>
+          <button class="cp-btn dp-jump-btn" data-jump="peer" ${peers.length > 0 ? '' : 'disabled'}><span class="cp-btn-icon dp-jump-ico">PR</span><span class="cp-btn-text dp-jump-meta"><span class="cp-btn-label dp-jump-name">Peer 视图</span><span class="cp-btn-sub dp-jump-sub">${state.mixMode ? '已开启 Mix' : '建议开启 Mix 模式'}</span></span></button>
+          <button class="cp-btn dp-jump-btn" data-jump="next" ${next ? '' : 'disabled'}><span class="cp-btn-icon dp-jump-ico">▶︎</span><span class="cp-btn-text dp-jump-meta"><span class="cp-btn-label dp-jump-name">下次采集</span><span class="cp-btn-sub dp-jump-sub">${next ? 'Group ' + next.group : '—'}</span></span></button>
         </div>
       </div>
 
@@ -3456,21 +3620,21 @@ function renderDetail() {
 function renderGapChip(d) {
   const cls = d.status === 'wait' ? 'is-bad' : d.status === 'overlap' ? 'is-warn' : 'is-ok';
   const sign = d.gap >= 0 ? '+' : '';
-  return `<span class="dp-chip ${cls}"><span class="k">gap</span><span class="v">${sign}${d.gap.toFixed(0)} µs · ${(d.gapRatio * 100).toFixed(1)}%</span></span>`;
+  return `<span class="stat-chip dp-chip ${cls}"><span class="k">gap</span><span class="v">${sign}${d.gap.toFixed(0)} µs · ${(d.gapRatio * 100).toFixed(1)}%</span></span>`;
 }
 
 function renderConclusion(task, d, dominantMeta, peers) {
   let badge, lead, body;
   if (d.status === 'wait') {
-    badge = '<span class="dp-conclusion-badge wait">Wait suspect</span>';
+    badge = '<span class="stat-chip dp-conclusion-badge wait">Wait suspect</span>';
     lead = `<b class="mono">clc=${d.clcCycle.toFixed(0)} µs</b> &lt; <b class="mono">total=${task.totalCycle.toFixed(0)} µs</b>，gap_ratio = <b>${(d.gapRatio*100).toFixed(1)}%</b>。`;
     body = `当前 group 的 cycle-like counter 只解释了 task 生命周期的 ${(d.clcCycle/task.totalCycle*100).toFixed(0)}%。Dominant 指向 <b class="mono">${d.dominantCounter}</b>（${dominantMeta?.pipe}），但仍有显著未解释时间 — 疑似 <b>uncovered / wait / idle / sync / 未统计 stall</b>。`;
   } else if (d.status === 'overlap') {
-    badge = '<span class="dp-conclusion-badge overlap">Overlap suspect</span>';
+    badge = '<span class="stat-chip dp-conclusion-badge overlap">Overlap suspect</span>';
     lead = `<b class="mono">clc=${d.clcCycle.toFixed(0)} µs</b> &gt; <b class="mono">total=${task.totalCycle.toFixed(0)} µs</b>，overflow = <b>${(d.gapRatio*100).toFixed(1)}%</b>。`;
     body = `cycle-like 求和超过 total。可能是 <b>pipeline overlap</b>（pipe 间并行），也可能是 <b>non-exclusive counter double-count</b>。<b style="color:var(--yellow)">不能直接表述为"更好"</b>，需结合 dominant counter 与 peer task 判断。`;
   } else {
-    badge = '<span class="dp-conclusion-badge accounted">Accounted</span>';
+    badge = '<span class="stat-chip dp-conclusion-badge accounted">Accounted</span>';
     lead = `<b class="mono">clc ≈ total</b>，PMU pipeline 解释充分。`;
     body = `Dominant <b class="mono">${d.dominantCounter}</b>（${dominantMeta?.pipe}）。可继续追溯硬件路径或对比 peer task。`;
   }
@@ -3489,7 +3653,7 @@ function renderConclusion(task, d, dominantMeta, peers) {
 function renderNoPmuConclusion(task) {
   return `<div class="dp-section inspector-section">
     <div class="dp-conclusion inspector-soft-card is-accounted" style="background:var(--inspector-soft-card-bg);">
-      <span class="dp-conclusion-badge" style="background:var(--bg-elev-3);color:var(--text-secondary);">No PMU</span>
+      <span class="stat-chip dp-conclusion-badge" style="background:var(--bg-elev-3);color:var(--text-secondary);">No PMU</span>
       <div class="dp-conclusion-text">本 lane (${task.laneKind}) 不参与 group 2 PMU 解释。<br/>
       它属于全局调度 / 数据迁移层。如需 PMU 数据，请关注 AIC / AIV lane 上的 task。</div>
     </div>
@@ -3657,9 +3821,19 @@ window.addEventListener('DOMContentLoaded', () => {
       renderDetail();
       return;
     }
-    if ('selectedTaskId' in patch || 'hoveredTaskId' in patch) {
+    if (
+      'selectedTaskId' in patch ||
+      'hoveredTaskId' in patch ||
+      'highlightedLaneId' in patch ||
+      'highlightedWrapId' in patch ||
+      'highlightedCounter' in patch ||
+      'hoveredLaneId' in patch ||
+      'hoveredWrapId' in patch ||
+      'hoveredCounter' in patch
+    ) {
       renderSwimlane(); // re-render to update selection stroke
-      renderDetail();
+      if ('selectedTaskId' in patch) renderDetail();
+      if ('highlightedLaneId' in patch || 'highlightedWrapId' in patch || 'highlightedCounter' in patch) renderSummary();
       return;
     }
     if ('zoom' in patch) {
