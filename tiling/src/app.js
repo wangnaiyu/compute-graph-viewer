@@ -121,6 +121,7 @@
       startPanX: 0,
       startPanY: 0,
       moved: false,
+      raf: 0,
     },
     architecture: {
       mounted: false,
@@ -130,6 +131,7 @@
       pathFocus: null,
     },
     resizeObserver: null,
+    resizeRaf: 0,
     playbackIds: {
       shell: 'avz-floating-shell',
       toggle: 'avz-floating-toggle',
@@ -276,6 +278,19 @@
       state.inspectorOpen = false;
       renderInspector();
     });
+    els.sourceLines?.addEventListener('click', (event) => {
+      const btn = event.target.closest('[data-line]');
+      if (!btn || !els.sourceLines.contains(btn)) return;
+      const line = Number(btn.dataset.line);
+      const trace = currentTrace();
+      if (!trace) return;
+      const nextIndex = trace.steps.findIndex((step) => step.sourceLines?.includes(line));
+      if (nextIndex >= 0) {
+        state.selectedObject = { type: 'source', line };
+        state.inspectorOpen = true;
+        selectStep(nextIndex);
+      }
+    });
     initTensorViewportInteractions();
   }
 
@@ -298,7 +313,12 @@
       if (Math.abs(dx) + Math.abs(dy) > 4) state.tensorView.moved = true;
       state.tensorView.panX = state.tensorView.startPanX + dx;
       state.tensorView.panY = state.tensorView.startPanY + dy;
-      renderTensorViewport(currentTrace());
+      if (!state.tensorView.raf) {
+        state.tensorView.raf = window.requestAnimationFrame(() => {
+          state.tensorView.raf = 0;
+          renderTensorViewport(currentTrace());
+        });
+      }
     });
     canvas.addEventListener('pointerup', (event) => {
       canvas.releasePointerCapture?.(event.pointerId);
@@ -309,6 +329,18 @@
     canvas.addEventListener('pointercancel', () => {
       state.tensorView.dragging = false;
     });
+    canvas.addEventListener('wheel', (event) => {
+      if (!(event.metaKey || event.ctrlKey)) return;   // zoom only with Cmd/Ctrl + wheel
+      event.preventDefault();
+      const factor = event.deltaY < 0 ? 1.1 : 0.9;
+      state.tensorView.scale = Math.max(0.55, Math.min(2.6, (state.tensorView.scale || 1) * factor));
+      if (!state.tensorView.raf) {
+        state.tensorView.raf = window.requestAnimationFrame(() => {
+          state.tensorView.raf = 0;
+          renderTensorViewport(currentTrace());
+        });
+      }
+    }, { passive: false });
   }
 
   function zoomTensorView(multiplier) {
@@ -335,7 +367,7 @@
     els.playbackMount.innerHTML = '';
     const control = helper.createControl({
       ids: state.playbackIds,
-      className: 'pto-floating-playback--tiling',
+      className: 'pto-floating-playback--preview pto-floating-playback--tiling',
       showTimeline: false,
     });
     els.playbackMount.appendChild(control);
@@ -393,7 +425,7 @@
     const max = Math.max(0, (trace?.steps?.length || 1) - 1);
     state.stepIndex = Math.max(0, Math.min(max, index));
     if (!options.keepPlaying) stopPlayback();
-    render();
+    renderStep();
   }
 
   function syncPlayback() {
@@ -416,13 +448,25 @@
     state.playback?.sync?.({ playing: state.playing });
   }
 
+  // Full render: rebuilds the source listing and sample cards. Only needed on
+  // sample switch / init, never on every step.
   function render() {
     const trace = currentTrace();
     if (!trace) return;
     state.stepIndex = Math.max(0, Math.min(state.stepIndex, trace.steps.length - 1));
-    renderChrome(trace);
     renderSamples(trace);
     renderSource(trace);
+    renderStep();
+  }
+
+  // Light render: runs on every step change / playback tick. Updates only what
+  // actually changes per step — no source re-tokenize, no DOM teardown.
+  function renderStep() {
+    const trace = currentTrace();
+    if (!trace) return;
+    state.stepIndex = Math.max(0, Math.min(state.stepIndex, trace.steps.length - 1));
+    renderChrome(trace);
+    updateSourceHighlight(trace);
     renderTensorViewport(trace);
     renderTileLens(trace);
     renderArchitectureFocus(trace);
@@ -448,14 +492,11 @@
   }
 
   function renderSamples(trace) {
-    els.sampleList.innerHTML = state.traces.map((item) => {
+    const items = state.traces.map((item) => {
       const active = item.operator.id === trace.operator.id;
-      return `
-        <button class="avz-sample-card ${active ? 'is-active' : ''}" type="button" data-sample="${escapeHtml(item.operator.id)}">
-          <p class="avz-card-title">${escapeHtml(sampleShortName(item))}</p>
-        </button>
-      `;
+      return `<button class="tab-control-item ${active ? 'is-selected' : ''}" type="button" role="tab" aria-selected="${active ? 'true' : 'false'}" data-sample="${escapeHtml(item.operator.id)}">${escapeHtml(sampleShortName(item))}</button>`;
     }).join('');
+    els.sampleList.innerHTML = `<div class="tab-control" role="tablist" aria-label="Operator samples">${items}</div>`;
     els.sampleList.querySelectorAll('[data-sample]').forEach((button) => {
       button.addEventListener('click', () => {
         state.inspectorOpen = false;
@@ -475,44 +516,58 @@
     return TEXT_ZH[String(value ?? '')] || String(value ?? '');
   }
 
+  // Build the source listing once per trace. The per-step active highlight is
+  // applied separately by updateSourceHighlight (class toggle only).
   function renderSource(trace) {
     const lines = sourceLinesForTrace(trace);
-    const activeLines = new Set(currentStep(trace)?.sourceLines || []);
     const keyLines = new Set((trace.source?.keyLines || trace.source?.lines || []).map((line) => line.line));
     trace.steps.forEach((step) => (step.sourceLines || []).forEach((line) => keyLines.add(line)));
+    const stageByLine = new Map();
+    trace.steps.forEach((step) => {
+      const stage = trace.stages.find((item) => item.id === step.stageId) || null;
+      (step.sourceLines || []).forEach((ln) => { if (!stageByLine.has(ln)) stageByLine.set(ln, stage); });
+    });
     els.sourceLines.innerHTML = lines.map((line) => {
-      const stage = sourceStageForLine(trace, line.line);
-      const isKey = keyLines.has(line.line) || activeLines.has(line.line);
-      const isActive = activeLines.has(line.line);
+      const stage = stageByLine.get(line.line) || null;
+      const hasCode = String(line.text || '').trim().length > 0;
+      const isKey = hasCode && keyLines.has(line.line);
       const kind = stageKind(stage);
       const tag = isKey ? `<span class="avz-source-line__tag ${kind ? `is-${kind}` : ''}">${escapeHtml(sourceLineTag(stage))}</span>` : '<span></span>';
       const element = isKey ? 'button' : 'div';
-      const attrs = isKey ? `type="button" data-line="${line.line}" role="option" aria-selected="${isActive ? 'true' : 'false'}"` : '';
+      const attrs = isKey ? `type="button" data-line="${line.line}" role="option" aria-selected="false"` : '';
       return `
-        <${element} class="avz-source-line ${isKey ? 'is-key' : ''} ${kind ? `is-${kind}` : ''} ${isActive ? 'is-active' : ''}" ${attrs}>
+        <${element} class="avz-source-line ${isKey ? 'is-key' : ''} ${kind ? `is-${kind}` : ''}" ${attrs}>
           <span class="avz-source-line__number">${line.line}</span>
           <span class="avz-source-line__text">${highlightAscendC(line.text)}</span>
           ${tag}
         </${element}>
       `;
     }).join('');
-    els.sourceLines.querySelectorAll('[data-line]').forEach((button) => {
-      button.addEventListener('click', () => {
-        const line = Number(button.dataset.line);
-        const nextIndex = trace.steps.findIndex((step) => step.sourceLines?.includes(line));
-        if (nextIndex >= 0) {
-          state.selectedObject = { type: 'source', line };
-          state.inspectorOpen = true;
-          selectStep(nextIndex);
-        }
-      });
+    updateSourceHighlight(trace);
+  }
+
+  function updateSourceHighlight(trace) {
+    const container = els.sourceLines;
+    if (!container) return;
+    const activeLines = new Set(currentStep(trace)?.sourceLines || []);
+    let firstActive = null;
+    container.querySelectorAll('[data-line]').forEach((el) => {
+      const isActive = activeLines.has(Number(el.dataset.line));
+      el.classList.toggle('is-active', isActive);
+      el.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      if (isActive && !firstActive) firstActive = el;
     });
-    const active = els.sourceLines.querySelector('.is-active');
-    if (active) {
-      window.requestAnimationFrame(() => {
-        active.scrollIntoView({ block: 'center', inline: 'nearest' });
-      });
+    if (firstActive) {
+      window.requestAnimationFrame(() => scrollChildIntoView(container, firstActive));
     }
+  }
+
+  function scrollChildIntoView(container, child) {
+    if (!container || !child) return;
+    const containerRect = container.getBoundingClientRect();
+    const childRect = child.getBoundingClientRect();
+    const delta = childRect.top - containerRect.top - ((container.clientHeight - childRect.height) / 2);
+    container.scrollTop += delta;
   }
 
   function sourceLinesForTrace(trace) {
@@ -600,31 +655,54 @@
   }
 
   function deriveVisualState(trace, step) {
-    if (trace.operator.kind === 'cube') return deriveCubeVisualState(step);
-    if (trace.operator.kind === 'fusion') return deriveFusionVisualState(step);
-    return deriveVectorVisualState(step);
+    if (trace.operator.kind === 'cube') return deriveCubeVisualState(step, trace);
+    if (trace.operator.kind === 'fusion') return deriveFusionVisualState(step, trace);
+    return deriveVectorVisualState(step, trace);
   }
 
-  function deriveVectorVisualState(step) {
-    const blockIdx = Number(step?.blockIdx || 0);
+  function num(value, fallback) {
+    const n = Number(value);
+    return Number.isFinite(n) && n > 0 ? n : fallback;
+  }
+
+  function deriveVectorVisualState(step, trace) {
+    const params = trace?.tiling?.params || {};
+    const derived = trace?.tiling?.derived || {};
+    const total = num(params.totalLength, 16384);
+    const numBlocks = num(params.numBlocks ?? derived.numBlocks, 8);
+    const blockLength = num(derived.blockLength, Math.floor(total / numBlocks));
+    const tileLength = num(derived.tileLength, 128);
+    const blockIdx = Number(step?.blockIdx ?? -1);
     const progress = Number(step?.loop?.progress || 0);
     const stage = step?.stageId || '';
     const isCopyOut = stage.includes('copy-out');
     const isCompute = stage.includes('compute');
+    const hasTile = stage.includes('copy') || isCompute;
     const tone = isCopyOut ? 'output' : isCompute ? 'compute' : 'input';
-    const blocks = vectorBufferBlocks(stage, blockIdx, progress);
+    const safeBlock = Math.max(0, blockIdx);
+    const tileStart = safeBlock * blockLength + progress * tileLength;
+    const tileEnd = Math.min(total, tileStart + tileLength);
+    const segments = Array.from({ length: numBlocks }, (_, i) => ({
+      start: i * blockLength,
+      end: Math.min(total, (i + 1) * blockLength),
+      label: `block ${i}`,
+      active: i === blockIdx,
+    }));
+    const blocks = vectorBufferBlocks(stage, safeBlock, progress);
     return {
       tensorViewport: {
         kind: 'vector',
-        axisLabels: ['element', 'progress', 'blockIdx'],
-        bounds: { x: 16, y: 16, z: 8 },
-        title: 'x/y/z folded as [element, progress, blockIdx]',
-        tiles: [{
-          label: `${step?.label || 'tile'} · block ${blockIdx} progress ${progress}`,
-          range: { x: [0, 15], y: [progress, progress], z: [blockIdx, blockIdx] },
+        layout: '1d',
+        title: `1D 逻辑 tensor · GM 线性地址 0 → ${total}（${numBlocks} 个 block × ${blockLength} 元素，tile=${tileLength}）`,
+        axisLabels: ['GM element offset'],
+        strip: { total, segments, tickStep: blockLength, blockLength, tileLength },
+        highlight: hasTile ? {
+          x: [tileStart, tileEnd],
           tone,
           state: isCopyOut ? 'committed' : isCompute ? 'computing' : 'loaded',
-        }],
+          label: `${isCompute || isCopyOut ? 'z' : 'x/y'}[${tileStart}:${tileEnd}]`,
+          sub: `block ${safeBlock} · tile ${progress}`,
+        } : null,
         operationChips: ['DataCopy', 'TQue', isCompute ? 'Add' : isCopyOut ? 'CopyOut' : 'CopyIn'],
       },
       onChipLens: { blocks },
@@ -636,26 +714,49 @@
     };
   }
 
-  function deriveCubeVisualState(step) {
-    const kIndex = Number(step?.loop?.kIndex || 0);
+  function deriveCubeVisualState(step, trace) {
+    const params = trace?.tiling?.params || {};
+    const derived = trace?.tiling?.derived || {};
+    const M = num(params.M, 512);
+    const N = num(params.N, 1024);
+    const baseM = num(params.baseM, 128);
+    const baseN = num(params.baseN, 256);
+    const singleCoreM = num(params.singleCoreM, M);
+    const singleCoreN = num(params.singleCoreN, N);
+    const mIter = num(derived.mIter, Math.max(1, Math.round(M / singleCoreM)));
+    const kLoop = num(derived.kLoopCount, 8);
+    const K = num(params.K, 512);
+    const baseK = num(params.baseK, 64);
     const blockIdx = Number(step?.blockIdx || 0);
-    const nTile = blockIdx >= 2 ? 4 : 0;
-    const mTile = blockIdx % 2 === 1 ? 2 : 0;
+    const mIndex = step?.loop?.mIndex != null ? Number(step.loop.mIndex) : (blockIdx % mIter);
+    const nIndex = step?.loop?.nIndex != null ? Number(step.loop.nIndex) : Math.floor(blockIdx / mIter);
+    const kIndex = Number(step?.loop?.kIndex || 0);
     const stage = step?.stageId || '';
-    const blocks = cubeBufferBlocks(stage, kIndex);
     const tone = stage === 'mmad' ? 'reduction' : stage === 'fixpipe' ? 'output' : 'input';
+    const rowStart = mIndex * singleCoreM;
+    const rowEnd = Math.min(M, rowStart + singleCoreM);
+    const colStart = nIndex * singleCoreN;
+    const colEnd = Math.min(N, colStart + singleCoreN);
+    const tracksK = stage.includes('copy-in') || stage.includes('load-data') || stage === 'mmad';
+    const blocks = cubeBufferBlocks(stage, kIndex);
     return {
       tensorViewport: {
         kind: 'matmul',
-        axisLabels: ['N tile', 'M tile', 'K accumulation'],
-        bounds: { x: 8, y: 4, z: 8 },
-        title: 'A[M,K], B[K,N], C[M,N] logical tile space',
-        tiles: [{
-          label: `C block ${blockIdx} · k ${kIndex}`,
-          range: { x: [nTile, Math.min(7, nTile + 3)], y: [mTile, Math.min(3, mTile + 1)], z: [kIndex, kIndex] },
+        layout: '2d',
+        title: `C[M=${M}, N=${N}] 输出网格 · 每格 ${baseM}×${baseN} 元素`,
+        axisLabels: ['N (列)', 'M (行)', 'K 累加'],
+        grid: { rowTotal: M, colTotal: N, rowCell: baseM, colCell: baseN, rowLabel: 'M', colLabel: 'N', kTotal: K, kCell: baseK, kSteps: kLoop, depthLabel: 'K' },
+        highlight: {
+          row: [rowStart, rowEnd],
+          col: [colStart, colEnd],
           tone,
           state: stage === 'mmad' ? 'accumulating' : 'selected',
-        }],
+          label: `C[M ${rowStart}:${rowEnd}, N ${colStart}:${colEnd}]`,
+          sub: `block ${blockIdx} · singleCore 分区`,
+        },
+        progress: tracksK ? { label: 'K 累加', current: kIndex + 1, total: kLoop }
+          : stage === 'fixpipe' ? { label: 'K 累加', current: kLoop, total: kLoop }
+          : { label: 'K 累加', current: 0, total: kLoop },
         operationChips: cubeOps(stage),
       },
       onChipLens: { blocks },
@@ -667,24 +768,51 @@
     };
   }
 
-  function deriveFusionVisualState(step) {
+  function deriveFusionVisualState(step, trace) {
+    const params = trace?.tiling?.params || {};
+    const M = num(params.M, 512);
+    const N = num(params.N, 1024);
+    const baseM = num(params.baseM, 128);
+    const baseN = num(params.baseN, 256);
+    const K = num(params.K, 512);
+    const baseK = num(params.baseK, 64);
+    const kSteps = Math.max(1, Math.round(K / baseK));
+    const singleCoreM = num(params.singleCoreM, 256);
+    const singleCoreN = num(params.singleCoreN, 512);
     const aivHalf = Number(step?.blockIdx || 0) % 2;
     const stage = step?.stageId || '';
+    const isAiv = stage.includes('aiv');
+    const isSync = stage.includes('sync');
+    const colStart = 0;
+    const colEnd = singleCoreN;
+    const half = Math.floor(singleCoreM / 2);
+    let row = [0, singleCoreM];
+    let tone = 'reduction';
+    let state = 'active';
+    let label = `AIC 生产 C[M 0:${singleCoreM}, N 0:${singleCoreN}]`;
+    let sub = 'Cube block 0';
+    if (isAiv) {
+      row = aivHalf === 0 ? [0, half] : [half, singleCoreM];
+      tone = 'fusion';
+      label = `C[M ${row[0]}:${row[1]}, N ${colStart}:${colEnd}]`;
+      sub = aivHalf === 0 ? 'AIV0 · 上半 M' : 'AIV1 · 下半 M';
+    } else if (isSync) {
+      tone = 'output';
+      state = 'ready';
+      label = `C[M 0:${singleCoreM}, N 0:${singleCoreN}] ready`;
+      sub = 'CrossCoreSetFlag';
+    }
     const blocks = fusionBufferBlocks(stage, aivHalf);
-    const tone = stage.includes('aiv') ? 'fusion' : stage.includes('sync') ? 'compute' : 'reduction';
     return {
       tensorViewport: {
         kind: 'fusion',
-        axisLabels: ['N tile', 'M half', 'AIC/AIV handoff'],
-        bounds: { x: 8, y: 4, z: 3 },
-        title: 'Matmul output split across paired AIV consumers',
-        tiles: [{
-          label: step?.label || 'fusion tile',
-          range: { x: [0, 3], y: [aivHalf * 2, aivHalf * 2 + 1], z: [stage.includes('aiv') ? 2 : 1, stage.includes('aiv') ? 2 : 1] },
-          tone,
-          state: stage.includes('sync') ? 'waiting' : 'active',
-        }],
-        operationChips: ['Mmad', 'Fixpipe', 'CrossCoreFlag', 'LeakyRelu'],
+        layout: '2d',
+        title: `C[M=${M}, N=${N}] · AIC 生产、AIV 上/下半消费 · 每格 ${baseM}×${baseN} 元素`,
+        axisLabels: ['N (列)', 'M (行)', 'K'],
+        grid: { rowTotal: M, colTotal: N, rowCell: baseM, colCell: baseN, rowLabel: 'M', colLabel: 'N', kTotal: K, kCell: baseK, kSteps, depthLabel: 'K' },
+        highlight: { row, col: [colStart, colEnd], tone, state, label, sub },
+        progress: null,
+        operationChips: ['C tile', 'CrossCoreFlag', 'LeakyRelu'],
       },
       onChipLens: { blocks },
       architectureFocus: {
@@ -739,11 +867,11 @@
       return [
         { core: 'mem950-aic', buffer: 'L0A', label: 'A2 tile', state: 'loaded', tone: 'input', cellRange: [0, 15], sourceTile: `A2[k${kIndex}]`, operation: 'Mmad' },
         { core: 'mem950-aic', buffer: 'L0B', label: 'B2 tile', state: 'loaded', tone: 'input', cellRange: [0, 15], sourceTile: `B2[k${kIndex}]`, operation: 'Mmad' },
-        { core: 'mem950-aic', buffer: 'L0C', label: 'C partial', state: 'accumulating', tone: 'accumulator', cellRange: [20, 43], sourceTile: `C[m0,n0,k${kIndex}]`, operation: 'Mmad' },
+        { core: 'mem950-aic', buffer: 'L0C', label: 'C partial', state: 'accumulating', tone: 'accumulator', cellRange: [0, 23], sourceTile: `C[m0,n0,k${kIndex}]`, operation: 'Mmad' },
       ];
     }
     if (stage.includes('fixpipe')) {
-      return [{ core: 'mem950-aic', buffer: 'L0C', label: 'C output', state: 'committed', tone: 'output', cellRange: [20, 43], sourceTile: 'C[m0,n0]', operation: 'Fixpipe' }];
+      return [{ core: 'mem950-aic', buffer: 'L0C', label: 'C output', state: 'committed', tone: 'output', cellRange: [0, 23], sourceTile: 'C[m0,n0]', operation: 'Fixpipe' }];
     }
     return [];
   }
@@ -753,16 +881,16 @@
       return [
         { core: 'mem950-aic', buffer: 'L0A', label: 'A tile', state: 'loaded', tone: 'input', cellRange: [0, 15], sourceTile: 'A[m0,k*]' },
         { core: 'mem950-aic', buffer: 'L0B', label: 'B tile', state: 'loaded', tone: 'input', cellRange: [0, 15], sourceTile: 'B[k*,n0]' },
-        { core: 'mem950-aic', buffer: 'L0C', label: 'C partial', state: 'accumulating', tone: 'accumulator', cellRange: [20, 43], sourceTile: 'C[m0,n0]' },
+        { core: 'mem950-aic', buffer: 'L0C', label: 'C partial', state: 'accumulating', tone: 'accumulator', cellRange: [0, 23], sourceTile: 'C[m0,n0]' },
       ];
     }
     if (stage.includes('sync')) {
-      return [{ core: 'mem950-aic', buffer: 'L0C', label: 'C ready', state: 'committed', tone: 'output', cellRange: [20, 43], sourceTile: 'C[m0,n0]', operation: 'CrossCoreSetFlag' }];
+      return [{ core: 'mem950-aic', buffer: 'L0C', label: 'C ready', state: 'committed', tone: 'output', cellRange: [0, 23], sourceTile: 'C[m0,n0]', operation: 'CrossCoreSetFlag' }];
     }
     if (stage.includes('aiv-leakyrelu')) {
       return [
         { core: `mem950-aiv${aivHalf + 1}`, buffer: 'UB', label: 'epilogue tile', state: 'enqueued', tone: 'output', cellRange: [0, 31], sourceTile: `C half ${aivHalf}`, operation: 'LeakyRelu' },
-        { core: 'mem950-aic', buffer: 'L0C', label: 'direct C-V source', state: 'committed', tone: 'output', cellRange: [20, 43], sourceTile: 'C[m0,n0]' },
+        { core: 'mem950-aic', buffer: 'L0C', label: 'C source tile', state: 'committed', tone: 'output', cellRange: [0, 23], sourceTile: 'C[m0,n0]' },
       ];
     }
     return [];
@@ -828,87 +956,54 @@
     const step = currentStep(trace);
     const visual = visualStateForStep(trace, step).tensorViewport;
     const canvas = els.tensorCanvas;
-    const ctx = canvas.getContext('2d');
     const rect = canvas.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
     const width = Math.max(520, Math.floor(rect.width || canvas.clientWidth || 760));
     const height = Math.max(360, Math.floor(rect.height || canvas.clientHeight || 480));
-    canvas.width = Math.floor(width * dpr);
-    canvas.height = Math.floor(height * dpr);
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const ctx = fitCanvas(canvas, width, height);
     drawTensorScene(ctx, width, height, visual);
     const tip = tensorViewportTip(visual);
     els.tensorStage.title = tip;
     els.viewportInfo.title = tip;
-    syncWebglFallback();
+    if (els.tensorFallback) els.tensorFallback.hidden = true;
+  }
+
+  // Resize the canvas backing store only when the CSS size actually changed,
+  // so per-step / per-drag redraws don't reallocate the GPU buffer.
+  function fitCanvas(canvas, cssWidth, cssHeight) {
+    const dpr = window.devicePixelRatio || 1;
+    const w = Math.floor(cssWidth * dpr);
+    const h = Math.floor(cssHeight * dpr);
+    if (canvas.width !== w) canvas.width = w;
+    if (canvas.height !== h) canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return ctx;
   }
 
   function tensorViewportTip(visual) {
-    const axes = visual.axisLabels || [];
-    const parts = [
-      `View: ${visual.kind || 'logical'}`,
-      ...axes.map((axis, index) => `${String.fromCharCode(88 + index)}: ${axis}`),
-      'GM is flat; this is a logical access space',
-    ];
-    if ((visual.operationChips || []).length) parts.push(`Ops: ${visual.operationChips.join(', ')}`);
+    const parts = [];
+    if (visual.layout === '1d') {
+      parts.push('1D 逻辑 tensor：整条 GM 线性地址；高亮块 = 当前 tile 实际访问的 element 区间。');
+    } else {
+      parts.push('3D 迭代空间 M×N×K voxel：高亮列 = 当前 block 的输出分区，沿 K 轴累加填充。Cmd/Ctrl+滚轮缩放。');
+    }
+    if (visual.title) parts.push(visual.title);
+    if ((visual.operationChips || []).length) parts.push(`当前操作：${visual.operationChips.join(', ')}`);
     return parts.join('\n');
   }
 
-  function syncWebglFallback() {
-    if (state.webglAvailable == null) {
-      try {
-        const test = document.createElement('canvas');
-        state.webglAvailable = Boolean(test.getContext('webgl') || test.getContext('experimental-webgl'));
-      } catch (error) {
-        state.webglAvailable = false;
-      }
-    }
-    els.tensorFallback.hidden = state.webglAvailable;
-  }
-
   function drawTensorScene(ctx, width, height, visual) {
-    const bounds = visual.bounds || { x: 8, y: 8, z: 4 };
-    const tileRanges = visual.tiles || [];
-    const viewportScale = state.tensorView.scale || 1;
-    const reservedBottom = Math.min(190, Math.max(132, height * 0.24));
-    const fitWidth = width / ((bounds.x + bounds.y) * 0.92 + 8);
-    const fitHeight = (height - reservedBottom) / ((bounds.x + bounds.y) * 0.42 + bounds.z * 0.84 + 4);
-    const cell = Math.max(7, Math.min(20, Math.floor(Math.min(fitWidth, fitHeight)))) * viewportScale;
-    const leftExtent = -Math.max(0, bounds.y - 1) * cell * 0.88 - cell;
-    const rightExtent = Math.max(0, bounds.x - 1) * cell * 0.88 + cell;
-    const topExtent = Math.max(1, bounds.z) * cell * 0.78 + cell;
-    const bottomExtent = Math.max(1, bounds.x + bounds.y - 2) * cell * 0.42 + cell;
-    const contentCenterY = (32 + Math.max(120, height - reservedBottom)) / 2;
-    const origin = {
-      x: (width / 2) - ((leftExtent + rightExtent) / 2) + (state.tensorView.panX || 0),
-      y: contentCenterY - ((bottomExtent - topExtent) / 2) + (state.tensorView.panY || 0),
-    };
-
     ctx.clearRect(0, 0, width, height);
-    ctx.fillStyle = getCss('--surface-2') || '#15191f';
+    ctx.fillStyle = getCss('--surface-2');
     ctx.fillRect(0, 0, width, height);
     drawTensorBackdrop(ctx, width, height);
-
-    const highlighted = new Map();
-    tileRanges.forEach((tile, tileIndex) => {
-      cellsForRange(tile.range, bounds).forEach((key) => highlighted.set(key, { tile, tileIndex }));
-    });
-
-    for (let z = 0; z < bounds.z; z += 1) {
-      for (let y = bounds.y - 1; y >= 0; y -= 1) {
-        for (let x = 0; x < bounds.x; x += 1) {
-          const key = `${x}:${y}:${z}`;
-          const active = highlighted.get(key);
-          const isShell = active || x === 0 || y === 0 || z === 0 || x === bounds.x - 1 || y === bounds.y - 1 || z === bounds.z - 1;
-          if (!isShell) continue;
-          const tone = TENSOR_TONES[active?.tile?.tone || 'default'] || TENSOR_TONES.default;
-          drawVoxel(ctx, projectIso(origin, cell, x, y, z), cell, tone, active ? 1 : 0.42);
-        }
-      }
+    if (visual.layout === '2d') drawTensorGrid(ctx, width, height, visual);
+    else drawTensorStrip(ctx, width, height, visual);
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+    if (visual.highlight) {
+      drawTileLabels(ctx, width, [{ label: visual.highlight.label, tone: visual.highlight.tone }]);
     }
-
-    drawAxes(ctx, origin, cell, bounds, visual.axisLabels || []);
-    drawTileLabels(ctx, width, tileRanges);
   }
 
   function drawTensorBackdrop(ctx, width, height) {
@@ -919,75 +1014,213 @@
     ctx.fillRect(0, 0, width, height);
   }
 
-  function projectIso(origin, cell, x, y, z) {
-    return {
-      x: origin.x + (x - y) * cell * 0.88,
-      y: origin.y + (x + y) * cell * 0.42 - z * cell * 0.78,
-    };
+  // ----- fixed-view isometric helpers (3D, no rotation) -----
+  const ISO_COS = Math.cos(Math.PI / 6);
+  const ISO_SIN = Math.sin(Math.PI / 6);
+  const VOXEL_GRAY = { top: '#474747', east: '#3a3a3a', south: '#2f2f2f', edge: 'rgba(18,18,18,0.65)' };
+  const VOXEL_GHOST = { top: 'rgba(165,175,185,0.10)', east: 'rgba(165,175,185,0.07)', south: 'rgba(165,175,185,0.05)', edge: 'rgba(185,195,205,0.18)' };
+  const VOXEL_TONES = {
+    input:     { top: '#4d97ff', east: '#3f7ed6', south: '#3568b0', edge: 'rgba(8,20,40,0.55)' },
+    output:    { top: '#29c7a6', east: '#21a88c', south: '#1b8b73', edge: 'rgba(6,34,28,0.55)' },
+    compute:   { top: '#ffcf59', east: '#d9ad44', south: '#b88f34', edge: 'rgba(40,30,6,0.55)' },
+    reduction: { top: '#ff9a54', east: '#d98044', south: '#b86836', edge: 'rgba(40,22,8,0.55)' },
+    fusion:    { top: '#b892ff', east: '#9a78d9', south: '#7e61b8', edge: 'rgba(24,16,44,0.55)' },
+  };
+  function voxelTone(key) { return VOXEL_TONES[key] || VOXEL_TONES.reduction; }
+  function hexToRgba(hex, a) {
+    const m = /^#?([0-9a-fA-F]{6})$/.exec(hex);
+    if (!m) return hex;
+    const n = parseInt(m[1], 16);
+    return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
   }
-
-  function drawVoxel(ctx, point, cell, tone, alpha) {
-    const w = cell * 0.88;
-    const h = cell * 0.42;
-    const z = cell * 0.72;
-    const top = [
-      [point.x, point.y - z],
-      [point.x + w, point.y - z + h],
-      [point.x, point.y - z + h * 2],
-      [point.x - w, point.y - z + h],
-    ];
-    const right = [
-      [point.x + w, point.y - z + h],
-      [point.x, point.y - z + h * 2],
-      [point.x, point.y + h * 2],
-      [point.x + w, point.y + h],
-    ];
-    const left = [
-      [point.x - w, point.y - z + h],
-      [point.x, point.y - z + h * 2],
-      [point.x, point.y + h * 2],
-      [point.x - w, point.y + h],
-    ];
-    drawPoly(ctx, left, tone.fill, tone.stroke, alpha * 0.72);
-    drawPoly(ctx, right, tone.fill, tone.stroke, alpha * 0.84);
-    drawPoly(ctx, top, tone.fill, tone.stroke, alpha);
-  }
-
-  function drawPoly(ctx, points, fill, stroke, alpha) {
-    ctx.save();
-    ctx.globalAlpha = alpha;
+  function isoQuad(ctx, p0, p1, p2, p3, fill, stroke, lw) {
     ctx.beginPath();
-    points.forEach(([x, y], index) => {
-      if (index === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    });
+    ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.lineTo(p3.x, p3.y);
     ctx.closePath();
-    ctx.fillStyle = fill;
-    ctx.strokeStyle = stroke;
-    ctx.lineWidth = 1;
-    ctx.fill();
-    ctx.stroke();
-    ctx.restore();
+    if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+    if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1; ctx.stroke(); }
+  }
+  // one voxel cube at integer cell (c,r,k); draws the 3 camera-facing faces
+  function drawVoxel(ctx, ox, oy, u, zUnit, c, r, k, f) {
+    const g = 0.12;
+    const P = (cc, rr, kk) => ({ x: ox + (cc - rr) * ISO_COS * u, y: oy + (cc + rr) * ISO_SIN * u - kk * zUnit });
+    const c0 = c + g, c1 = c + 1 - g, r0 = r + g, r1 = r + 1 - g, k0 = k + g, k1 = k + 1 - g;
+    const T0 = P(c0, r0, k1), T1 = P(c1, r0, k1), T2 = P(c1, r1, k1), T3 = P(c0, r1, k1);
+    const E3 = P(c1, r0, k0), E2 = P(c1, r1, k0), S3 = P(c0, r1, k0);
+    isoQuad(ctx, T1, E3, E2, T2, f.east, f.edge, 1);
+    isoQuad(ctx, T3, T2, E2, S3, f.south, f.edge, 1);
+    isoQuad(ctx, T0, T1, T2, T3, f.top, f.edge, 1);
   }
 
-  function drawAxes(ctx, origin, cell, bounds, labels = []) {
-    const axes = [
-      { name: labels[0] || 'X', end: projectIso(origin, cell, bounds.x + 1, 0, 0), color: TENSOR_TONES.input.stroke },
-      { name: labels[1] || 'Y', end: projectIso(origin, cell, 0, bounds.y + 1, 0), color: TENSOR_TONES.output.stroke },
-      { name: labels[2] || 'Z', end: projectIso(origin, cell, 0, 0, bounds.z + 1), color: TENSOR_TONES.compute.stroke },
-    ];
-    ctx.font = '600 10px Inter, sans-serif';
-    ctx.textBaseline = 'middle';
-    axes.forEach((axis) => {
-      ctx.beginPath();
-      ctx.moveTo(origin.x, origin.y);
-      ctx.lineTo(axis.end.x, axis.end.y);
-      ctx.strokeStyle = axis.color;
-      ctx.lineWidth = 1.4;
-      ctx.stroke();
-      ctx.fillStyle = axis.color;
-      ctx.fillText(axis.name, axis.end.x + 8, axis.end.y);
-    });
+  function drawTensorCallout(ctx, width, height, h, options = {}) {
+    if (!h || !h.label) return;
+    const x = options.x ?? 24;
+    const y = options.y ?? 34;
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = getCss('--foreground-secondary');
+    ctx.font = '700 13px ui-monospace, monospace';
+    ctx.fillText(h.label, x, y);
+    if (h.sub) {
+      ctx.fillStyle = getCss('--foreground-muted');
+      ctx.font = '600 11px Inter, sans-serif';
+      ctx.fillText(h.sub, x, y + 22);
+    }
+  }
+
+  // 1D logical tensor (vector): the GM buffer drawn as an iso row of block
+  // cuboids; the current tile is a filled slice on the active block top face.
+  function drawTensorStrip(ctx, width, height, visual) {
+    const strip = visual.strip || {};
+    const total = Math.max(1, strip.total);
+    const segs = strip.segments || [];
+    const cols = Math.max(1, segs.length);
+    const blockLength = Math.max(1, strip.blockLength || Math.round(total / cols));
+    const scale = state.tensorView.scale || 1;
+    const panX = state.tensorView.panX || 0;
+    const panY = state.tensorView.panY || 0;
+    const ink = getCss('--foreground-secondary');
+    const muted = getCss('--foreground-muted');
+
+    const availW = Math.max(120, width - 120);
+    const u = Math.max(12, availW / ((cols + 1) * ISO_COS)) * scale;
+    const depthPx = 0.16 * u;
+    const ox = width / 2 - ((cols - 1) / 2) * ISO_COS * u + panX;
+    const oy = height / 2 - ((cols + 1) / 2) * ISO_SIN * u + panY;
+    const P = (c, r, kpx) => ({ x: ox + (c - r) * ISO_COS * u, y: oy + (c + r) * ISO_SIN * u - kpx });
+
+    const activeIdx = segs.findIndex((s) => s.active);
+    for (let c = 0; c < cols; c += 1) {
+      const active = c === activeIdx;
+      const g = 0.04;
+      const c0 = c + g, c1 = c + 1 - g, r0 = g, r1 = 1 - g;
+      const T0 = P(c0, r0, depthPx), T1 = P(c1, r0, depthPx), T2 = P(c1, r1, depthPx), T3 = P(c0, r1, depthPx);
+      const E3 = P(c1, r0, 0), E2 = P(c1, r1, 0), S3 = P(c0, r1, 0);
+      const faces = active ? { top: 'rgba(255,207,89,0.10)', east: '#343434', south: '#2d2d2d', edge: 'rgba(220,230,240,0.16)' } : VOXEL_GRAY;
+      isoQuad(ctx, T1, E3, E2, T2, faces.east, faces.edge, 1);
+      isoQuad(ctx, T3, T2, E2, S3, faces.south, faces.edge, 1);
+      isoQuad(ctx, T0, T1, T2, T3, faces.top, active ? VOXEL_TONES.compute.top : faces.edge, active ? 1.6 : 1);
+      const lp = P(c + 0.5, 0.5, depthPx);
+      ctx.fillStyle = active ? ink : muted;
+      ctx.font = `${active ? '700' : '600'} 10px Inter, sans-serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(`b${c}`, lp.x, lp.y);
+    }
+
+    const h = visual.highlight || {};
+    if (Array.isArray(h.x)) {
+      const tone = voxelTone(h.tone);
+      const g = 0.04;
+      const c0 = h.x[0] / blockLength;
+      const c1 = Math.max(c0 + 0.004, h.x[1] / blockLength);
+      const T0 = P(c0, g, depthPx), T1 = P(c1, g, depthPx), T2 = P(c1, 1 - g, depthPx), T3 = P(c0, 1 - g, depthPx);
+      isoQuad(ctx, T0, T1, T2, T3, hexToRgba(tone.top, 0.85), tone.top, 1.5);
+    }
+
+    ctx.fillStyle = muted; ctx.font = '600 9px ui-monospace, monospace';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    for (let c = 0; c <= cols; c += 1) {
+      const p = P(c, 1.45, 0);
+      ctx.fillText(String(c * blockLength), p.x, p.y + 2);
+    }
+    const ap = P(cols / 2, 2.4, 0);
+    ctx.fillStyle = ink; ctx.font = '700 11px Inter, sans-serif';
+    ctx.fillText(`GM element offset →  (total ${total})`, ap.x, ap.y);
+
+    drawTensorCallout(ctx, width, height, h);
+  }
+
+  // 3D iteration space (matmul/fusion): the full M×N×K volume as a voxel grid
+  // at tile granularity; the active block's K-columns are highlighted and fill
+  // upward as the K reduction accumulates (triton-viz style sub-block highlight).
+  function drawTensorGrid(ctx, width, height, visual) {
+    const grid = visual.grid || {};
+    const rowCell = Math.max(1, grid.rowCell);
+    const colCell = Math.max(1, grid.colCell);
+    const tilesM = Math.max(1, Math.round(Math.max(1, grid.rowTotal) / rowCell));
+    const tilesN = Math.max(1, Math.round(Math.max(1, grid.colTotal) / colCell));
+    const kSteps = Math.max(1, Math.round(grid.kSteps || 1));
+    const scale = state.tensorView.scale || 1;
+    const panX = state.tensorView.panX || 0;
+    const panY = state.tensorView.panY || 0;
+    const ink = getCss('--foreground-secondary');
+    const muted = getCss('--foreground-muted');
+
+    const zRatio = 0.9;
+    const availW = Math.max(120, width - 150);
+    const availH = Math.max(120, height - 150);
+    const fitU = Math.min(
+      availW / ((tilesN + tilesM) * ISO_COS),
+      availH / ((tilesN + tilesM) * ISO_SIN + kSteps * zRatio)
+    );
+    const u = Math.max(8, fitU) * scale;
+    const zUnit = u * zRatio;
+    const ox = width / 2 - ((tilesN - tilesM) / 2) * ISO_COS * u + panX;
+    const oy = height / 2 - (((tilesN + tilesM) * ISO_SIN * u - kSteps * zUnit) / 2) + panY;
+
+    const h = visual.highlight || {};
+    const rs = Array.isArray(h.row) ? Math.floor(h.row[0] / rowCell) : -1;
+    const re = Array.isArray(h.row) ? Math.round(h.row[1] / rowCell) : -1;
+    const cs = Array.isArray(h.col) ? Math.floor(h.col[0] / colCell) : -1;
+    const ce = Array.isArray(h.col) ? Math.round(h.col[1] / colCell) : -1;
+    const isActive = (c, r) => c >= cs && c < ce && r >= rs && r < re;
+    const kFill = visual.progress ? Math.max(0, Math.min(kSteps, Number(visual.progress.current) || 0)) : kSteps;
+    const hi = voxelTone(h.tone);
+
+    // gray voxels for the whole volume minus the active region, depth-sorted
+    const cells = [];
+    for (let r = 0; r < tilesM; r += 1) {
+      for (let c = 0; c < tilesN; c += 1) {
+        if (isActive(c, r)) continue;
+        for (let k = 0; k < kSteps; k += 1) cells.push({ c, r, k });
+      }
+    }
+    cells.sort((a, b) => (a.c + a.r + a.k) - (b.c + b.r + b.k));
+    for (const cell of cells) drawVoxel(ctx, ox, oy, u, zUnit, cell.c, cell.r, cell.k, VOXEL_GRAY);
+
+    // active output partition: filled columns = accumulated K, ghost = remaining
+    if (cs >= 0) {
+      for (let r = rs; r < re; r += 1) {
+        for (let c = cs; c < ce; c += 1) {
+          for (let k = 0; k < kSteps; k += 1) {
+            drawVoxel(ctx, ox, oy, u, zUnit, c, r, k, k < kFill ? hi : VOXEL_GHOST);
+          }
+        }
+      }
+    }
+
+    // axes ticks + names along the visible front edges
+    const P = (c, r, kpx) => ({ x: ox + (c - r) * ISO_COS * u, y: oy + (c + r) * ISO_SIN * u - kpx });
+    ctx.fillStyle = muted; ctx.font = '600 9px ui-monospace, monospace';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    for (let c = 0; c <= tilesN; c += 1) {
+      const p = P(c, tilesM + 0.45, 0);
+      ctx.fillText(String(c * colCell), p.x, p.y + 2);
+    }
+    ctx.fillStyle = ink; ctx.font = '700 11px Inter, sans-serif';
+    { const p = P(tilesN / 2, tilesM + 1.4, 0); ctx.fillText(`${grid.colLabel || 'N'} = ${grid.colTotal}`, p.x, p.y); }
+
+    ctx.fillStyle = muted; ctx.font = '600 9px ui-monospace, monospace';
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    for (let r = 0; r <= tilesM; r += 1) {
+      const p = P(tilesN + 0.45, r, 0);
+      ctx.fillText(String(r * rowCell), p.x + 2, p.y + 4);
+    }
+    ctx.fillStyle = ink; ctx.font = '700 11px Inter, sans-serif';
+    { const p = P(tilesN + 1.5, tilesM / 2, 0); ctx.fillText(`${grid.rowLabel || 'M'} = ${grid.rowTotal}`, p.x, p.y); }
+
+    if (grid.kTotal) {
+      const p = P(0, 0, kSteps * zUnit);
+      ctx.fillStyle = VOXEL_TONES.reduction.top; ctx.font = '700 11px Inter, sans-serif';
+      ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+      ctx.fillText(`${grid.depthLabel || 'K'} = ${grid.kTotal} ↑`, p.x - 6, p.y - 4);
+    }
+
+    if (visual.progress) {
+      ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+      ctx.fillStyle = muted; ctx.font = '600 11px Inter, sans-serif';
+      ctx.fillText(`${visual.progress.label || 'K'} ${kFill}/${kSteps}`, 24, 34);
+    }
+    drawTensorCallout(ctx, width, height, h, { y: visual.progress ? 58 : 34 });
   }
 
   function drawTileLabels(ctx, width, tiles) {
@@ -999,38 +1232,23 @@
       ctx.fillRect(width - 280, y - 12, 10, 10);
       ctx.strokeStyle = tone.stroke;
       ctx.strokeRect(width - 280, y - 12, 10, 10);
-      ctx.fillStyle = getCss('--foreground-secondary') || '#d8dde5';
+      ctx.fillStyle = getCss('--foreground-secondary');
       ctx.fillText(tile.label || `tile ${index + 1}`, width - 264, y - 3);
     });
   }
 
-  function cellsForRange(range, bounds) {
-    if (!range) return [];
-    const xs = clampRange(range.x || [0, bounds.x - 1], bounds.x);
-    const ys = clampRange(range.y || [0, bounds.y - 1], bounds.y);
-    const zs = clampRange(range.z || [0, bounds.z - 1], bounds.z);
-    const cells = [];
-    for (let z = zs[0]; z <= zs[1]; z += 1) {
-      for (let y = ys[0]; y <= ys[1]; y += 1) {
-        for (let x = xs[0]; x <= xs[1]; x += 1) cells.push(`${x}:${y}:${z}`);
-      }
-    }
-    return cells;
+  function displayCoreName(core) {
+    const value = String(core || '');
+    if (value === 'mem950-aic') return 'AIC';
+    if (value === 'mem950-aiv1') return 'AIV0';
+    if (value === 'mem950-aiv2') return 'AIV1';
+    return value.replace(/^mem950-/, '').toUpperCase() || 'core';
   }
 
-  function clampRange(range, max) {
-    const start = Math.max(0, Math.min(max - 1, Number(range[0] || 0)));
-    const end = Math.max(start, Math.min(max - 1, Number(range[1] ?? start)));
-    return [start, end];
-  }
-
-  function renderTensorLegend(visual) {
-    const axes = visual.axisLabels || [];
-    return [
-      `View: ${visual.kind || 'logical'}`,
-      ...axes.map((axis, index) => `${String.fromCharCode(88 + index)}: ${axis}`),
-      'GM is flat; this is a logical access space',
-    ].join('\n');
+  function displayBufferTarget(block) {
+    const core = displayCoreName(block?.core);
+    const buffer = block?.buffer || 'buffer';
+    return `${core} · ${buffer}`;
   }
 
   function renderTileLens(trace) {
@@ -1044,7 +1262,7 @@
       <button class="avz-lens-card" type="button" data-block-index="${index}" title="${escapeHtml(block.state || 'loaded')} · ${escapeHtml(block.sourceTile || '')}">
         <header class="avz-lens-card__head">
           <span>${escapeHtml(block.label || block.buffer)}</span>
-          <span>${escapeHtml(block.core || 'core')} · ${escapeHtml(block.buffer || 'buffer')}</span>
+          <span>${escapeHtml(displayBufferTarget(block))}</span>
         </header>
         <div class="avz-lens-grid">${renderLensCells(block)}</div>
         <div class="avz-card-meta">${escapeHtml(block.state || 'loaded')} · ${escapeHtml(block.sourceTile || '')}</div>
@@ -1059,10 +1277,18 @@
   }
 
   function renderLensCells(block) {
-    const active = new Set(cellRange(block, 32));
-    return Array.from({ length: 32 }, (_, index) => (
+    const count = lensCellCount(block);
+    const active = new Set(cellRange(block, count));
+    return Array.from({ length: count }, (_, index) => (
       `<span class="${active.has(index) ? `is-active is-${escapeHtml(block.tone || 'input')}` : ''}"></span>`
     )).join('');
+  }
+
+  function lensCellCount(block) {
+    if (!Array.isArray(block?.cellRange)) return 32;
+    const end = Number(block.cellRange[1]);
+    if (!Number.isFinite(end)) return 32;
+    return end >= 32 ? 64 : 32;
   }
 
   function cellRange(block, count) {
@@ -1091,7 +1317,7 @@
       fit: '#archFitView',
       readout: '#archZoomReadout',
       zoomLevels: [0.35, 0.4, 0.5, 0.6, 0.7, 0.85, 1, 1.1],
-      defaultScale: 0.5,
+      defaultScale: 0.6,
       frameSize: { width: 3200, height: 900 },
       detailsVisible: false,
       fitOnMount: false,
@@ -1104,7 +1330,7 @@
       onDetailChange: () => state.architecture.overlay?.render?.(),
     });
     state.architecture.hover = helper.attachHoverInteractions?.(els.architectureMap, ARCH_PRESET, {
-      viewportScale: state.architecture.viewport?.state?.scale || 0.5,
+      viewportScale: state.architecture.viewport?.state?.scale || 0.6,
     });
     helper.setDetailVisibility?.(els.architectureMap, false);
     state.architecture.overlay?.render?.();
@@ -1127,28 +1353,19 @@
       helper.setBufferBlocks?.(els.architectureMap, blocks);
       state.architecture.overlay?.render?.();
     }
-    els.architectureBlocks.innerHTML = blocks.length
-      ? blocks.map((block, index) => `<button class="avz-chip avz-chip-button" type="button" data-architecture-block="${index}">${escapeHtml(block.core || 'core')} · ${escapeHtml(block.buffer || 'buffer')} · ${escapeHtml(block.label || '')}</button>`).join('')
-      : '<span class="avz-chip">当前步骤没有本地 buffer 占用</span>';
-    els.architectureBlocks.querySelectorAll('[data-architecture-block]').forEach((button) => {
-      button.addEventListener('click', () => {
-        const block = blocks[Number(button.dataset.architectureBlock) || 0];
-        openInspector('architecture buffer', { block });
-      });
-    });
+    if (els.architectureBlocks) {
+      els.architectureBlocks.hidden = true;
+      els.architectureBlocks.innerHTML = '';
+    }
   }
 
   function renderTimeline(trace) {
     if (!trace || !els.timelineCanvas) return;
     const canvas = els.timelineCanvas;
     const rect = canvas.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
     const width = Math.max(320, Math.floor(rect.width || canvas.clientWidth || 640));
     const height = 92;
-    canvas.width = Math.floor(width * dpr);
-    canvas.height = Math.floor(height * dpr);
-    const ctx = canvas.getContext('2d');
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const ctx = fitCanvas(canvas, width, height);
     ctx.clearRect(0, 0, width, height);
     ctx.fillStyle = getCss('--surface-2');
     ctx.fillRect(0, 0, width, height);
@@ -1169,7 +1386,7 @@
     trace.steps.forEach((step, index) => {
       const stage = trace.stages.find((item) => item.id === step.stageId);
       const x = left + index * (barWidth + gap);
-      const color = palette?.colorForLaneKind?.(step.unit) || helper?.colorFromColormap?.(stage?.label || step.stageId) || '#5b8def';
+      const color = palette?.colorForLaneKind?.(step.unit) || helper?.colorFromColormap?.(stage?.label || step.stageId) || getCss('--primary-hover');
       if (helper?.drawTaskBar) {
         helper.drawTaskBar(ctx, {
           x,
@@ -1209,8 +1426,12 @@
     };
   }
 
+  const cssCache = new Map();
   function getCss(name) {
-    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    if (cssCache.has(name)) return cssCache.get(name);
+    const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    cssCache.set(name, value);
+    return value;
   }
 
   function renderInspector(trace = currentTrace()) {
@@ -1231,7 +1452,7 @@
     const axes = visual.tensorViewport?.axisLabels || [];
 
     els.inspector.innerHTML = `
-      <section class="inspector-section avz-inspector-hero">
+      <section class="inspector-section inspector-soft-card avz-inspector-hero">
         <p class="avz-inspector-eyebrow">${escapeHtml(selected.meta)}</p>
         <h3>${escapeHtml(selected.title)}</h3>
         <p>${escapeHtml(selected.body)}</p>
@@ -1248,7 +1469,7 @@
         <header class="inspector-section-head">
           <span class="inspector-section-title">怎么看图</span>
         </header>
-        <p class="avz-inspector-copy">${escapeHtml(visualNarrative(visual, axes, blocks))}</p>
+        <p class="avz-inspector-copy">${escapeHtml(visualNarrative(trace, step, stage, visual, axes, blocks))}</p>
       </section>
 
       ${regions.length ? `
@@ -1294,7 +1515,7 @@
       return {
         title: block.label || block.buffer || '本地数据块',
         meta: 'Architecture Buffer',
-        body: `${block.core || '当前 core'} 的 ${block.buffer || 'buffer'} 正在承载 ${block.sourceTile || '当前 tile'}。状态是 ${block.state || 'unknown'}，对应操作是 ${block.operation || stage.label}。这个对象只表示片上 buffer 中的一小块驻留数据，不代表完整 logical tensor。`,
+        body: `${displayBufferTarget(block)} 正在承载 ${block.sourceTile || '当前 tile'}。状态是 ${block.state || 'unknown'}，对应操作是 ${block.operation || stage.label}。这个对象只表示片上 buffer 中的一小块驻留数据，不代表完整 logical tensor；完整 tensor 的位置要看中央 3D 视口。`,
       };
     }
     if (selected.type === 'source') {
@@ -1315,7 +1536,7 @@
       return {
         title: 'Logical Tensor 3D Viewport',
         meta: 'Tensor View',
-        body: `中央 3D 视图展示的是逻辑访问空间，不是 GM 里的物理连续三维存储。当前坐标含义是 ${formatListCn(visual.tensorViewport?.axisLabels || [])}；拖动画布可以观察 tile 相对位置，缩放按钮用于调整视图大小。`,
+        body: tensorSceneNarrative(trace, step, stage, visual),
       };
     }
     return {
@@ -1331,12 +1552,31 @@
     return `${sourceLines} 对应 ${zh(stage.label)} 阶段。${zh(stage.description)} ${opText}${zh(step.summary)}`;
   }
 
-  function visualNarrative(visual, axes, blocks) {
-    const axisText = axes.length ? `3D 视口的三个轴当前表示 ${formatListCn(axes)}。` : '';
+  function visualNarrative(trace, step, stage, visual, axes, blocks) {
+    const axisText = axes.length ? `当前轴名是 ${formatListCn(axes)}。` : '';
     const blockText = blocks.length
-      ? `右侧架构图会把 ${blocks.length} 个片上本地数据块标在对应 buffer grid 上，例如 ${formatListCn(blocks.map((block) => `${block.buffer}:${block.label}`))}。`
+      ? `右侧架构图会把 ${blocks.length} 个片上本地数据块标在对应 buffer grid 上，例如 ${formatListCn(blocks.map((block) => `${displayBufferTarget(block)} ${block.label || ''}`))}。`
       : '当前步骤没有片上 buffer data block 需要单独标出。';
-    return `${axisText}中央视图负责表达完整 logical tensor 的选中范围；Memory Architecture 负责表达硬件链路、core、buffer 和局部驻留数据。${blockText}`;
+    return `${axisText}${tensorSceneNarrative(trace, step, stage, visual)} ${blockText}`;
+  }
+
+  function tensorSceneNarrative(trace, step, stage, visual) {
+    const kind = trace?.operator?.kind || visual.tensorViewport?.kind || 'vector';
+    const intro = `中央视口参考 Triton-Viz 的 trace-driven 逻辑：画的是完整的 logical tensor，高亮块是当前这一步实际触碰的 element 区间。坐标轴有真实刻度和单位（element 数），不是抽象的折叠维度。GM 始终是线性地址，shape、blockIdx 和循环偏移决定高亮落在哪里。静止画面只是当前帧；播放或切换步骤时，高亮块会跟着 CopyIn、Compute、CopyOut 或同步阶段移动。`;
+
+    if (kind === 'vector') {
+      return `${intro} 这个 Vector Add 是 1D tensor，所以整条横轴就是 GM 线性地址 0 → totalLength，按 numBlocks 切成等长 block 段。当前 tile 的高亮区间 = blockIdx * blockLength + progress * tileLength 起、长 tileLength 个 element，刻度上能直接读出它对应的 GM 偏移。`;
+    }
+
+    if (kind === 'cube') {
+      return `${intro} 这个 Cube Matmul 的输出是二维 C[M,N]，视口就把它画成真实的 M×N 网格，每格是一个 baseM×baseN 的输出 tile。高亮块是当前 Cube block 负责的 singleCoreM×singleCoreN 输出分区。K 是规约维、不是输出 tensor 的轴，所以单独用右侧的 K 累加进度条表示：Mmad 沿 K 把部分和累加到 L0C/CO1，Fixpipe 再把完成的 C tile 写回 GM。`;
+    }
+
+    if (kind === 'fusion') {
+      return `${intro} 这个 Fusion 同样画 C[M,N] 真实网格：AIC/Cube 先生产一块 singleCore 的 C 分区，CrossCoreSetFlag 把它标记为 ready，AIV0 和 AIV1 再分别消费这块分区的上半和下半 M rows 做 LeakyRelu——所以 AIV 步骤的高亮只覆盖一半行。AIC/AIV 的 handoff 是同步关系，要看底部 Execution Timeline 和右侧 Memory Architecture 的链路高亮，而不是 tensor 的某个轴。`;
+    }
+
+    return intro;
   }
 
   function memoryNarrative(regions, blocks) {
@@ -1400,10 +1640,14 @@
   function initResizeObservers() {
     if (state.resizeObserver || typeof ResizeObserver !== 'function') return;
     state.resizeObserver = new ResizeObserver(() => {
-      const trace = currentTrace();
-      renderTensorViewport(trace);
-      renderTimeline(trace);
-      state.architecture.overlay?.render?.();
+      if (state.resizeRaf) return;
+      state.resizeRaf = window.requestAnimationFrame(() => {
+        state.resizeRaf = 0;
+        const trace = currentTrace();
+        renderTensorViewport(trace);
+        renderTimeline(trace);
+        state.architecture.overlay?.render?.();
+      });
     });
     [els.tensorStage, els.timelineCanvas, els.architectureViewport].forEach((target) => {
       if (target) state.resizeObserver.observe(target);

@@ -61,7 +61,7 @@
   "source": {
     "path": "add.asc",
     "lines": [
-      {"line": 24, "text": "constexpr uint32_t BUFFER_NUM = 2;"},
+      {"line": 23, "text": "constexpr uint32_t BUFFER_NUM = 2;"},
       {"line": 26, "text": "struct AddCustomTilingData {"},
       {"line": 27, "text": "    uint32_t totalLength;"},
       {"line": 28, "text": "    uint32_t tileNum;"},
