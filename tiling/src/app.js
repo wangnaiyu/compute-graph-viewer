@@ -110,6 +110,7 @@
     playback: null,
     webglAvailable: null,
     inspectorOpen: false,
+    infoOpen: false,
     selectedObject: null,
     tensorView: {
       scale: 1,
@@ -182,6 +183,10 @@
     archZoomReadout: byId('archZoomReadout'),
     timelineKicker: byId('timelineKicker'),
     timelineCanvas: byId('timelineCanvas'),
+    traceInfoPanel: byId('traceInfoPanel'),
+    traceInfoMeta: byId('traceInfoMeta'),
+    traceInfoContent: byId('traceInfoContent'),
+    closeTraceInfo: byId('closeTraceInfo'),
     inspectorDrawer: byId('inspectorDrawer'),
     inspectorMeta: byId('inspectorMeta'),
     closeInspector: byId('closeInspector'),
@@ -273,7 +278,14 @@
     els.zoomOut?.addEventListener('click', () => zoomTensorView(0.86));
     els.zoomIn?.addEventListener('click', () => zoomTensorView(1.16));
     els.fitView?.addEventListener('click', resetTensorView);
-    els.viewportInfo?.addEventListener('click', () => openInspector('tensor'));
+    els.viewportInfo?.addEventListener('click', () => {
+      state.infoOpen = !state.infoOpen;
+      renderInfoPanel();
+    });
+    els.closeTraceInfo?.addEventListener('click', () => {
+      state.infoOpen = false;
+      renderInfoPanel();
+    });
     els.closeInspector?.addEventListener('click', () => {
       state.inspectorOpen = false;
       renderInspector();
@@ -471,6 +483,7 @@
     renderTileLens(trace);
     renderArchitectureFocus(trace);
     renderTimeline(trace);
+    renderInfoPanel(trace);
     renderInspector(trace);
     syncPlayback();
   }
@@ -1449,7 +1462,6 @@
     const events = [...(step.queueEvents || []), ...(step.syncEvents || [])];
     const regions = step.memoryRegions || [];
     const blocks = visual.architectureFocus?.bufferBlocks || [];
-    const axes = visual.tensorViewport?.axisLabels || [];
 
     els.inspector.innerHTML = `
       <section class="inspector-section inspector-soft-card avz-inspector-hero">
@@ -1463,13 +1475,6 @@
           <span class="inspector-section-title">当前步骤</span>
         </header>
         <p class="avz-inspector-copy">${escapeHtml(stepNarrative(trace, step, stage))}</p>
-      </section>
-
-      <section class="inspector-section">
-        <header class="inspector-section-head">
-          <span class="inspector-section-title">怎么看图</span>
-        </header>
-        <p class="avz-inspector-copy">${escapeHtml(visualNarrative(trace, step, stage, visual, axes, blocks))}</p>
       </section>
 
       ${regions.length ? `
@@ -1505,6 +1510,30 @@
           </dl>
         </section>
       ` : ''}
+    `;
+  }
+
+  function renderInfoPanel(trace = currentTrace()) {
+    if (els.traceInfoPanel) els.traceInfoPanel.hidden = !state.infoOpen;
+    if (els.viewportInfo) {
+      els.viewportInfo.setAttribute('aria-expanded', state.infoOpen ? 'true' : 'false');
+      els.viewportInfo.classList.toggle('is-selected', state.infoOpen);
+    }
+    if (!state.infoOpen) return;
+    const step = currentStep(trace);
+    const stage = trace?.stages?.find((item) => item.id === step?.stageId);
+    if (!step || !stage || !els.traceInfoContent) return;
+    const visual = visualStateForStep(trace, step);
+    const axes = visual.tensorViewport?.axisLabels || [];
+    const blocks = visual.architectureFocus?.bufferBlocks || [];
+    if (els.traceInfoMeta) {
+      els.traceInfoMeta.textContent = `${state.stepIndex + 1}/${trace.steps.length} · ${zh(stage.label)}`;
+    }
+    els.traceInfoContent.innerHTML = `
+      <section class="avz-info-panel__section">
+        <h3>Trace Visual</h3>
+        <p>${escapeHtml(visualNarrative(trace, step, stage, visual, axes, blocks))}</p>
+      </section>
     `;
   }
 

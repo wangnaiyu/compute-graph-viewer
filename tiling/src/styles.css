@@ -379,7 +379,8 @@ body {
 }
 
 .avz-viewport-actions svg,
-.avz-inspector-drawer svg {
+.avz-inspector-drawer svg,
+.avz-info-panel svg {
   width: 14px;
   height: 14px;
   fill: none;
@@ -564,6 +565,55 @@ body {
 .avz-bottom-hover {
   position: relative;
   z-index: 1;
+}
+
+.avz-info-panel {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  z-index: 14;
+  width: min(430px, calc(100% - var(--space-6)));
+  max-height: calc(100% - var(--space-6));
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.avz-info-panel[hidden] {
+  display: none;
+}
+
+.avz-info-panel__head {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.avz-info-panel__body {
+  padding: var(--space-4);
+  overflow: auto;
+  display: grid;
+  gap: var(--space-4);
+}
+
+.avz-info-panel__section {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.avz-info-panel__section h3 {
+  margin: 0;
+  color: var(--foreground);
+  font: var(--text-title-3);
+}
+
+.avz-info-panel__section p {
+  margin: 0;
+  color: var(--foreground-secondary);
+  font: var(--text-body-sm);
+  line-height: 1.68;
 }
 
 .avz-playback-inline .pto-floating-playback--tiling {
