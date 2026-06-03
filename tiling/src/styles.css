@@ -7,7 +7,40 @@ body {
   margin: 0;
   background: var(--ide-frame-page-bg, var(--surface-3));
   color: var(--foreground);
+  color-scheme: dark;
   overflow: hidden;
+}
+
+.avz-page,
+.avz-page * {
+  scrollbar-width: thin;
+  scrollbar-color:
+    color-mix(in srgb, var(--foreground-muted) 38%, transparent)
+    transparent;
+}
+
+.avz-page ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.avz-page ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.avz-page ::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+  background-color: color-mix(in srgb, var(--foreground-muted) 34%, transparent);
+}
+
+.avz-page ::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in srgb, var(--foreground-muted) 54%, transparent);
+}
+
+.avz-page ::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 .avz-page {
