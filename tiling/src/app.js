@@ -1388,43 +1388,31 @@
     const gap = 8;
     const left = 10;
     const top = 28;
-    const barHeight = 30;
+    const barHeight = 34;
     const stepCount = trace.steps.length;
     const barWidth = Math.max(42, (width - left * 2 - gap * (stepCount - 1)) / stepCount);
 
     ctx.fillStyle = getCss('--foreground-muted');
     ctx.font = '600 10px Inter, sans-serif';
-    ctx.fillText('Step trace', left, 17);
+    ctx.fillText('Trace steps', left, 17);
 
     trace.steps.forEach((step, index) => {
       const stage = trace.stages.find((item) => item.id === step.stageId);
       const x = left + index * (barWidth + gap);
       const color = palette?.colorForLaneKind?.(step.unit) || helper?.colorFromColormap?.(stage?.label || step.stageId) || getCss('--primary-hover');
-      if (helper?.drawTaskBar) {
-        helper.drawTaskBar(ctx, {
-          x,
-          y: top,
-          width: barWidth,
-          height: barHeight,
-          radius: 5,
-          baseColor: color,
-          isSelected: index === state.stepIndex,
-          task: {
-            label: stage?.label || step.stageId,
-            displayName: step.label,
-            inputRawMagic: step.memoryRegions || [],
-            outputRawMagic: step.queueEvents || step.syncEvents || [],
-            laneKind: step.unit,
-          },
-          fontFamily: 'Inter, Source Han Sans SC, sans-serif',
-        });
-      } else {
-        ctx.fillStyle = index === state.stepIndex ? getCss('--primary') : color;
-        ctx.fillRect(x, top, barWidth, barHeight);
-      }
+      drawTimelineStep(ctx, {
+        x,
+        y: top,
+        width: barWidth,
+        height: barHeight,
+        color,
+        selected: index === state.stepIndex,
+        title: timelineStageTitle(stage, step),
+        flow: timelineStageFlow(stage, step),
+      });
       ctx.fillStyle = getCss('--foreground-muted');
       ctx.font = '600 9px ui-monospace, monospace';
-      ctx.fillText(String(index + 1), x + 2, top + barHeight + 14);
+      ctx.fillText(String(index + 1), x + 2, top + barHeight + 15);
     });
 
     canvas.onclick = (event) => {
@@ -1437,6 +1425,91 @@
         selectStep(index);
       }
     };
+  }
+
+  function drawTimelineStep(ctx, item) {
+    const radius = 5;
+    const fg = getCss('--foreground');
+    const muted = getCss('--foreground-muted');
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(item.x, item.y, item.width, item.height, radius);
+    ctx.globalAlpha = item.selected ? 0.34 : 0.22;
+    ctx.fillStyle = item.color;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = item.selected ? fg : getCss('--border-strong');
+    ctx.lineWidth = item.selected ? 1.8 : 1;
+    ctx.stroke();
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(item.x, item.y, item.width, item.height, radius);
+    ctx.clip();
+    ctx.fillStyle = fg;
+    ctx.font = '700 12px Inter, Source Han Sans SC, sans-serif';
+    drawFittedText(ctx, item.title, item.x + 8, item.y + 15, item.width - 16);
+    ctx.fillStyle = muted;
+    ctx.font = '600 9px ui-monospace, SFMono-Regular, Menlo, monospace';
+    drawFittedText(ctx, item.flow, item.x + 8, item.y + 29, item.width - 16);
+    ctx.restore();
+    ctx.restore();
+  }
+
+  function drawFittedText(ctx, text, x, y, maxWidth) {
+    const value = String(text || '');
+    if (ctx.measureText(value).width <= maxWidth) {
+      ctx.fillText(value, x, y);
+      return;
+    }
+    let clipped = value;
+    while (clipped.length > 1 && ctx.measureText(`${clipped}...`).width > maxWidth) {
+      clipped = clipped.slice(0, -1);
+    }
+    ctx.fillText(`${clipped}...`, x, y);
+  }
+
+  function timelineStageTitle(stage, step) {
+    const map = {
+      'host-launch': 'Host 启动',
+      init: 'Tiling 初始化',
+      'copy-in': 'CopyIn',
+      compute: 'Compute',
+      'copy-out': 'CopyOut',
+      'gm-offset': 'GM Offset',
+      'copy-in-a': 'CopyIn A',
+      'copy-in-b': 'CopyIn B',
+      'load-data': 'LoadData',
+      mmad: 'Mmad',
+      fixpipe: 'Fixpipe',
+      'mix-launch': 'Mix 启动',
+      'aic-matmul': 'AIC Matmul',
+      'cross-core-sync': '同步',
+      'aiv-leakyrelu': 'AIV LeakyRelu',
+    };
+    return map[stage?.id] || zh(stage?.label || step?.label || 'trace');
+  }
+
+  function timelineStageFlow(stage, step) {
+    const id = stage?.id || step?.stageId || '';
+    const map = {
+      'host-launch': 'Host -> GM',
+      init: 'block/tile',
+      'copy-in': 'GM -> UB',
+      compute: 'UB -> SIMD',
+      'copy-out': 'UB -> GM',
+      'gm-offset': 'blockIdx -> C',
+      'copy-in-a': 'GM A -> L1',
+      'copy-in-b': 'GM B -> L1',
+      'load-data': 'L1 -> L0',
+      mmad: 'L0A/B -> L0C',
+      fixpipe: 'L0C -> GM',
+      'mix-launch': 'AIC:AIV = 1:2',
+      'aic-matmul': 'A/B -> C',
+      'cross-core-sync': 'flag',
+      'aiv-leakyrelu': 'GM <-> UB',
+    };
+    return map[id] || unitLabel(step?.unit || stage?.unit) || 'trace';
   }
 
   const cssCache = new Map();
@@ -1565,7 +1638,7 @@
       return {
         title: 'Logical Tensor 3D Viewport',
         meta: 'Tensor View',
-        body: tensorSceneNarrative(trace, step, stage, visual),
+        body: '这是中央 Trace Visual 的 logical tensor 视口对象，用来显示当前步骤在 logical tensor 上触碰的 tile 或 element 区间。Inspector 这里只保留对象级说明；完整读图语义由右上角 info 面板承载。',
       };
     }
     return {
