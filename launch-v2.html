@@ -1,0 +1,1322 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CANN · PTO 启动台 v2</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23ffffff'/%3E%3Cpath d='M17 40V24h8c4 0 7 3 7 8s-3 8-7 8h-8Zm20 0V24h10v4h-6v3h5v4h-5v5h-4Z' fill='%230f172a'/%3E%3Cpath d='M14 18h20l-5 7H14z' fill='%23e5484d'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="vendor/pto-design-system/tokens/foundation.css">
+<link rel="stylesheet" href="vendor/pto-design-system/tokens/semantic.css">
+<link rel="stylesheet" href="vendor/pto-design-system/tokens/components.css">
+<link rel="stylesheet" href="vendor/pto-design-system/css/style.css">
+<style>
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+html {
+  height: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+body {
+  min-width: 320px;
+  height: auto;
+  min-height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  display: block;
+  background:
+    radial-gradient(circle at 12% 6%, rgba(247, 183, 219, 0.41) 0, rgba(247, 183, 219, 0) 34%),
+    radial-gradient(circle at 88% 8%, rgba(247, 191, 132, 0.34) 0, rgba(247, 191, 132, 0) 30%),
+    radial-gradient(circle at 46% 0%, rgba(189, 169, 232, 0.32) 0, rgba(189, 169, 232, 0) 34%),
+    linear-gradient(180deg, #f8efff 0%, #eef4ff 47%, #e9eef8 100%);
+  background-attachment: fixed;
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+.svg-icon {
+  width: 18px;
+  height: 18px;
+  display: inline-block;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.cann-app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.cann-topbar {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-modal);
+  background: color-mix(in srgb, var(--surface-1) 94%, transparent);
+  border-bottom: 1px solid var(--border-subtle);
+  backdrop-filter: blur(16px);
+}
+
+.cann-primary {
+  height: 62px;
+  padding: 0 32px;
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(320px, 520px) minmax(260px, 1fr);
+  align-items: center;
+  gap: var(--space-6);
+  overflow: hidden;
+  transition:
+    height var(--duration-base) var(--easing-default),
+    padding var(--duration-base) var(--easing-default),
+    opacity var(--duration-fast) var(--easing-default),
+    transform var(--duration-base) var(--easing-default);
+}
+
+.cann-topbar.is-collapsed .cann-primary {
+  height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-8px);
+}
+
+.cann-brand,
+.cann-actions,
+.cann-nav {
+  display: flex;
+  align-items: center;
+}
+
+.cann-brand {
+  min-width: 0;
+  gap: var(--space-3);
+}
+
+.cann-actions {
+  justify-content: flex-end;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.cann-menu {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--radius-md);
+  color: var(--foreground-secondary);
+  background: transparent;
+  cursor: pointer;
+}
+
+.cann-logo {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--surface-1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--foreground);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: -0.8px;
+  position: relative;
+  overflow: hidden;
+}
+
+.cann-logo::before {
+  content: "";
+  position: absolute;
+  top: 5px;
+  left: 6px;
+  width: 17px;
+  height: 5px;
+  border-radius: 99px;
+  background: var(--danger);
+  transform: skewX(-18deg);
+  opacity: 0.9;
+}
+
+.cann-logo span {
+  position: relative;
+  z-index: 1;
+}
+
+.cann-name {
+  color: var(--foreground);
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.follow-pill {
+  height: 32px;
+  padding: 0 13px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-default);
+  background: var(--surface-1);
+  color: var(--foreground-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+}
+
+.global-search {
+  min-width: 0;
+  height: 38px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--surface-1) 88%, var(--background));
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 16px;
+  color: var(--foreground-muted);
+}
+
+.search-icon {
+  width: 17px;
+  height: 17px;
+}
+
+.global-search input {
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--foreground);
+}
+
+.global-search input::placeholder {
+  color: var(--foreground-muted);
+}
+
+.create-btn {
+  min-width: 130px;
+  border-radius: var(--radius-pill);
+}
+
+.bell-btn,
+.avatar-btn {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--foreground-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.notify-count {
+  position: absolute;
+  top: 2px;
+  right: -1px;
+  min-width: 22px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: var(--radius-pill);
+  background: var(--danger);
+  color: var(--primary-foreground);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.avatar-btn {
+  background:
+    radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--warning) 28%, white) 0 32%, transparent 34%),
+    color-mix(in srgb, var(--warning) 18%, var(--surface-1));
+  color: color-mix(in srgb, var(--warning) 70%, var(--foreground));
+}
+
+.cann-nav-wrap {
+  height: 58px;
+  padding: 0 132px;
+  display: flex;
+  align-items: center;
+}
+
+.cann-nav {
+  height: 100%;
+  gap: 28px;
+}
+
+.cann-nav-link {
+  height: 100%;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  position: relative;
+  color: var(--foreground-secondary);
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.cann-nav-link.is-active {
+  color: var(--foreground);
+}
+
+.cann-nav-link.is-active::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  border-radius: 99px 99px 0 0;
+  background: var(--foreground);
+}
+
+.nav-icon {
+  color: var(--foreground-disabled);
+  width: 17px;
+  height: 17px;
+}
+
+.cann-nav-link.is-active .nav-icon,
+.cann-nav-link:first-child .nav-icon {
+  color: var(--danger);
+}
+
+.count-badge {
+  min-width: 23px;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-3);
+  color: var(--foreground-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.page-shell {
+  width: min(1680px, calc(100vw - 96px));
+  margin: 0 auto;
+  padding: 22px 0 28px;
+  display: grid;
+  grid-template-columns: 230px minmax(0, 1fr);
+  gap: 32px;
+}
+
+.side-nav {
+  position: sticky;
+  top: 136px;
+  max-height: calc(100vh - 92px);
+  overflow: auto;
+  align-self: start;
+  padding-top: 18px;
+  transition: top var(--duration-base) var(--easing-default);
+}
+
+body.is-header-collapsed .side-nav {
+  top: 76px;
+}
+
+.side-title {
+  margin: 0 0 16px;
+  padding-left: 18px;
+  color: var(--foreground);
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.side-list {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.side-item {
+  width: 100%;
+  min-height: 46px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--foreground-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  cursor: pointer;
+  text-align: left;
+}
+
+.side-item:hover {
+  background: rgba(255, 255, 255, 0.34);
+  color: var(--foreground);
+}
+
+.side-item.is-active {
+  background: rgba(255, 255, 255, 0.50);
+  color: var(--foreground);
+}
+
+.side-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.side-icon {
+  width: 18px;
+  height: 18px;
+  color: var(--foreground-muted);
+  flex: 0 0 auto;
+}
+
+.side-count {
+  color: var(--foreground-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.main-column {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.section-head {
+  min-height: 42px;
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.section-title {
+  margin: 0;
+  color: var(--foreground);
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.section-subtitle {
+  margin: 5px 0 0;
+  color: var(--foreground-muted);
+  font-size: 13px;
+}
+
+.result-count {
+  color: var(--foreground-muted);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  align-content: start;
+  padding: 2px 0 8px;
+}
+
+.launch-card {
+  width: 100%;
+  min-height: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  overflow: hidden;
+  transition:
+    border-color var(--duration-fast) var(--easing-default),
+    transform var(--duration-fast) var(--easing-default),
+    box-shadow var(--duration-fast) var(--easing-default);
+}
+
+.launch-card:hover {
+  border-color: var(--card-hover-border);
+  transform: translateY(-2px);
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.09);
+}
+
+.card-preview {
+  margin: 10px 10px 0;
+  aspect-ratio: 16 / 9;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--surface-2) 70%, white), var(--surface-1));
+  overflow: hidden;
+  flex: 0 0 auto;
+}
+
+.card-preview img,
+.card-preview iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.card-preview img {
+  object-fit: cover;
+  object-position: top center;
+}
+
+.card-preview img.is-contain {
+  object-fit: cover;
+  padding: 0;
+}
+
+.card-preview iframe {
+  pointer-events: none;
+  transform: scale(0.82);
+  transform-origin: top left;
+  width: 122%;
+  height: 122%;
+  background: var(--surface-1);
+}
+
+.preview-placeholder {
+  height: 100%;
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+  color: var(--foreground-muted);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.launch-card .card-demo-header {
+  padding: 10px 13px 9px;
+  flex: 1;
+  min-height: 0;
+  gap: 4px;
+  overflow: hidden;
+}
+
+.card-kicker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  color: var(--foreground-muted);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.card-group-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-group-name::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--foreground-muted);
+  flex: 0 0 auto;
+}
+
+.status-pill {
+  height: 19px;
+  padding: 0 7px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-3);
+  color: var(--foreground-secondary);
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  flex: 0 0 auto;
+}
+
+.launch-card .card-demo-title {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  font-size: 15.5px;
+  line-height: 1.2;
+}
+
+.launch-card .card-demo-description {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-height: 46px;
+  margin-top: 5px;
+  overflow: hidden;
+}
+
+.tag-chip {
+  height: var(--tag-height);
+  padding: 0 var(--tag-padding-x);
+  border-radius: var(--tag-radius);
+  border: 1px solid var(--comp-tag-border);
+  background: var(--comp-tag-bg);
+  color: var(--comp-tag-fg);
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.launch-card .card-demo-footer {
+  margin-top: auto;
+  min-height: 34px;
+  padding: 5px 12px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--space-2);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.launch-card:not(.has-variants) .card-demo-header {
+  padding-bottom: 12px;
+}
+
+.launch-card.has-variants .tag-row {
+  display: none;
+}
+
+.variant-list {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+}
+
+.variant-link {
+  min-width: 58px;
+  max-width: 122px;
+  min-height: 28px;
+  padding-inline: 11px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 700;
+}
+
+.empty-state {
+  min-height: 260px;
+  border-radius: var(--radius-lg);
+  border: 1px dashed var(--border-default);
+  background: var(--surface-1);
+  color: var(--foreground-muted);
+  display: none;
+  place-items: center;
+  text-align: center;
+  padding: var(--space-6);
+}
+
+.empty-state.is-visible {
+  display: grid;
+}
+
+@media (max-width: 1280px) {
+  .cann-primary {
+    padding: 0 22px;
+    grid-template-columns: minmax(220px, 1fr) minmax(260px, 420px) minmax(220px, 1fr);
+  }
+
+  .cann-nav-wrap {
+    padding: 0 88px;
+  }
+
+  .page-shell {
+    width: min(1180px, calc(100vw - 48px));
+    grid-template-columns: 210px minmax(0, 1fr);
+    gap: 24px;
+  }
+}
+
+@media (max-width: 1080px) {
+  .card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 920px) {
+  .cann-primary {
+    height: auto;
+    min-height: 118px;
+    padding: 14px 18px;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "brand actions"
+      "search search";
+    gap: var(--space-3);
+  }
+
+  .cann-brand {
+    grid-area: brand;
+  }
+
+  .global-search {
+    grid-area: search;
+  }
+
+  .cann-actions {
+    grid-area: actions;
+  }
+
+  .cann-nav-wrap {
+    height: 52px;
+    padding: 0 18px;
+    overflow-x: auto;
+  }
+
+  .cann-nav {
+    gap: 22px;
+  }
+
+  .page-shell {
+    width: min(100%, calc(100vw - 28px));
+    grid-template-columns: 1fr;
+  }
+
+  .side-nav {
+    position: static;
+    padding-top: 0;
+    max-height: none;
+    overflow: hidden;
+  }
+
+  .side-title {
+    padding-left: 0;
+  }
+
+  .side-list {
+    display: flex;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .side-item {
+    width: auto;
+    flex: 0 0 auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .cann-primary {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "brand"
+      "search"
+      "actions";
+  }
+
+  .cann-actions {
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .create-btn {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .cann-name,
+  .follow-pill {
+    display: none;
+  }
+
+  .card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .section-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+</style>
+</head>
+<body>
+<svg aria-hidden="true" width="0" height="0" style="position:absolute;overflow:hidden">
+  <defs>
+    <symbol id="icon-menu" viewBox="0 0 24 24"><path d="M4 12h16"/><path d="M4 6h16"/><path d="M4 18h16"/></symbol>
+    <symbol id="icon-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+    <symbol id="icon-bell" viewBox="0 0 24 24"><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/></symbol>
+    <symbol id="icon-user-round" viewBox="0 0 24 24"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></symbol>
+    <symbol id="icon-home" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></symbol>
+    <symbol id="icon-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+    <symbol id="icon-layers" viewBox="0 0 24 24"><path d="m12 2 9 5-9 5-9-5z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/></symbol>
+    <symbol id="icon-circle-dot" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="1"/></symbol>
+    <symbol id="icon-git-pull-request" viewBox="0 0 24 24"><circle cx="6" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><path d="M6 9v6"/><path d="M18 15v-3a6 6 0 0 0-6-6H9"/></symbol>
+    <symbol id="icon-columns-3" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="M15 3v18"/></symbol>
+    <symbol id="icon-users-round" viewBox="0 0 24 24"><path d="M18 21a6 6 0 0 0-12 0"/><circle cx="12" cy="11" r="4"/><path d="M22 21a5 5 0 0 0-3-4.6"/><path d="M16 3.1a4 4 0 0 1 0 7.8"/><path d="M2 21a5 5 0 0 1 3-4.6"/><path d="M8 3.1a4 4 0 0 0 0 7.8"/></symbol>
+    <symbol id="icon-layout-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></symbol>
+    <symbol id="icon-cpu" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="10" y="10" width="4" height="4"/><path d="M4 10H2"/><path d="M4 14H2"/><path d="M22 10h-2"/><path d="M22 14h-2"/><path d="M10 4V2"/><path d="M14 4V2"/><path d="M10 22v-2"/><path d="M14 22v-2"/></symbol>
+    <symbol id="icon-network" viewBox="0 0 24 24"><rect x="16" y="16" width="6" height="6" rx="1"/><rect x="2" y="16" width="6" height="6" rx="1"/><rect x="9" y="2" width="6" height="6" rx="1"/><path d="M5 16v-3a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v3"/><path d="M12 8v3"/></symbol>
+    <symbol id="icon-activity" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></symbol>
+    <symbol id="icon-code-2" viewBox="0 0 24 24"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></symbol>
+    <symbol id="icon-book-open" viewBox="0 0 24 24"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V5a2 2 0 0 1 2-2h5a3 3 0 0 1 3 3v15a3 3 0 0 0-3-3z"/><path d="M21 18a1 1 0 0 0 1-1V5a2 2 0 0 0-2-2h-5a3 3 0 0 0-3 3v15a3 3 0 0 1 3-3z"/></symbol>
+  </defs>
+</svg>
+<div class="cann-app">
+  <header class="cann-topbar">
+    <div class="cann-primary">
+      <div class="cann-brand">
+        <button class="cann-menu" type="button" aria-label="打开主菜单">
+          <svg class="svg-icon"><use href="#icon-menu"></use></svg>
+        </button>
+        <a class="cann-logo" href="launch.html" aria-label="返回 PTO 启动页"><span>CANN</span></a>
+        <strong class="cann-name">CANN</strong>
+        <span class="follow-pill">已关注</span>
+      </div>
+
+      <label class="global-search" aria-label="全局搜索">
+        <svg class="svg-icon search-icon" aria-hidden="true"><use href="#icon-search"></use></svg>
+        <input id="globalSearch" type="search" placeholder="按下 / 快速开启搜索" autocomplete="off">
+      </label>
+
+      <div class="cann-actions">
+        <a class="btn btn-solid create-btn" href="launch.html">+ 新建</a>
+        <button class="bell-btn" type="button" aria-label="通知">
+          <svg class="svg-icon" aria-hidden="true"><use href="#icon-bell"></use></svg>
+          <span class="notify-count">92</span>
+        </button>
+        <button class="avatar-btn" type="button" aria-label="个人头像">
+          <svg class="svg-icon" aria-hidden="true"><use href="#icon-user-round"></use></svg>
+        </button>
+      </div>
+    </div>
+
+    <nav class="cann-nav-wrap" aria-label="CANN 顶部导航">
+      <div class="cann-nav">
+        <a class="cann-nav-link" href="launch.html"><svg class="svg-icon nav-icon" aria-hidden="true"><use href="#icon-home"></use></svg>主页</a>
+        <a class="cann-nav-link" href="#grid"><svg class="svg-icon nav-icon" aria-hidden="true"><use href="#icon-folder"></use></svg>项目 <span class="count-badge">66</span></a>
+        <a class="cann-nav-link" href="#grid"><svg class="svg-icon nav-icon" aria-hidden="true"><use href="#icon-layers"></use></svg>合集</a>
+        <a class="cann-nav-link" href="#grid"><svg class="svg-icon nav-icon" aria-hidden="true"><use href="#icon-circle-dot"></use></svg>Issues</a>
+        <a class="cann-nav-link" href="#grid"><svg class="svg-icon nav-icon" aria-hidden="true"><use href="#icon-git-pull-request"></use></svg>Pull Requests</a>
+        <a class="cann-nav-link" href="#grid"><svg class="svg-icon nav-icon" aria-hidden="true"><use href="#icon-columns-3"></use></svg>看板</a>
+        <a class="cann-nav-link is-active" href="#grid" aria-current="page"><svg class="svg-icon nav-icon" aria-hidden="true"><use href="#icon-users-round"></use></svg>社区</a>
+      </div>
+    </nav>
+  </header>
+
+  <main class="page-shell">
+    <aside class="side-nav" aria-label="启动台分类">
+      <h2 class="side-title">分类</h2>
+      <div class="side-list" id="categoryList"></div>
+    </aside>
+
+    <section class="main-column">
+      <div class="section-head">
+        <div>
+          <h2 class="section-title" id="activeTitle">全部项目</h2>
+          <p class="section-subtitle">一行 3 个的浅色卡片宫格，保留各模块预览和主要入口。</p>
+        </div>
+        <div class="result-count" id="resultCount"></div>
+      </div>
+
+      <div class="card-grid" id="grid" aria-live="polite"></div>
+      <div class="empty-state" id="emptyState">没有匹配的项目。</div>
+    </section>
+  </main>
+</div>
+
+<script>
+const categories = [
+  { id: "all", label: "全部", icon: "icon-layout-grid" },
+  { id: "A5 硬件与迁移", label: "A5 硬件与迁移", icon: "icon-cpu" },
+  { id: "模型图与 IR", label: "模型图与 IR", icon: "icon-network" },
+  { id: "执行与性能分析", label: "执行与性能分析", icon: "icon-activity" },
+  { id: "算子开发工具", label: "算子开发工具", icon: "icon-code-2" },
+  { id: "白皮书与系统", label: "白皮书与系统", icon: "icon-book-open" }
+];
+
+const launchItems = [
+  {
+    title: "Ascend Tiling Viz Workbench",
+    group: "A5 硬件与迁移",
+    status: "hi-fi",
+    desc: "面向 Ascend tiling 的 3D Tensor、Memory 和执行参数可视化。",
+    href: "tiling/index.html",
+    preview: "assets/ascend-tiling-viz-workbench.png",
+    fit: "contain",
+    tags: ["Tiling", "3D Tensor", "Memory"]
+  },
+  {
+    title: "Kernel 指令可视化工作台",
+    group: "A5 硬件与迁移",
+    status: "hi-fi",
+    desc: "观察 AICPU / AICore 指令、Kernel 结构和执行路径。",
+    href: "ai-cpu-aicore/index.html",
+    preview: "assets/instruction-visualizer-demo.png",
+    fit: "contain",
+    tags: ["Instruction", "AICPU", "Kernel"]
+  },
+  {
+    title: "Ascend 950 路径迁移工作台",
+    group: "A5 硬件与迁移",
+    status: "hi-fi",
+    desc: "面向 Ascend 950 的硬件路径、算子迁移和 tiling 执行理解。",
+    href: "ascend-950-workbench-demo/index.html",
+    preview: "assets/950b硬件工作台.png",
+    fit: "contain",
+    tags: ["Hardware", "Migration", "Operator"]
+  },
+  {
+    title: "A3 / A5 差异解读",
+    group: "A5 硬件与迁移",
+    status: "hi-fi",
+    desc: "A3 到 A5 算子迁移差异、分类和硬件联动解读。",
+    href: "ascend-950-workbench-demo/feature_taxonomy.html",
+    preview: "assets/A3-A5差异解读.png",
+    fit: "contain",
+    tags: ["Migration", "A3", "A5"],
+    variants: [
+      { label: "v1", href: "ascend-950-workbench-demo/feature_taxonomy.html" },
+      { label: "v2", href: "ascend-950-workbench-demo/perf_engineer_report.html?v=2412220" }
+    ]
+  },
+  {
+    title: "A5 数据搬运 Flow Map",
+    group: "A5 硬件与迁移",
+    status: "hi-fi",
+    desc: "950 数据搬运路径、通信指令和硬件流向地图。",
+    href: "ascend-hardware-map/ascend-hardware-map-v3.html",
+    preview: "assets/Ascend950-flow-map.png",
+    fit: "contain",
+    tags: ["Memory Flow", "A5"]
+  },
+  {
+    title: "A5 PMU 诊断工作台",
+    group: "A5 硬件与迁移",
+    status: "hi-fi",
+    desc: "PMU 数据、循环分组和泳道式性能诊断。",
+    href: "pmu/06-a5-pmu-visualization-group2-loop.html",
+    preview: "assets/A5-pmu-诊断工作台.png",
+    fit: "contain",
+    tags: ["PMU", "Swimlane"]
+  },
+  {
+    title: "模型算子层级架构图",
+    group: "模型图与 IR",
+    status: "hi-fi",
+    desc: "DeepSeek、Qwen 等模型从 L1 到 L4 的多层级折叠图。",
+    href: "model-architecture/index.html",
+    preview: "assets/card1_deepseekv3.svg",
+    fit: "contain",
+    tags: ["Graph", "Architecture"],
+    variants: [
+      { label: "主视图", href: "model-architecture/index.html" },
+      { label: "Graphviz", href: "graphviz/torchvista_graphviz_deepseek_v4.html" }
+    ]
+  },
+  {
+    title: "DeepSeek V3.2 报告叠加图",
+    group: "模型图与 IR",
+    status: "hi-fi",
+    desc: "模型图结构、profiling 数据和报告内容的叠加分析。",
+    href: "graphviz/deepseek_v32_report_overlay_demo.html",
+    previewFrame: "graphviz/deepseek_v32_report_overlay_demo.html?preview=1",
+    tags: ["Graph", "Report", "Profiling"],
+    variants: [
+      { label: "v1", href: "graphviz/deepseek_v32_report_overlay_demo.html" },
+      { label: "v2", href: "graphviz/deepseek_v32_report_overlay_demo_v2.html" }
+    ]
+  },
+  {
+    title: "Pass IR 计算图",
+    group: "模型图与 IR",
+    status: "hi-fi",
+    desc: "编译 Pass 快照浏览、节点分组、语义染色和计算流锁定。",
+    href: "pass-ir/index.html",
+    previewFrame: "pass-ir/index.html?preview=1",
+    tags: ["Pass IR", "Graph"],
+    variants: [
+      { label: "图查看器", href: "pass-ir/index.html" },
+      { label: "Pass 解释", href: "pass-ir/explain.html" }
+    ]
+  },
+  {
+    title: "图执行叠加视图",
+    group: "模型图与 IR",
+    status: "hi-fi",
+    desc: "DAG、执行热度、核分配和诊断信息的叠加原型。",
+    href: "indexer-exec/index.html",
+    preview: "assets/card4.png",
+    fit: "contain",
+    tags: ["Graph", "Execution"]
+  },
+  {
+    title: "PyPTOUX Swimlane Profiler",
+    group: "执行与性能分析",
+    status: "hi-fi",
+    desc: "外部泳道性能分析原型，面向任务同步和 profiler 视图。",
+    href: "https://wangnaiyu.github.io/PyPTOUX/05-prototypes/02-swimlane-profiler/experiments/html/mix-sync-swimlane.html",
+    preview: "assets/pyptoux-swimlane-profiler.png",
+    fit: "contain",
+    tags: ["Swimlane", "Profiler"]
+  },
+  {
+    title: "Memory Viewer",
+    group: "执行与性能分析",
+    status: "hi-fi",
+    desc: "计算图与 DDR / L1 / L0 / UB 内存层级联动的逐步执行视图。",
+    href: "mem_viewer/index.html",
+    preview: "mem_viewer/pic.png",
+    fit: "contain",
+    tags: ["Memory", "Execution"],
+    variants: [
+      { label: "v1", href: "mem_viewer/index.html" },
+      { label: "v2", href: "mem_viewer/index-v2.html" }
+    ]
+  },
+  {
+    title: "Swimlane 执行视图",
+    group: "执行与性能分析",
+    status: "hi-fi",
+    desc: "AIC / AIV 任务泳道、目录导入、前后对比和任务下钻。",
+    href: "swimlane/index.html",
+    preview: "assets/card3_swimlane.png",
+    tags: ["Swimlane", "AIC", "AIV"]
+  },
+  {
+    title: "Swimlane 性能分析工具",
+    group: "执行与性能分析",
+    status: "lo-fi",
+    desc: "泳道性能数据解析、统计和对比工具。",
+    href: "pypto-swimlane-perf-tool/index.html",
+    preview: "assets/card8.png",
+    fit: "contain",
+    tags: ["Swimlane", "Perf"]
+  },
+  {
+    title: "智能性能分析",
+    group: "执行与性能分析",
+    status: "hi-fi",
+    desc: "Profiling Insight and Tool 中的 MindStudioNext 分析页面。",
+    href: "Profiling_Insight_and_Tool/AI_Profiling_Tool/MindStudioNext.html",
+    previewFrame: "Profiling_Insight_and_Tool/AI_Profiling_Tool/MindStudioNext.html?preview=1",
+    tags: ["AI", "Profiling"]
+  },
+  {
+    title: "性能调优 TOP 问题与指导",
+    group: "执行与性能分析",
+    status: "hi-fi",
+    desc: "面向性能调优问题、Issue PDF 和指导内容的分析入口。",
+    href: "Profiling_Insight_and_Tool/Issue_PDF_analysis/user_issue_analysis.html",
+    previewFrame: "Profiling_Insight_and_Tool/Issue_PDF_analysis/user_issue_analysis.html?preview=1",
+    tags: ["Issue", "Guide", "Profiling"]
+  },
+  {
+    title: "算子 IDE Assistant",
+    group: "算子开发工具",
+    status: "lo-fi",
+    desc: "面向算子开发的 IDE 辅助原型，两版入口并列保留。",
+    href: "op-ide-assistant/index.html",
+    preview: "assets/card7.png",
+    fit: "contain",
+    tags: ["IDE", "Operator"],
+    variants: [
+      { label: "v1", href: "op-ide-assistant/index.html" },
+      { label: "v2", href: "op-ide-assistant-v2/index.html" }
+    ]
+  },
+  {
+    title: "PTO Design System",
+    group: "白皮书与系统",
+    status: "doc",
+    desc: "PTO 设计系统预览、token、基础组件和图形模式集合。",
+    href: "design-system-preview.html",
+    tags: ["Design", "Token", "Pattern"]
+  },
+  {
+    title: "PTO 白皮书总稿",
+    group: "白皮书与系统",
+    status: "doc",
+    desc: "PTO 项目总白皮书和研究叙述入口。",
+    href: "whitepaper.md",
+    tags: ["Whitepaper", "PTO"]
+  },
+  {
+    title: "硬件原生系统白皮书",
+    group: "白皮书与系统",
+    status: "doc",
+    desc: "面向 Ascend NPU 的 AI 编译运行时栈白皮书页面。",
+    href: "hw-native-sys/index.html",
+    tags: ["Whitepaper", "Runtime"]
+  },
+  {
+    title: "HNSW 白皮书",
+    group: "白皮书与系统",
+    status: "doc",
+    desc: "分层导航小世界图与向量检索工程白皮书。",
+    href: "HNSW/HNSW-whitepaper.html",
+    tags: ["HNSW", "Vector"]
+  },
+  {
+    title: "VLSI 布局白皮书",
+    group: "白皮书与系统",
+    status: "doc",
+    desc: "VLSI 布局算法、H-Anchor 和 PycPlacer 相关白皮书入口。",
+    href: "vlsi-placement-whitepaper/index.html",
+    tags: ["VLSI", "Layout"]
+  }
+];
+
+const state = {
+  category: "all",
+  query: "",
+  status: "all",
+  sort: "default"
+};
+
+const categoryList = document.getElementById("categoryList");
+const grid = document.getElementById("grid");
+const emptyState = document.getElementById("emptyState");
+const resultCount = document.getElementById("resultCount");
+const activeTitle = document.getElementById("activeTitle");
+const topbar = document.querySelector(".cann-topbar");
+const globalSearch = document.getElementById("globalSearch");
+
+function itemTargetAttrs(href) {
+  const isExternal = /^https?:\/\//.test(href);
+  return isExternal ? ' target="_blank" rel="noreferrer"' : "";
+}
+
+function normalize(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function renderCategories() {
+  const counts = launchItems.reduce((acc, item) => {
+    acc[item.group] = (acc[item.group] || 0) + 1;
+    return acc;
+  }, {});
+
+  categoryList.innerHTML = categories.map((category) => {
+    const count = category.id === "all" ? launchItems.length : (counts[category.id] || 0);
+    const active = state.category === category.id ? " is-active" : "";
+    return `
+      <button class="side-item${active}" type="button" data-category="${category.id}">
+        <span class="side-label"><svg class="svg-icon side-icon" aria-hidden="true"><use href="#${category.icon}"></use></svg>${category.label}</span>
+        <span class="side-count">${count}</span>
+      </button>
+    `;
+  }).join("");
+}
+
+function getFilteredItems() {
+  const query = normalize(state.query);
+  let items = launchItems.filter((item) => {
+    const inCategory = state.category === "all" || item.group === state.category;
+    const inStatus = state.status === "all" || item.status === state.status;
+    const haystack = normalize([
+      item.title,
+      item.group,
+      item.status,
+      item.desc,
+      item.href,
+      ...(item.tags || []),
+      ...(item.variants || []).map((variant) => `${variant.label} ${variant.href}`)
+    ].join(" "));
+    return inCategory && inStatus && (!query || haystack.includes(query));
+  });
+
+  if (state.sort === "title") {
+    items = [...items].sort((a, b) => a.title.localeCompare(b.title, "zh-CN"));
+  } else if (state.sort === "group") {
+    items = [...items].sort((a, b) => {
+      const groupResult = a.group.localeCompare(b.group, "zh-CN");
+      return groupResult || a.title.localeCompare(b.title, "zh-CN");
+    });
+  }
+
+  return items;
+}
+
+function renderPreview(item) {
+  if (item.previewFrame) {
+    return `<iframe src="${item.previewFrame}" title="${item.title} 预览" loading="lazy"></iframe>`;
+  }
+
+  if (item.preview) {
+    const fitClass = item.fit === "contain" ? " class=\"is-contain\"" : "";
+    return `<img${fitClass} src="${item.preview}" alt="${item.title} 静态预览" loading="lazy" decoding="async">`;
+  }
+
+  return `<div class="preview-placeholder">${item.group}</div>`;
+}
+
+function renderCard(item) {
+  const variants = item.variants || [];
+  const hasVariants = variants.length > 0;
+  const footerHtml = hasVariants ? variants.map((variant) => `
+    <a class="btn btn-sm variant-link" href="${variant.href}"${itemTargetAttrs(variant.href)}>${variant.label}</a>
+  `).join("") : "";
+
+  const tagHtml = (item.tags || []).slice(0, 3).map((tag) => `<span class="tag-chip">${tag}</span>`).join("");
+  const statusLabel = item.status === "doc" ? "doc" : item.status;
+
+  return `
+    <article class="card-demo launch-card${hasVariants ? " has-variants" : ""}" data-group="${item.group}" data-status="${item.status}" data-href="${item.href}" role="link" tabindex="0">
+      <a class="card-preview" href="${item.href}"${itemTargetAttrs(item.href)} aria-label="打开 ${item.title}">
+        ${renderPreview(item)}
+      </a>
+      <div class="card-demo-header">
+        <div class="card-kicker">
+          <span class="card-group-name">${item.group}</span>
+          <span class="status-pill">${statusLabel}</span>
+        </div>
+        <a class="card-demo-title" href="${item.href}"${itemTargetAttrs(item.href)}>${item.title}</a>
+        <div class="card-demo-description">${item.desc}</div>
+        <div class="tag-row">${tagHtml}</div>
+      </div>
+      ${hasVariants ? `<div class="card-demo-footer">
+        <div class="variant-list">${footerHtml}</div>
+      </div>` : ""}
+    </article>
+  `;
+}
+
+function renderGrid() {
+  const items = getFilteredItems();
+  const activeCategory = categories.find((category) => category.id === state.category);
+  activeTitle.textContent = state.category === "all" ? "全部项目" : activeCategory.label;
+  resultCount.textContent = `${items.length}/${launchItems.length}`;
+  grid.innerHTML = items.map(renderCard).join("");
+  emptyState.classList.toggle("is-visible", items.length === 0);
+}
+
+function syncSearch(value) {
+  state.query = value;
+  if (globalSearch.value !== value) globalSearch.value = value;
+  renderGrid();
+}
+
+categoryList.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-category]");
+  if (!button) return;
+  state.category = button.dataset.category;
+  renderCategories();
+  renderGrid();
+});
+
+globalSearch.addEventListener("input", (event) => syncSearch(event.target.value));
+
+grid.addEventListener("click", (event) => {
+  if (event.target.closest("a, button, input, select")) return;
+  const card = event.target.closest(".launch-card[data-href]");
+  if (!card) return;
+  const href = card.dataset.href;
+  if (/^https?:\/\//.test(href)) {
+    window.open(href, "_blank", "noreferrer");
+  } else {
+    window.location.href = href;
+  }
+});
+
+grid.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" && event.key !== " ") return;
+  const card = event.target.closest(".launch-card[data-href]");
+  if (!card) return;
+  event.preventDefault();
+  card.click();
+});
+
+window.addEventListener("keydown", (event) => {
+  const isTyping = ["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement.tagName);
+  if (event.key === "/" && !isTyping) {
+    event.preventDefault();
+    globalSearch.focus();
+  }
+});
+
+let lastScrollY = window.scrollY;
+let scrollTicking = false;
+
+function setHeaderCollapsed(collapsed) {
+  topbar.classList.toggle("is-collapsed", collapsed);
+  document.body.classList.toggle("is-header-collapsed", collapsed);
+}
+
+function updateHeaderOnScroll() {
+  const currentY = window.scrollY;
+  const delta = currentY - lastScrollY;
+
+  if (currentY <= 8) {
+    setHeaderCollapsed(false);
+  } else if (delta > 8) {
+    setHeaderCollapsed(true);
+  } else if (delta < -8) {
+    setHeaderCollapsed(false);
+  }
+
+  lastScrollY = currentY;
+  scrollTicking = false;
+}
+
+window.addEventListener("scroll", () => {
+  if (scrollTicking) return;
+  scrollTicking = true;
+  window.requestAnimationFrame(updateHeaderOnScroll);
+}, { passive: true });
+
+renderCategories();
+renderGrid();
+</script>
+</body>
+</html>
