@@ -851,7 +851,6 @@ body.is-header-collapsed .side-nav {
 
     <nav class="cann-nav-wrap" aria-label="CANN 顶部导航">
       <div class="cann-nav">
-        <a class="cann-nav-link" href="launch.html"><svg class="svg-icon nav-icon" aria-hidden="true"><use href="#icon-home"></use></svg>主页</a>
         <a class="cann-nav-link" href="#grid"><svg class="svg-icon nav-icon" aria-hidden="true"><use href="#icon-folder"></use></svg>项目 <span class="count-badge">67</span></a>
         <a class="cann-nav-link" href="#grid"><svg class="svg-icon nav-icon" aria-hidden="true"><use href="#icon-layers"></use></svg>合集</a>
         <a class="cann-nav-link" href="#grid"><svg class="svg-icon nav-icon" aria-hidden="true"><use href="#icon-circle-dot"></use></svg>Issues</a>
@@ -969,7 +968,11 @@ const launchItems = [
     desc: "面向初学者的训练、推理、层、权重、数据和框架入门文档，联动 Qwen7B / DeepSeek V3.2 架构图。",
     href: "train/index.html",
     preview: "assets/ai-llm-train-preview.png",
-    tags: ["LLM", "Training", "Inference"]
+    tags: ["LLM", "Training", "Inference", "DX"],
+    variants: [
+      { label: "入门科普", href: "train/index.html" },
+      { label: "训练心智模型", href: "train/training-mental-model.html" }
+    ]
   },
   {
     title: "DeepSeek V3.2 报告叠加图",
@@ -1125,24 +1128,14 @@ const launchItems = [
     tags: ["VLSI", "Layout"]
   },
   {
-    title: "Ascend Tiling 可视化白皮书",
+    title: "Ascend C Tiling 入门白皮书",
     group: "白皮书与系统",
     status: "doc",
-    desc: "解释 GM 线性地址、逻辑 tile、trace event 与 CopyIn/Compute/CopyOut 队列如何驱动 tiling 可视化。",
+    desc: "按官方开发顺序讲算子分析、TilingData、Host TilingFunc、Kernel 使用、可视化调试和动态 shape 决策图。",
     href: "tiling/tiling-whitepaper.html",
     preview: "assets/whitepaper-previews/tiling-gm-logical.svg",
     fit: "contain",
-    tags: ["Tiling", "Trace", "Memory"]
-  },
-  {
-    title: "真实算子 Tiling 流程白皮书",
-    group: "白皮书与系统",
-    status: "doc",
-    desc: "从真实算子开发调研整理运行期 tiling、动态 shape、tiling key 和硬件约束。",
-    href: "tiling/real-operator-workflow-whitepaper.html",
-    preview: "assets/whitepaper-previews/tiling-runtime-flow.svg",
-    fit: "contain",
-    tags: ["Tiling", "Dynamic Shape", "Operator"]
+    tags: ["Tiling", "Ascend C", "Developer"]
   }
 ];
 
