@@ -2103,7 +2103,10 @@
       <section class="panel-shell panel-shell-quiet workbench-pane wb-panel wb-source-panel" aria-label="Kernel source">
         <header class="panel-shell-header">
           <div class="wb-header-copy">
-            <span class="wb-panel-kicker">内核源代码</span>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span class="wb-panel-kicker">内核源代码</span>
+              <button class="btn" type="button" id="helpBtn" aria-label="功能说明：识别器与 910B→950 迁移规则集" title="功能说明：识别器与 910B→950 迁移规则集" style="min-height:0;width:16px;height:16px;padding:0;border-radius:50%;border:1px solid var(--border-default);background:transparent;color:var(--foreground-muted);font:700 10px/1 var(--font-sans);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;">?</button>
+            </div>
             <div class="kernel-select-wrap">
               <select class="kernel-select" id="kernelSelect" aria-label="选择 kernel">
                 <option value="c_api_add" selected>c_api_add.asc</option>
@@ -2114,6 +2117,8 @@
           </div>
           <div class="panel-shell-meta">
             <span class="wb-chip" id="sourceLineCount">136 行</span>
+            <button class="btn btn-sm btn-ghost" type="button" id="kernelIngestBtn" title="粘贴或上传核源码，用规则集自动识别 910B→950 迁移点">增加核源码</button>
+            <input type="file" id="kernelFileInput" accept=".asc,.cpp,.cc,.cu,.c,.h,.hpp,.tik,.txt" hidden>
             <button class="btn btn-sm btn-ghost" type="button" id="sourceMarkToggle" aria-pressed="true">隐藏标注</button>
           </div>
         </header>
@@ -2275,6 +2280,187 @@
     </main>
   </div>
 
+  <div id="ingestOverlay" hidden style="position:fixed;inset:0;z-index:1000;display:grid;place-items:center;background:rgba(0,0,0,0.55);backdrop-filter:blur(4px);">
+    <div style="width:min(720px,92vw);max-height:88vh;display:flex;flex-direction:column;gap:12px;padding:20px;border-radius:14px;border:1px solid var(--border-default);background:var(--background-elevated);box-shadow:0 24px 60px rgba(0,0,0,0.5);">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+        <strong style="font:var(--text-title-2);color:var(--foreground);">粘贴核源码 · 规则集自动识别</strong>
+        <button class="btn btn-sm btn-ghost" type="button" id="ingestCloseBtn">✕</button>
+      </div>
+      <p style="margin:0;color:var(--foreground-muted);font:var(--text-body-sm);line-height:1.5;">粘贴 Ascend C / ASC 核代码，识别器会标注硬件单元归属，并按规则集判定 910B→950 迁移点（必改 / 调整 / 优化机会）。也可点下方「选择文件…」上传。<a href="https://gitcode.com/cann/asc-devkit/tree/master/examples" target="_blank" rel="noreferrer" style="color:var(--primary-hover);text-decoration:none;">asc示例源码获取 ↗</a></p>
+      <label style="display:grid;gap:4px;color:var(--foreground-muted);font:var(--text-label);">
+        核名称 <span style="color:var(--foreground-muted);">（仅作显示标签，不影响识别；粘贴代码后会自动识别函数名，可点开下拉选择或手输）</span>
+        <input type="text" id="ingestNameInput" list="ingestNameOptions" placeholder="自动识别中…留空则用 uploaded_kernel" autocomplete="off" style="min-height:32px;padding:0 10px;border-radius:8px;border:1px solid var(--border-subtle);background:color-mix(in srgb,var(--surface-2) 78%,transparent);color:var(--foreground);font:var(--text-body-sm);">
+        <datalist id="ingestNameOptions"></datalist>
+      </label>
+      <div style="display:grid;gap:8px;padding:12px;border-radius:10px;border:1px solid var(--border-subtle);background:color-mix(in srgb,var(--surface-2) 60%,transparent);">
+        <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;">
+          <input type="checkbox" id="ingestAiToggle" style="margin-top:2px;flex:0 0 auto;">
+          <span style="display:grid;gap:3px;min-width:0;">
+            <span style="color:var(--foreground);font:var(--text-body-sm);font-weight:var(--font-weight-semibold);">融合 AI 分析（DeepSeek）</span>
+            <span id="ingestAiDesc" style="color:var(--foreground-muted);font:var(--text-label);line-height:1.5;">若不勾选，将基于内置规则集，对硬件单元展开分析。勾选后将综合融入 AI 分析的部分。</span>
+          </span>
+        </label>
+        <div id="ingestAiKeyWrap" hidden style="display:grid;gap:4px;padding-left:26px;">
+          <input type="password" id="ingestAiKey" placeholder="输入 DeepSeek API Key" autocomplete="off" style="min-height:30px;padding:0 10px;border-radius:8px;border:1px solid var(--border-subtle);background:var(--background);color:var(--foreground);font:var(--text-mono);font-size:12px;">
+          <span style="color:var(--foreground-muted);font:var(--text-label);line-height:1.5;">🔒 Key 仅在本次分析的内存中使用，完成（或失败）后立即清除、不会保存；下次打开本弹窗需重新开启开关并重新填写。AI 仅<strong>补充</strong>规则未覆盖的部分，不会推翻必改判定。</span>
+        </div>
+      </div>
+      <textarea id="ingestTextInput" spellcheck="false" placeholder="在此粘贴核源码…" style="flex:1 1 auto;min-height:300px;resize:vertical;padding:12px;border-radius:10px;border:1px solid var(--border-subtle);background:var(--background);color:var(--foreground);font:var(--text-mono);line-height:1.5;white-space:pre;overflow:auto;"></textarea>
+      <div id="ingestError" style="display:none;color:var(--danger);font:var(--text-body-sm);"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+        <button class="btn btn-sm btn-ghost" type="button" id="ingestFileBtn">选择文件…</button>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button class="btn btn-sm btn-ghost" type="button" id="ingestCancelBtn">取消</button>
+          <button class="btn btn-sm btn-solid" type="button" id="ingestRunBtn">识别并载入</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <style>
+    .help-backdrop {
+      position: fixed; inset: 0; z-index: 1100;
+      background: rgba(0, 0, 0, 0.42);
+      opacity: 0; pointer-events: none;
+      transition: opacity 220ms var(--easing-default, ease);
+    }
+    .help-backdrop.is-open { opacity: 1; pointer-events: auto; }
+    .help-drawer {
+      position: fixed; top: 0; right: 0; bottom: 0; z-index: 1101;
+      width: min(460px, 94vw);
+      display: flex; flex-direction: column;
+      background: var(--background-elevated);
+      border-left: 1px solid var(--border-default);
+      box-shadow: -24px 0 60px rgba(0, 0, 0, 0.45);
+      transform: translateX(100%);
+      transition: transform 260ms var(--easing-default, ease);
+    }
+    .help-drawer.is-open { transform: translateX(0); }
+    .help-head {
+      flex: 0 0 auto;
+      display: flex; align-items: center; justify-content: space-between; gap: var(--space-3);
+      padding: var(--space-3) var(--space-4);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .help-head strong { color: var(--foreground); font: var(--text-title-2); font-weight: var(--font-weight-semibold); }
+    .help-head span { display: block; color: var(--foreground-muted); font: var(--text-label); margin-top: 2px; }
+    .help-body {
+      flex: 1 1 auto; min-height: 0; overflow: auto;
+      padding: var(--space-4);
+      display: flex; flex-direction: column; gap: var(--space-4);
+    }
+    .help-sec { display: grid; gap: var(--space-2); }
+    .help-sec h4 {
+      margin: 0; color: var(--foreground);
+      font: var(--text-body-sm); font-weight: var(--font-weight-semibold);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .help-sec h4::before {
+      content: ""; width: 4px; height: 14px; border-radius: 2px;
+      background: var(--primary); flex: 0 0 auto;
+    }
+    .help-sec p { margin: 0; color: var(--foreground-secondary); font: var(--text-body-sm); line-height: 1.6; }
+    .help-steps { margin: 0; padding-left: 18px; color: var(--foreground-secondary); font: var(--text-body-sm); line-height: 1.6; display: grid; gap: 4px; }
+    .help-card {
+      border-radius: var(--radius-md); border: 1px solid var(--border-subtle);
+      background: color-mix(in srgb, var(--surface-2) 70%, transparent);
+      padding: var(--space-2) var(--space-3); display: grid; gap: 3px;
+    }
+    .help-card-row { display: flex; align-items: center; gap: 8px; }
+    .help-card-row strong { color: var(--foreground); font: var(--text-body-sm); }
+    .help-card p { color: var(--foreground-muted); font: var(--text-label); line-height: 1.5; }
+    .help-card code { color: var(--primary-hover); font: var(--text-mono); font-size: 11px; overflow-wrap: anywhere; }
+    .sev-pill {
+      display: inline-flex; align-items: center; min-height: 18px;
+      padding: 0 8px; border-radius: var(--radius-pill);
+      font: var(--text-label); letter-spacing: 0; white-space: nowrap; flex: 0 0 auto;
+    }
+    .sev-pill.is-high { color: var(--danger); background: color-mix(in srgb, var(--danger) 16%, transparent); }
+    .sev-pill.is-medium { color: var(--warning); background: color-mix(in srgb, var(--warning) 16%, transparent); }
+    .sev-pill.is-info { color: var(--success); background: color-mix(in srgb, var(--success) 14%, transparent); }
+    .help-legend { display: grid; gap: 6px; }
+    .help-legend-row { display: flex; align-items: center; gap: 8px; color: var(--foreground-secondary); font: var(--text-body-sm); }
+    .help-legend-dot { width: 10px; height: 10px; border-radius: 3px; flex: 0 0 auto; }
+    .help-note {
+      border-radius: var(--radius-md);
+      background: color-mix(in srgb, var(--warning) 8%, var(--surface-1));
+      border: 1px solid color-mix(in srgb, var(--warning) 24%, transparent);
+      padding: var(--space-2) var(--space-3); color: var(--foreground-secondary);
+      font: var(--text-body-sm); line-height: 1.55;
+    }
+    .help-source { color: var(--foreground-muted); font: var(--text-label); line-height: 1.5; }
+  </style>
+
+  <div class="help-backdrop" id="helpBackdrop" hidden></div>
+  <aside class="help-drawer" id="helpDrawer" hidden aria-label="功能说明" role="dialog" aria-modal="false">
+    <div class="help-head">
+      <div>
+        <strong>这块面板在做什么？</strong>
+        <span>核代码识别器 · 910B → 950 迁移规则集</span>
+      </div>
+      <button class="btn btn-sm btn-ghost" type="button" id="helpCloseBtn" aria-label="关闭">✕</button>
+    </div>
+    <div class="help-body">
+      <div class="help-sec">
+        <h4>一句话</h4>
+        <p>你贴进来的每一行核代码，工具会判断它<strong>跑在哪个硬件单元</strong>（搬运 / Cube / Vector / SIMT），并对照规则集标出<strong>从昇腾 910B 迁移到 950 时的注意点</strong>——哪些必须改、哪些要调整、哪些是提速机会。所有判断都来自规则，<strong>不需要联网、不调用大模型</strong>。</p>
+      </div>
+
+      <div class="help-sec">
+        <h4>怎么用</h4>
+        <ol class="help-steps">
+          <li>点「上传/粘贴核」，贴代码或选文件；</li>
+          <li>左侧源码会高亮关键行，色条表示类别；</li>
+          <li>点高亮行，右侧出卡片：硬件单元 + 迁移判定 + 改写建议；</li>
+          <li>切换右上角硬件架构（950 / 910B / 对比）看差异。</li>
+        </ol>
+      </div>
+
+      <div class="help-sec">
+        <h4>左侧色条＝硬件单元类别</h4>
+        <div class="help-legend">
+          <div class="help-legend-row"><span class="help-legend-dot" style="background:var(--success)"></span>计算（Compute）— Cube 矩阵乘 / Vector 向量 / SIMT</div>
+          <div class="help-legend-row"><span class="help-legend-dot" style="background:var(--primary-hover)"></span>访存（Memory）— GM↔UB 搬运、DataCopy、格式转换</div>
+          <div class="help-legend-row"><span class="help-legend-dot" style="background:var(--warning)"></span>控制（Control）— 同步、Kernel Launch、迁移检查点</div>
+        </div>
+      </div>
+
+      <div class="help-sec">
+        <h4>迁移判定的三个等级</h4>
+        <div class="help-legend">
+          <div class="help-legend-row"><span class="sev-pill is-high">必改</span>不改会编译失败或语义错误（如 950 删除的数据通路）</div>
+          <div class="help-legend-row"><span class="sev-pill is-medium">需调整</span>能跑但有陷阱，需要改参数 / 布局</div>
+          <div class="help-legend-row"><span class="sev-pill is-info">优化机会</span>可选，利用 950 新能力提速</div>
+        </div>
+      </div>
+
+      <div class="help-sec">
+        <h4>识别器认得哪些硬件单元 <span id="helpIntrinsicCount" style="color:var(--foreground-muted);font-weight:400;"></span></h4>
+        <div id="helpIntrinsicsList" class="help-legend"></div>
+      </div>
+
+      <div class="help-sec">
+        <h4>内置的 910B→950 迁移规则 <span id="helpRuleCount" style="color:var(--foreground-muted);font-weight:400;"></span></h4>
+        <div id="helpRulesList" style="display:grid;gap:8px;"></div>
+      </div>
+
+      <div class="help-sec">
+        <h4>判据来自哪里</h4>
+        <p class="help-source">规则集出处已逐条标注，主要来自仓库内两份文档：<br>· <strong>KNOWLEDGE.md</strong>（§5.3.5「5 大不兼容项」等）<br>· <strong>perf_engineer_guide.html</strong>（910B vs 950 架构差异）<br>并用昇腾社区公开资料做了基本语义裨证。</p>
+      </div>
+
+      <div class="help-sec">
+        <h4>已知边界（别误读结果）</h4>
+        <div class="help-note">
+          · 数据流分析是<strong>文件级简易版</strong>，不跨函数作用域，同名变量可能认错；<br>
+          · 只认<strong>规则集里写过的 API / intrinsic</strong>，没覆盖的会只打标签或不标；<br>
+          · 这是<strong>静态识别辅助</strong>，最终请以实际编译 / Profiling 为准。
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <script src="./rules/ascend_migration_rules.js"></script>
+  <script src="./rules/kernel_analyzer.js"></script>
   <script src="./kernels/registry.js"></script>
   <script src="./kernels/c_api_add.js"></script>
   <script src="./kernels/c_api_add_a3_a5_compare.js"></script>
@@ -2841,7 +3027,10 @@
     }
 
     function sourceAiRecommendations(lineNo) {
-      if (currentKernel().id !== 'c_api_add' || primaryArchId() !== 'ascend950') return [];
+      // 上传核 / AI 融合分析：优先用 kernel.aiNotes（DeepSeek 生成），与硬件架构无关
+      const ker = currentKernel();
+      if (ker.aiNotes && ker.aiNotes[lineNo]) return ker.aiNotes[lineNo];
+      if (ker.id !== 'c_api_add' || primaryArchId() !== 'ascend950') return [];
       const notes = {
         32: [
           ['L32 · 对齐 blockLength', '把 blockLength 约束为 32 个 float 的倍数，让每次 GM↔UB 搬运落在 128B sector 边界；非对齐 tail 单独走 cleanup path。']
@@ -4669,6 +4858,341 @@
     qs('#zoomInBtn')?.addEventListener('click', () => stepHardwareZoom(1));
     qs('#hardwareDetailToggle')?.addEventListener('click', toggleHardwareDetails);
     qs('#analyzeBtn').addEventListener('click', () => selectLine(state.selectedId));
+
+    // ── 上传 / 粘贴核：用规则集自动识别并载入 ──────────────────────────────
+    function sanitizeKernelId(name) {
+      const base = String(name || 'uploaded_kernel').replace(/\.[^.]+$/, '').replace(/[^A-Za-z0-9_]+/g, '_').replace(/^_+|_+$/g, '');
+      return base || 'uploaded_kernel';
+    }
+
+    // 从源码里抓候选核名：设备核入口函数 + launch 站点 + *Kernel 类名
+    function detectKernelNames(text) {
+      const src = String(text || '');
+      const names = [];
+      const push = (n) => { if (n && !names.includes(n) && !/^(if|for|while|return|void|int|float)$/.test(n)) names.push(n); };
+      let m;
+      const fnRe = /\b(?:__global__|__aicore__|__vector__|__simd_vf__|__simd_callee__)\b[\s\S]{0,80}?\bvoid\s+([A-Za-z_]\w*)\s*\(/g;
+      while ((m = fnRe.exec(src)) !== null) push(m[1]);
+      const launchRe = /\b([A-Za-z_]\w*)\s*<<</g;
+      while ((m = launchRe.exec(src)) !== null) push(m[1]);
+      const classRe = /\b(?:class|struct)\s+([A-Za-z_]\w*Kernel)\b/g;
+      while ((m = classRe.exec(src)) !== null) push(m[1]);
+      return names.slice(0, 8);
+    }
+
+    // 用候选核名填充下拉建议；若名称框为空，预填第一个候选
+    function populateNameOptions(text) {
+      const names = detectKernelNames(text);
+      const list = qs('#ingestNameOptions');
+      if (list) list.innerHTML = names.map((n) => `<option value="${escapeHtml(n)}"></option>`).join('');
+      const input = qs('#ingestNameInput');
+      if (input && !input.value && names.length) input.value = names[0];
+      return names;
+    }
+
+    function ingestKernelSource(text, fileName) {
+      if (!window.WB_ANALYZER) {
+        throw new Error('分析器未加载（rules/kernel_analyzer.js）');
+      }
+      if (!text || !text.trim()) {
+        throw new Error('源码为空');
+      }
+      const rawName = (qs('#ingestNameInput')?.value || '').trim() || fileName || 'uploaded_kernel';
+      let id = sanitizeKernelId(rawName);
+      // 同名则追加序号，避免覆盖既有核
+      let unique = id;
+      let n = 2;
+      while (KERNELS.some((k) => k.id === unique)) unique = `${id}_${n++}`;
+      const kernel = window.WB_ANALYZER.analyze(text, {
+        id: unique,
+        name: rawName.includes('.') ? rawName : `${rawName}.asc`,
+        label: rawName,
+      });
+      KERNELS.push(kernel);
+      selectKernel(unique);
+      return kernel;
+    }
+
+    const ingestOverlay = qs('#ingestOverlay');
+    // 每次打开都把 AI 开关复位为关、清空 key —— 满足「用后即毁，下次需重填」
+    function resetAiControls() {
+      const toggle = qs('#ingestAiToggle');
+      const keyWrap = qs('#ingestAiKeyWrap');
+      const keyInput = qs('#ingestAiKey');
+      if (toggle) toggle.checked = false;
+      if (keyWrap) keyWrap.hidden = true;
+      if (keyInput) keyInput.value = '';
+      const desc = qs('#ingestAiDesc');
+      if (desc && window.WB_RULES) {
+        desc.textContent = `若不勾选，将基于 ${window.WB_RULES.migration.length} 条内置规则集，对 ${window.WB_RULES.intrinsics.length} 类硬件单元展开分析。勾选后将综合融入 AI 分析的部分。`;
+      }
+    }
+    const openIngest = () => {
+      if (!ingestOverlay) return;
+      qs('#ingestError').style.display = 'none';
+      resetAiControls();
+      ingestOverlay.hidden = false;
+      qs('#ingestTextInput')?.focus();
+    };
+    const closeIngest = () => { if (ingestOverlay) ingestOverlay.hidden = true; };
+
+    // 粘贴/输入代码时实时识别候选核名
+    qs('#ingestTextInput')?.addEventListener('input', (e) => populateNameOptions(e.target.value));
+    // AI 开关 → 显隐 API key 输入框
+    qs('#ingestAiToggle')?.addEventListener('change', (e) => {
+      const wrap = qs('#ingestAiKeyWrap');
+      if (wrap) wrap.hidden = !e.target.checked;
+      if (e.target.checked) qs('#ingestAiKey')?.focus();
+    });
+
+    qs('#kernelIngestBtn')?.addEventListener('click', openIngest);
+    qs('#ingestFileBtn')?.addEventListener('click', () => qs('#kernelFileInput')?.click());
+    qs('#ingestCloseBtn')?.addEventListener('click', closeIngest);
+    qs('#ingestCancelBtn')?.addEventListener('click', closeIngest);
+    ingestOverlay?.addEventListener('click', (e) => { if (e.target === ingestOverlay) closeIngest(); });
+    qs('#ingestRunBtn')?.addEventListener('click', () => {
+      const err = qs('#ingestError');
+      const source = qs('#ingestTextInput').value;
+      const aiOn = !!qs('#ingestAiToggle')?.checked;
+      const keyInput = qs('#ingestAiKey');
+      const apiKey = aiOn ? (keyInput?.value || '').trim() : '';
+      if (aiOn && !apiKey) {
+        err.textContent = '已开启「融合 AI 分析」，请填写 DeepSeek API Key（或关闭开关）。';
+        err.style.display = 'block';
+        return;
+      }
+      let kernel;
+      try {
+        // ① 规则集分析先跑（确定层），用户立刻看到结果
+        kernel = ingestKernelSource(source);
+      } catch (e) {
+        err.textContent = '识别失败：' + (e?.message || e);
+        err.style.display = 'block';
+        return;
+      }
+      // 用后即毁：把 key 取进局部变量，立刻清空输入框
+      if (keyInput) keyInput.value = '';
+      closeIngest();
+      // ② 可选 AI 增强（异步），完成后清除局部 key
+      if (aiOn && apiKey) {
+        enhanceKernelWithDeepSeek(kernel, source, apiKey);
+      }
+    });
+
+    // ── 融合 AI 分析：DeepSeek 补全规则未覆盖的部分 ────────────────────────
+    function aiToast(text, kind) {
+      let el = qs('#aiToast');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'aiToast';
+        el.style.cssText = 'position:fixed;bottom:18px;right:18px;z-index:1200;max-width:360px;padding:10px 14px;border-radius:10px;border:1px solid var(--border-default);background:var(--background-elevated);box-shadow:0 12px 30px rgba(0,0,0,0.4);color:var(--foreground-secondary);font:var(--text-body-sm);line-height:1.5;';
+        document.body.appendChild(el);
+      }
+      const color = kind === 'error' ? 'var(--danger)' : kind === 'ok' ? 'var(--success)' : 'var(--primary-hover)';
+      el.innerHTML = `<span style="color:${color};font-weight:600;">融合 AI 分析</span><br>${escapeHtml(text)}`;
+      el.style.display = 'block';
+      if (kind === 'ok' || kind === 'error') {
+        clearTimeout(el._t);
+        el._t = setTimeout(() => { el.style.display = 'none'; }, 6000);
+      }
+    }
+
+    // 把规则识别结果压缩成喂给模型的精简清单
+    function findingsDigest(kernel) {
+      return kernel.annotations.filter((a) => !a.tagOnly).map((a) => ({
+        line: a.line,
+        code: a.code,
+        unit: a.path || '',
+        verdict: a.verdict || '',
+        findings: (a.findings || []).map((f) => `${f.id}(${f.severity})`),
+      }));
+    }
+
+    function buildDeepSeekMessages(kernel, source) {
+      const numbered = source.replace(/\r\n/g, '\n').split('\n').map((l, i) => `${i + 1}\t${l}`).join('\n');
+      const system = [
+        '你是昇腾(Ascend) Ascend C / ASC 算子迁移专家，精通 910B→950 架构差异（SIMD/SIMT、Regbase、CV Mix、L0C↔UB 直连、MXFP8/HiF8、删除 L1→GM 与 GM→L0 通路、Cube 不支持 int4b_t 等）。',
+        '已有一套确定性规则集给出了带出处的硬判定。你的职责是“补位”，不是推翻：',
+        '1) 对规则未覆盖或识别为弱的行，补充其硬件单元归属与 910B→950 迁移注意点；',
+        '2) 针对【用户这段具体代码】给出真实可用的 950 改写建议（不要泛泛而谈）；',
+        '3) 给出整核迁移摘要：风险点排序与改造工作量估计。',
+        '严禁与规则集已给出的“必改(high)”判定相矛盾；只能补充与解释。',
+        '只返回 JSON，结构：{"summary":"整核迁移摘要(中文,可含换行)","lines":[{"line":行号(整数),"title":"短标题(<=16字)","text":"中文说明,可含针对该行的改写"}]}。lines 控制在 8 条以内，挑最有价值的。'
+      ].join('\n');
+      const user = [
+        `核名称：${kernel.label || kernel.id}`,
+        `规则集已识别(${findingsDigest(kernel).length}行关键)：`,
+        JSON.stringify(findingsDigest(kernel)),
+        '',
+        '带行号的源码：',
+        numbered
+      ].join('\n');
+      return [
+        { role: 'system', content: system },
+        { role: 'user', content: user }
+      ];
+    }
+
+    // 优先走同源代理（dev-server.js，绕开 CORS），失败再直连 api.deepseek.com
+    async function deepseekChat(payload, apiKey) {
+      const direct = 'https://api.deepseek.com/chat/completions';
+      const canProxy = location.protocol === 'http:' || location.protocol === 'https:';
+      const proxy = canProxy ? `${location.origin}/__deepseek/chat/completions` : null;
+      const urls = proxy ? [proxy, direct] : [direct];
+      const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` };
+      let lastErr;
+      for (const url of urls) {
+        try {
+          const resp = await fetch(url, { method: 'POST', headers, body: JSON.stringify(payload) });
+          if (resp.ok) return resp;
+          // 代理不在线（404）则回退直连；其它状态码视为真实错误
+          if (url === proxy && resp.status === 404) { lastErr = new Error('proxy offline'); continue; }
+          const detail = await resp.text().catch(() => '');
+          throw new Error(`HTTP ${resp.status} ${detail.slice(0, 160)}`);
+        } catch (e) {
+          lastErr = e;
+          if (url !== urls[urls.length - 1]) continue; // 还有后备地址可试
+          throw e;
+        }
+      }
+      throw lastErr;
+    }
+
+    async function enhanceKernelWithDeepSeek(kernel, source, apiKey) {
+      aiToast('正在调用 DeepSeek 补全规则未覆盖的分析…');
+      try {
+        const resp = await deepseekChat({
+          model: 'deepseek-chat',
+          messages: buildDeepSeekMessages(kernel, source),
+          temperature: 0.2,
+          response_format: { type: 'json_object' }
+        }, apiKey);
+        // 用后即毁：请求已发出，立刻抹掉局部 key 引用
+        apiKey = null;
+        const data = await resp.json();
+        const content = data?.choices?.[0]?.message?.content || '';
+        let parsed;
+        try { parsed = JSON.parse(content); }
+        catch { throw new Error('模型返回非 JSON，无法解析'); }
+        mergeAiResultsIntoKernel(kernel, parsed);
+        if (currentKernel().id === kernel.id) renderSource();
+        const n = parsed.lines ? parsed.lines.length : 0;
+        aiToast(`已融合 DeepSeek 分析：新增 ${n} 条 AI 补充，已标注在对应行（卡片中「AI 智能推荐」）。`, 'ok');
+      } catch (e) {
+        apiKey = null;
+        aiToast('调用失败：' + (e?.message || e) + '。可能是 Key 无效、额度不足或浏览器 CORS 限制（纯前端直连）。', 'error');
+      }
+    }
+
+    function mergeAiResultsIntoKernel(kernel, parsed) {
+      kernel.aiNotes = kernel.aiNotes || {};
+      // 整核摘要挂到首个关键行（复用 AI 卡片展示）
+      const firstKey = kernel.annotations.find((a) => !a.tagOnly);
+      if (parsed.summary && firstKey) {
+        const ln = firstKey.line;
+        kernel.aiNotes[ln] = kernel.aiNotes[ln] || [];
+        kernel.aiNotes[ln].unshift(['整核迁移摘要 · AI', String(parsed.summary)]);
+      }
+      (parsed.lines || []).forEach((item) => {
+        const ln = Number(item.line);
+        if (!Number.isFinite(ln) || !item || (!item.title && !item.text)) return;
+        kernel.aiNotes[ln] = kernel.aiNotes[ln] || [];
+        kernel.aiNotes[ln].push([String(item.title || 'AI 补充'), String(item.text || '')]);
+      });
+      kernel.aiSummary = parsed.summary || '';
+    }
+    qs('#kernelFileInput')?.addEventListener('change', (event) => {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const text = String(reader.result);
+        // 把文件内容放进文本框，先识别候选名供用户确认，再让用户点「识别并载入」
+        openIngest();
+        const ta = qs('#ingestTextInput');
+        if (ta) ta.value = text;
+        const input = qs('#ingestNameInput');
+        if (input) input.value = '';
+        const names = populateNameOptions(text);
+        // 文件名作为兜底建议（追加到下拉），名称仍优先用识别到的函数名
+        if (input && !input.value) input.value = file.name.replace(/\.[^.]+$/, '');
+        void names;
+      };
+      reader.readAsText(file);
+      event.target.value = '';
+    });
+
+    // ── 功能说明抽屉：内容部分从 WB_RULES 动态生成，与规则集保持同步 ────────
+    const CATEGORY_DOT = {
+      compute: 'var(--success)',
+      memory: 'var(--primary-hover)',
+      control: 'var(--warning)',
+      scalar: 'var(--foreground-muted)'
+    };
+    function renderHelpDrawer() {
+      const rules = window.WB_RULES;
+      if (!rules) return;
+      const intrinsicsEl = qs('#helpIntrinsicsList');
+      if (intrinsicsEl) {
+        intrinsicsEl.innerHTML = rules.intrinsics.map((it) => (
+          `<div class="help-legend-row">
+             <span class="help-legend-dot" style="background:${CATEGORY_DOT[it.category] || 'var(--foreground-muted)'}"></span>
+             <span><strong style="color:var(--foreground);">${escapeHtml(it.tag)}</strong> — ${escapeHtml(it.unit)}</span>
+           </div>`
+        )).join('');
+      }
+      const countEl = qs('#helpIntrinsicCount');
+      if (countEl) countEl.textContent = `（${rules.intrinsics.length} 类）`;
+
+      const order = { high: 0, medium: 1, info: 2 };
+      const sevText = { high: '必改', medium: '需调整', info: '优化机会' };
+      const rulesEl = qs('#helpRulesList');
+      if (rulesEl) {
+        const sorted = [...rules.migration].sort((a, b) => (order[a.severity] - order[b.severity]));
+        rulesEl.innerHTML = sorted.map((r) => (
+          `<div class="help-card">
+             <div class="help-card-row">
+               <span class="sev-pill is-${r.severity}">${sevText[r.severity] || r.severity}</span>
+               <strong>${escapeHtml(r.title)}</strong>
+             </div>
+             <p>910B：${escapeHtml(r.verdict910)} → 950：${escapeHtml(r.verdict950)}</p>
+             <p>建议：${escapeHtml(r.action)}</p>
+             ${r.source ? `<p class="help-source">出处：${escapeHtml(r.source)}</p>` : ''}
+           </div>`
+        )).join('');
+      }
+      const ruleCountEl = qs('#helpRuleCount');
+      if (ruleCountEl) {
+        const hi = rules.migration.filter((r) => r.severity === 'high').length;
+        ruleCountEl.textContent = `（共 ${rules.migration.length} 条，其中必改 ${hi} 条）`;
+      }
+    }
+    let helpRendered = false;
+    const helpBackdrop = qs('#helpBackdrop');
+    const helpDrawer = qs('#helpDrawer');
+    const openHelp = () => {
+      if (!helpDrawer) return;
+      if (!helpRendered) { renderHelpDrawer(); helpRendered = true; }
+      helpBackdrop.hidden = false;
+      helpDrawer.hidden = false;
+      requestAnimationFrame(() => {
+        helpBackdrop.classList.add('is-open');
+        helpDrawer.classList.add('is-open');
+      });
+    };
+    const closeHelp = () => {
+      if (!helpDrawer) return;
+      helpBackdrop.classList.remove('is-open');
+      helpDrawer.classList.remove('is-open');
+      setTimeout(() => { helpBackdrop.hidden = true; helpDrawer.hidden = true; }, 260);
+    };
+    qs('#helpBtn')?.addEventListener('click', openHelp);
+    qs('#helpCloseBtn')?.addEventListener('click', closeHelp);
+    helpBackdrop?.addEventListener('click', closeHelp);
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && helpDrawer && !helpDrawer.hidden) closeHelp();
+    });
+
     window.addEventListener('message', (event) => {
       if (!event.data || (event.data.type !== 'hardware-ready' && event.data.type !== 'hardware-size')) return;
       const key = frameKeyFromWindow(event.source);
