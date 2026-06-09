@@ -851,7 +851,7 @@ body.is-header-collapsed .side-nav {
 
     <nav class="cann-nav-wrap" aria-label="CANN 顶部导航">
       <div class="cann-nav">
-        <a class="cann-nav-link" href="#grid"><svg class="svg-icon nav-icon" aria-hidden="true"><use href="#icon-folder"></use></svg>项目 <span class="count-badge">67</span></a>
+        <a class="cann-nav-link" href="#grid"><svg class="svg-icon nav-icon" aria-hidden="true"><use href="#icon-folder"></use></svg>项目 <span class="count-badge">68</span></a>
         <a class="cann-nav-link" href="#grid"><svg class="svg-icon nav-icon" aria-hidden="true"><use href="#icon-layers"></use></svg>合集</a>
         <a class="cann-nav-link" href="#grid"><svg class="svg-icon nav-icon" aria-hidden="true"><use href="#icon-circle-dot"></use></svg>Issues</a>
         <a class="cann-nav-link" href="#grid"><svg class="svg-icon nav-icon" aria-hidden="true"><use href="#icon-git-pull-request"></use></svg>Pull Requests</a>
@@ -886,6 +886,7 @@ body.is-header-collapsed .side-nav {
 const categories = [
   { id: "all", label: "全部", icon: "icon-layout-grid" },
   { id: "A5 硬件与迁移", label: "A5 硬件与迁移", icon: "icon-cpu" },
+  { id: "模型训练推理", label: "模型训练推理", icon: "icon-layers" },
   { id: "模型图与 IR", label: "模型图与 IR", icon: "icon-network" },
   { id: "执行与性能分析", label: "执行与性能分析", icon: "icon-activity" },
   { id: "算子开发工具", label: "算子开发工具", icon: "icon-code-2" },
@@ -963,7 +964,7 @@ const launchItems = [
   },
   {
     title: "AI 大模型训练推理入门",
-    group: "模型图与 IR",
+    group: "模型训练推理",
     status: "hi-fi",
     desc: "面向初学者的训练、推理、层、权重、数据和框架入门文档，联动 Qwen7B / DeepSeek V3.2 架构图。",
     href: "train/index.html",
@@ -973,6 +974,15 @@ const launchItems = [
       { label: "入门科普", href: "train/index.html" },
       { label: "训练心智模型", href: "train/training-mental-model.html" }
     ]
+  },
+  {
+    title: "训练任务管理",
+    group: "模型训练推理",
+    status: "hi-fi",
+    desc: "面向模型训练任务的状态、资源、阶段和任务编排管理视图。",
+    href: "Profiling_Insight_and_Tool/Train_Manage/TrainManage.html",
+    previewFrame: "Profiling_Insight_and_Tool/Train_Manage/TrainManage.html?preview=1",
+    tags: ["Training", "Task", "Manage"]
   },
   {
     title: "DeepSeek V3.2 报告叠加图",
