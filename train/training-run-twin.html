@@ -16,7 +16,9 @@
   <link rel="stylesheet" href="../../pto-design-system/tokens/semantic.css">
   <link rel="stylesheet" href="../../pto-design-system/tokens/components.css">
   <link rel="stylesheet" href="../../pto-design-system/css/style.css">
-  <link rel="stylesheet" href="./training-run-twin.css?v=20260609-light-blue">
+  <link rel="stylesheet" href="../../pto-design-system/patterns/model-graphviz/pattern.css">
+  <link rel="stylesheet" href="../../pto-design-system/patterns/model-training-graphviz/pattern.css">
+  <link rel="stylesheet" href="./training-run-twin.css?v=20260609-training-input-tensors">
 </head>
 <body class="train-twin-page" data-theme="light" data-model="qwen7b" data-task="pretrain" data-hardware="cluster512">
   <header class="twin-topbar">
@@ -113,12 +115,11 @@
       <div class="twin-center-scroll">
         <section class="twin-graph-card" aria-label="模型架构图">
           <div class="twin-architecture-stage">
-            <iframe
-              id="modelGraphFrame"
-              class="twin-model-graphviz-frame"
-              src="../../pto-design-system/patterns/model-graphviz/assets/qwen7b_modelviz.html?theme=dark&embed=1"
-              title="Model Graphviz architecture"
-            ></iframe>
+            <div
+              id="modelGraphStage"
+              class="twin-model-training-graphviz"
+              aria-label="Model Graphviz training architecture"
+            ></div>
           </div>
         </section>
       </div>
@@ -270,6 +271,8 @@
     </section>
   </main>
 
-  <script src="./training-run-twin.js"></script>
+  <script src="../../pto-design-system/patterns/model-graphviz/pattern.js"></script>
+  <script src="../../pto-design-system/patterns/model-training-graphviz/pattern.js"></script>
+  <script src="./training-run-twin.js?v=20260609-training-input-tensors"></script>
 </body>
 </html>
