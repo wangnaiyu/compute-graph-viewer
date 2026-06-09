@@ -92,12 +92,19 @@
     backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
   .desc-tooltip a { color: var(--blue); text-decoration: none; }
   .desc-tooltip a:hover { text-decoration: underline; }
-  .tabs { display: flex; gap: 4px; margin: 18px 0 20px; background: rgba(236,238,245,.9);
+  .tabs-row { display: flex; align-items: center; gap: 16px; margin: 18px 0 20px; }
+  .tabs { display: flex; gap: 4px; background: rgba(236,238,245,.9);
     border: 1px solid var(--border); border-radius: 999px; padding: 4px; width: fit-content; }
   .tab { padding: 8px 18px; border-radius: 999px; color: var(--text-2); cursor: pointer;
     font-size: 13px; font-weight: 500; transition: all .15s; }
   .tab:hover { color: var(--text); }
   .tab.active { background: #fff; color: var(--text); font-weight: 600; box-shadow: 0 6px 14px rgba(22,23,28,.08); }
+  .dash-source { margin-left: auto; display: flex; gap: 2px; background: rgba(236,238,245,.9);
+    border: 1px solid var(--border); border-radius: 999px; padding: 3px; }
+  .dash-src-btn { padding: 6px 14px; border: none; background: transparent; border-radius: 999px;
+    font-size: 12px; font-weight: 500; color: var(--text-2); cursor: pointer; font-family: inherit; transition: all .15s; }
+  .dash-src-btn:hover { color: var(--text); }
+  .dash-src-btn.active { background: #fff; color: var(--text); font-weight: 600; box-shadow: 0 6px 14px rgba(22,23,28,.08); }
 
   /* Floating tab bar */
   .float-bar {
@@ -474,6 +481,15 @@
     .cmp-grid { grid-template-columns: 1fr 1fr; }
   }
 
+  /* ---- 大盘 tab ---- */
+  #tab-dashboard { padding: 0; margin-top: -6px; }
+  .dashboard-frame {
+    width: 100%; height: calc(100vh - 162px); min-height: 580px;
+    border: none; border-radius: 20px; display: block;
+    background: #0c1015;
+    box-shadow: 0 18px 38px rgba(22,23,28,.12);
+  }
+
   /* 更新日志：全局右下角入口 */
   .changelog-fab { position: fixed; bottom: 22px; right: 22px; z-index: 1200;
     display: inline-flex; align-items: center; gap: 5px; padding: 6px 11px;
@@ -603,11 +619,18 @@
     <div class="page-title"><button class="icon-btn home-btn" id="navHomeCollapsed" title="返回首页" aria-label="返回首页"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V10"/></svg></button><button class="icon-btn" id="navExpand" title="展开导航栏" aria-label="展开导航栏"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg></button><span class="status" id="statusDot"></span> <span id="taskTitle"></span></div>
     <div class="page-subtitle" id="taskSubtitle"></div>
 
-    <div class="tabs">
-      <div class="tab active" data-tab="overview">总览</div>
-      <div class="tab" data-tab="hparams">超参</div>
-      <div class="tab" data-tab="events">事件</div>
-      <div class="tab" data-tab="logs">日志</div>
+    <div class="tabs-row">
+      <div class="tabs">
+        <div class="tab active" data-tab="overview">总览</div>
+        <div class="tab" data-tab="hparams">超参</div>
+        <div class="tab" data-tab="events">事件</div>
+        <div class="tab" data-tab="logs">日志</div>
+        <div class="tab" data-tab="dashboard">大盘</div>
+      </div>
+      <div id="dashSourceToggle" class="dash-source" style="display:none">
+        <button class="dash-src-btn active" data-src="demo">Demo数据</button>
+        <button class="dash-src-btn" data-src="task">来自任务</button>
+      </div>
     </div>
 
     <div id="tab-overview">
@@ -633,6 +656,8 @@
 
       <div class="section-title">关键指标 <span class="more">更多 ›</span></div>
       <div class="km-grid" id="keyMetrics"></div>
+
+      <div id="scaleSection"></div>
     </div>
 
     <div id="tab-hparams" style="display:none">
@@ -648,6 +673,601 @@
 
     <div id="tab-logs" style="display:none">
       <div class="card" style="padding:32px 24px; text-align:center; color:var(--text-3);">日志（待实现）</div>
+    </div>
+
+    <div id="tab-dashboard" style="display:none">
+      <iframe id="dashboardIframe" class="dashboard-frame" srcdoc="<!DOCTYPE html>
+<html lang=&quot;zh-CN&quot;>
+<head>
+<meta charset=&quot;UTF-8&quot;>
+<meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;>
+<title>训练孪生体控制台 · Run: atlas-70B-r3</title>
+<style>
+  :root{
+    --bg:#0c1015; --bg2:#0f141b; --panel:#151b24; --panel2:#1b232e;
+    --line:rgba(255,255,255,.07); --line2:rgba(255,255,255,.12);
+    --ink:#e7ecf3; --mut:#7e8a9c; --dim:#576070;
+    --teal:#34d399; --teal-d:#0c5e44;
+    --amber:#fbbf24; --amber-d:#6b4708;
+    --red:#f87171; --red-d:#6e1f1f;
+    --purple:#a78bfa; --purple-d:#3a2e7a;
+    --blue:#60a5fa; --blue-d:#1e3a6b;
+    --mono:ui-monospace,&quot;SF Mono&quot;,&quot;JetBrains Mono&quot;,Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,&quot;Segoe UI&quot;,&quot;PingFang SC&quot;,&quot;Microsoft YaHei&quot;,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;overflow-x:hidden}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.5;
+    background-image:radial-gradient(circle at 20% -10%,rgba(96,165,250,.06),transparent 40%),radial-gradient(circle at 90% 0,rgba(167,139,250,.05),transparent 35%);}
+  .mono{font-family:var(--mono);font-variant-numeric:tabular-nums;}
+  .wrap{max-width:1280px;margin:0 auto;padding:18px 18px 48px;}
+ 
+  /* header */
+  header{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:14px 18px;background:var(--panel);
+    border:1px solid var(--line);border-radius:14px;}
+  .run{display:flex;flex-direction:column;gap:2px;}
+  .run h1{font-size:16px;font-weight:600;margin:0;letter-spacing:.2px;}
+  .run .meta{font-size:12px;color:var(--mut);}
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:4px 10px;border-radius:999px;}
+  .pill.ok{background:var(--teal-d);color:var(--teal);}
+  .dot{width:7px;height:7px;border-radius:50%;background:currentColor;animation:blink 1.6s infinite;}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+  .sync{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--purple);
+    border:1px solid var(--purple-d);border-radius:999px;padding:5px 12px;background:rgba(167,139,250,.06);}
+  .sync .dot{background:var(--purple)}
+ 
+  /* vitals strip */
+  .vitals{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-top:14px;}
+  .vital{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;}
+  .vital .k{font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.6px;}
+  .vital .v{font-size:22px;font-weight:600;margin-top:3px;font-family:var(--mono);}
+  .vital .s{font-size:11px;color:var(--dim);margin-top:1px;font-family:var(--mono);}
+  .vital .v small{font-size:12px;color:var(--mut);font-weight:400;margin-left:3px;}
+ 
+  /* layout grid */
+  .grid{display:grid;grid-template-columns:1.55fr 1fr;gap:14px;margin-top:14px;align-items:start;}
+  .col{display:flex;flex-direction:column;gap:14px;}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:15px 16px;}
+  .card h2{font-size:13px;font-weight:600;margin:0 0 2px;display:flex;align-items:center;gap:8px;}
+  .card h2 .tag{font-size:10px;font-weight:600;color:var(--dim);border:1px solid var(--line2);border-radius:5px;padding:1px 6px;letter-spacing:.5px;text-transform:uppercase;}
+  .card .desc{font-size:11px;color:var(--dim);margin:0 0 12px;}
+ 
+  /* charts */
+  .chartrow{display:grid;grid-template-columns:2fr 1fr 1fr;gap:14px;}
+  .chartbox .lbl{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;}
+  .chartbox .lbl .name{font-size:11px;color:var(--mut);}
+  .chartbox .lbl .now{font-size:14px;font-weight:600;font-family:var(--mono);}
+  svg.chart{width:100%;display:block;}
+ 
+  /* gpu heatmap */
+  .heat{display:grid;grid-template-columns:repeat(32,1fr);gap:2px;}
+  .cell{aspect-ratio:1;border-radius:2px;background:var(--teal-d);position:relative;}
+  .legend{display:flex;gap:14px;margin-top:11px;font-size:11px;color:var(--mut);flex-wrap:wrap;}
+  .legend span{display:inline-flex;align-items:center;gap:5px;}
+  .sw{width:11px;height:11px;border-radius:3px;display:inline-block;}
+ 
+  /* gauges / bars */
+  .bars{display:flex;flex-direction:column;gap:11px;}
+  .bar .top{display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px;}
+  .bar .top .val{font-family:var(--mono);color:var(--ink);}
+  .track{height:7px;background:var(--bg2);border-radius:6px;overflow:hidden;}
+  .fill{height:100%;border-radius:6px;transition:width .5s ease,background .5s;}
+ 
+  /* fault gauge */
+  .risk{display:flex;align-items:center;gap:18px;}
+  .risknum{font-size:40px;font-weight:700;font-family:var(--mono);line-height:1;}
+  .riskmeta{font-size:12px;color:var(--mut);}
+  .factors{margin-top:12px;display:flex;flex-direction:column;gap:8px;}
+  .factor{display:flex;justify-content:space-between;align-items:center;font-size:12px;}
+  .factor .ftrack{flex:1;margin:0 10px;height:5px;background:var(--bg2);border-radius:4px;overflow:hidden;}
+  .factor .ffill{height:100%;background:var(--amber);}
+ 
+  /* event feed */
+  .feed{display:flex;flex-direction:column;gap:0;max-height:230px;overflow:auto;}
+  .ev{display:flex;gap:10px;padding:8px 2px;border-bottom:1px solid var(--line);font-size:12px;}
+  .ev:last-child{border-bottom:none;}
+  .ev .t{color:var(--dim);font-family:var(--mono);white-space:nowrap;flex:0 0 auto;}
+  .ev .sev{flex:0 0 auto;width:6px;border-radius:3px;}
+  .ev .msg{color:var(--ink);}
+  .ev.warn .msg{color:var(--amber);} .ev.warn .sev{background:var(--amber);}
+  .ev.crit .msg{color:var(--red);} .ev.crit .sev{background:var(--red);}
+  .ev.info .sev{background:var(--blue);} .ev.info .msg{color:var(--mut);}
+  .ev.ok .sev{background:var(--teal);} .ev.ok .msg{color:var(--teal);}
+ 
+  /* data pipeline */
+  .pipe{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
+  .mix{margin-top:4px;}
+  .mixrow{display:flex;align-items:center;gap:8px;font-size:12px;margin-bottom:6px;}
+  .mixrow .nm{width:62px;color:var(--mut);}
+  .mixbar{flex:1;height:6px;background:var(--bg2);border-radius:4px;overflow:hidden;}
+  .mixbar i{display:block;height:100%;background:var(--blue);border-radius:4px;}
+  .mixrow .pc{font-family:var(--mono);color:var(--ink);width:36px;text-align:right;}
+ 
+  /* what-if */
+  .ctrl{display:grid;grid-template-columns:1fr 1fr;gap:13px 18px;}
+  .ctrl .field label{display:flex;justify-content:space-between;font-size:12px;color:var(--mut);margin-bottom:6px;}
+  .ctrl .field label b{color:var(--purple);font-family:var(--mono);font-weight:600;}
+  input[type=range]{width:100%;-webkit-appearance:none;appearance:none;height:5px;border-radius:4px;background:var(--bg2);outline:none;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;background:var(--purple);cursor:pointer;border:2px solid var(--panel);}
+  input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;background:var(--purple);cursor:pointer;border:2px solid var(--panel);}
+  .outgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:16px;}
+  .out{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:11px 12px;}
+  .out .k{font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;}
+  .out .v{font-size:18px;font-weight:600;font-family:var(--mono);margin-top:3px;}
+  .out .d{font-size:11px;font-family:var(--mono);margin-top:2px;}
+  .up{color:var(--teal)} .down{color:var(--red)} .flat{color:var(--dim)}
+  .note{font-size:11px;color:var(--dim);margin-top:13px;line-height:1.6;}
+ 
+  @media(max-width:820px){.grid{grid-template-columns:1fr}.vitals{grid-template-columns:repeat(3,1fr)}.chartrow{grid-template-columns:1fr}.heat{grid-template-columns:repeat(32,1fr)}}
+  @media(max-width:640px){.vitals{grid-template-columns:repeat(2,1fr)}.ctrl,.outgrid,.pipe{grid-template-columns:1fr 1fr}.outgrid{grid-template-columns:1fr 1fr}}
+
+  /* 任务模式下无数据区域置灰 */
+  .no-data{position:relative;pointer-events:none;}
+  .no-data > *{opacity:.18;filter:grayscale(.85);}
+  .card.no-data::after{content:'暂无任务数据';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--mut);letter-spacing:1px;}
+  .chartbox.no-data::after{content:'暂无';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--mut);}
+</style>
+</head>
+<body>
+<div class=&quot;wrap&quot;>
+ 
+  <header>
+    <div class=&quot;run&quot;>
+      <h1>训练孪生体控制台</h1>
+      <div class=&quot;meta mono&quot;>run <b style=&quot;color:var(--ink)&quot;>atlas-70B-r3</b> · 70B dense · seq 8192 · 512×H100</div>
+    </div>
+    <span class=&quot;pill ok&quot;><span class=&quot;dot&quot;></span>TRAINING</span>
+    <div class=&quot;sync&quot;><span class=&quot;dot&quot;></span>孪生镜像同步 · <span id=&quot;syncLag&quot; class=&quot;mono&quot;>12</span>ms 前 · 回灌校准 OK</div>
+  </header>
+ 
+  <!-- vitals -->
+  <div class=&quot;vitals&quot;>
+    <div class=&quot;vital&quot;><div class=&quot;k&quot;>Step</div><div class=&quot;v&quot; id=&quot;vStep&quot;>—</div><div class=&quot;s&quot; id=&quot;vStepSub&quot;>—</div></div>
+    <div class=&quot;vital&quot;><div class=&quot;k&quot;>Train loss</div><div class=&quot;v&quot; id=&quot;vLoss&quot;>—</div><div class=&quot;s&quot; id=&quot;vLossSub&quot;>—</div></div>
+    <div class=&quot;vital&quot;><div class=&quot;k&quot;>MFU</div><div class=&quot;v&quot; id=&quot;vMfu&quot;>—</div><div class=&quot;s&quot;>model flops util</div></div>
+    <div class=&quot;vital&quot;><div class=&quot;k&quot;>Throughput</div><div class=&quot;v&quot; id=&quot;vTok&quot;>—</div><div class=&quot;s&quot;>tokens / sec</div></div>
+    <div class=&quot;vital&quot;><div class=&quot;k&quot;>Tokens seen</div><div class=&quot;v&quot; id=&quot;vSeen&quot;>—</div><div class=&quot;s&quot; id=&quot;vSeenSub&quot;>—</div></div>
+    <div class=&quot;vital&quot;><div class=&quot;k&quot;>ETA</div><div class=&quot;v&quot; id=&quot;vEta&quot;>—</div><div class=&quot;s&quot;>至 3.0T tokens</div></div>
+  </div>
+ 
+  <div class=&quot;grid&quot;>
+    <!-- LEFT COLUMN -->
+    <div class=&quot;col&quot;>
+ 
+      <!-- training dynamics -->
+      <div class=&quot;card&quot;>
+        <h2>训练动态 · 模型层 <span class=&quot;tag&quot;>dim 3</span></h2>
+        <p class=&quot;desc&quot;>loss / 梯度 / 学习率 / MFU 实时曲线 — 孪生体据此判断收敛健康度并捕捉 loss spike</p>
+        <div class=&quot;chartrow&quot;>
+          <div class=&quot;chartbox&quot;>
+            <div class=&quot;lbl&quot;><span class=&quot;name&quot;>Train / Val loss</span><span class=&quot;now&quot; id=&quot;lossNow&quot; style=&quot;color:var(--teal)&quot;>—</span></div>
+            <svg class=&quot;chart&quot; id=&quot;lossChart&quot; viewBox=&quot;0 0 320 110&quot; preserveAspectRatio=&quot;none&quot;></svg>
+          </div>
+          <div class=&quot;chartbox&quot;>
+            <div class=&quot;lbl&quot;><span class=&quot;name&quot;>MFU %</span><span class=&quot;now mono&quot; id=&quot;mfuNow&quot; style=&quot;color:var(--purple)&quot;>—</span></div>
+            <svg class=&quot;chart&quot; id=&quot;mfuChart&quot; viewBox=&quot;0 0 150 110&quot; preserveAspectRatio=&quot;none&quot;></svg>
+          </div>
+          <div class=&quot;chartbox&quot;>
+            <div class=&quot;lbl&quot;><span class=&quot;name&quot;>Grad norm</span><span class=&quot;now mono&quot; id=&quot;gnNow&quot; style=&quot;color:var(--amber)&quot;>—</span></div>
+            <svg class=&quot;chart&quot; id=&quot;gnChart&quot; viewBox=&quot;0 0 150 110&quot; preserveAspectRatio=&quot;none&quot;></svg>
+          </div>
+        </div>
+      </div>
+ 
+      <!-- gpu cluster -->
+      <div class=&quot;card&quot; id=&quot;cardHw&quot;>
+        <h2>硬件 · 基础设施层 <span class=&quot;tag&quot;>dim 1</span></h2>
+        <p class=&quot;desc&quot;>512×H100 · 64 节点 — 单元格按结温着色，红色为降频/掉卡风险</p>
+        <div class=&quot;heat&quot; id=&quot;heat&quot;></div>
+        <div class=&quot;legend&quot;>
+          <span><i class=&quot;sw&quot; style=&quot;background:var(--teal-d)&quot;></i>&amp;lt;72°C</span>
+          <span><i class=&quot;sw&quot; style=&quot;background:var(--amber)&quot;></i>72–82°C</span>
+          <span><i class=&quot;sw&quot; style=&quot;background:var(--red)&quot;></i>&amp;gt;82°C / 异常</span>
+          <span style=&quot;margin-left:auto&quot; id=&quot;heatStat&quot; class=&quot;mono&quot;></span>
+        </div>
+      </div>
+ 
+      <!-- system / software -->
+      <div class=&quot;card&quot; id=&quot;cardSys&quot;>
+        <h2>系统 · 软件运行层 <span class=&quot;tag&quot;>dim 2</span></h2>
+        <p class=&quot;desc&quot;>并行配置 TP4·PP4·DP32 · NCCL 集合通信与显存占用</p>
+        <div class=&quot;bars&quot; id=&quot;sysBars&quot;></div>
+      </div>
+ 
+    </div>
+ 
+    <!-- RIGHT COLUMN -->
+    <div class=&quot;col&quot;>
+ 
+      <!-- fault prediction -->
+      <div class=&quot;card&quot; id=&quot;cardRisk&quot;>
+        <h2>预测 · 故障预警 <span class=&quot;tag&quot;>twin · forecast</span></h2>
+        <p class=&quot;desc&quot;>代理模型综合多维信号，给出未来 30 分钟中断概率</p>
+        <div class=&quot;risk&quot;>
+          <div class=&quot;risknum&quot; id=&quot;riskNum&quot;>—</div>
+          <div>
+            <div id=&quot;riskLabel&quot; style=&quot;font-weight:600&quot;>—</div>
+            <div class=&quot;riskmeta&quot;>30-min 中断概率 · 置信 87%</div>
+          </div>
+        </div>
+        <div class=&quot;factors&quot; id=&quot;factors&quot;></div>
+      </div>
+ 
+      <!-- event feed -->
+      <div class=&quot;card&quot; id=&quot;cardFeed&quot;>
+        <h2>可靠性 · 运维事件 <span class=&quot;tag&quot;>dim 7</span></h2>
+        <p class=&quot;desc&quot;>异常 / 重启 / 抢占 / straggler 实时流</p>
+        <div class=&quot;feed&quot; id=&quot;feed&quot;></div>
+      </div>
+ 
+      <!-- data pipeline -->
+      <div class=&quot;card&quot; id=&quot;cardPipe&quot;>
+        <h2>数据管道层 <span class=&quot;tag&quot;>dim 4</span></h2>
+        <p class=&quot;desc&quot;>配比 · 加载吞吐 · 序列长度分布</p>
+        <div class=&quot;pipe&quot;>
+          <div>
+            <div style=&quot;font-size:11px;color:var(--mut);margin-bottom:7px&quot;>数据混合配比</div>
+            <div class=&quot;mix&quot; id=&quot;mix&quot;></div>
+          </div>
+          <div class=&quot;bars&quot; id=&quot;dataBars&quot;></div>
+        </div>
+      </div>
+ 
+    </div>
+  </div>
+ 
+  <!-- WHAT-IF -->
+  <div class=&quot;card&quot; id=&quot;cardWhatif&quot; style=&quot;margin-top:14px&quot;>
+    <h2>What-if · 配置 / 扩容推演 <span class=&quot;tag&quot;>dim 5 · twin sim</span></h2>
+    <p class=&quot;desc&quot;>调整并行与批处理配置，孪生体预测吞吐、MFU、训练时长与成本（相对当前运行的变化）</p>
+    <div class=&quot;ctrl&quot;>
+      <div class=&quot;field&quot;><label>张量并行 TP <b id=&quot;lTP&quot;>4</b></label><input type=&quot;range&quot; id=&quot;rTP&quot; min=&quot;0&quot; max=&quot;3&quot; value=&quot;2&quot;></div>
+      <div class=&quot;field&quot;><label>流水并行 PP <b id=&quot;lPP&quot;>4</b></label><input type=&quot;range&quot; id=&quot;rPP&quot; min=&quot;0&quot; max=&quot;4&quot; value=&quot;2&quot;></div>
+      <div class=&quot;field&quot;><label>数据并行 DP <b id=&quot;lDP&quot;>32</b></label><input type=&quot;range&quot; id=&quot;rDP&quot; min=&quot;1&quot; max=&quot;64&quot; value=&quot;32&quot;></div>
+      <div class=&quot;field&quot;><label>Micro-batch <b id=&quot;lMB&quot;>2</b></label><input type=&quot;range&quot; id=&quot;rMB&quot; min=&quot;0&quot; max=&quot;3&quot; value=&quot;1&quot;></div>
+      <div class=&quot;field&quot;><label>梯度累积 <b id=&quot;lGA&quot;>8</b></label><input type=&quot;range&quot; id=&quot;rGA&quot; min=&quot;0&quot; max=&quot;5&quot; value=&quot;3&quot;></div>
+      <div class=&quot;field&quot;><label>GPU 单价 $/h <b id=&quot;lPR&quot;>2.5</b></label><input type=&quot;range&quot; id=&quot;rPR&quot; min=&quot;10&quot; max=&quot;40&quot; value=&quot;25&quot;></div>
+    </div>
+    <div class=&quot;outgrid&quot;>
+      <div class=&quot;out&quot;><div class=&quot;k&quot;>集群规模 GPUs</div><div class=&quot;v&quot; id=&quot;oWorld&quot;>—</div><div class=&quot;d flat&quot; id=&quot;dWorld&quot;>—</div></div>
+      <div class=&quot;out&quot;><div class=&quot;k&quot;>预测 MFU</div><div class=&quot;v&quot; id=&quot;oMfu&quot;>—</div><div class=&quot;d&quot; id=&quot;dMfu&quot;>—</div></div>
+      <div class=&quot;out&quot;><div class=&quot;k&quot;>预测吞吐 tok/s</div><div class=&quot;v&quot; id=&quot;oTok&quot;>—</div><div class=&quot;d&quot; id=&quot;dTok&quot;>—</div></div>
+      <div class=&quot;out&quot;><div class=&quot;k&quot;>全局 batch</div><div class=&quot;v&quot; id=&quot;oBatch&quot;>—</div><div class=&quot;d flat&quot; id=&quot;dBatch&quot;>—</div></div>
+      <div class=&quot;out&quot;><div class=&quot;k&quot;>预计剩余时长</div><div class=&quot;v&quot; id=&quot;oEta&quot;>—</div><div class=&quot;d&quot; id=&quot;dEta&quot;>—</div></div>
+      <div class=&quot;out&quot;><div class=&quot;k&quot;>剩余 GPU·小时</div><div class=&quot;v&quot; id=&quot;oGh&quot;>—</div><div class=&quot;d&quot; id=&quot;dGh&quot;>—</div></div>
+      <div class=&quot;out&quot;><div class=&quot;k&quot;>剩余算力成本</div><div class=&quot;v&quot; id=&quot;oCost&quot;>—</div><div class=&quot;d&quot; id=&quot;dCost&quot;>—</div></div>
+      <div class=&quot;out&quot;><div class=&quot;k&quot;>流水 bubble</div><div class=&quot;v&quot; id=&quot;oBub&quot;>—</div><div class=&quot;d flat&quot;>PP 气泡占比</div></div>
+    </div>
+    <p class=&quot;note&quot;>模型为演示用简化代理：MFU 随 TP 通信开销与 PP 气泡下降，micro-batch 过小损失核效率；真实孪生体会用历史 run 校准这些系数。当前基线 TP4·PP4·DP32 · MFU≈51% · 512 GPU。</p>
+  </div>
+ 
+</div>
+ 
+<script>
+(function(){
+  const $=id=>document.getElementById(id);
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const rand=(a,b)=>a+Math.random()*(b-a);
+ 
+  // ---- formatters ----
+  function fmtBig(n){ if(n>=1e12)return (n/1e12).toFixed(2)+'T'; if(n>=1e9)return (n/1e9).toFixed(2)+'B'; if(n>=1e6)return (n/1e6).toFixed(1)+'M'; if(n>=1e3)return (n/1e3).toFixed(1)+'k'; return Math.round(n).toString(); }
+  function fmtTime(s){ s=Math.max(0,s); const d=Math.floor(s/86400),h=Math.floor(s%86400/3600),m=Math.floor(s%3600/60); if(d>0)return d+'d '+h+'h'; if(h>0)return h+'h '+m+'m'; return m+'m'; }
+  function fmtMoney(n){ if(n>=1e6)return '$'+(n/1e6).toFixed(2)+'M'; if(n>=1e3)return '$'+(n/1e3).toFixed(1)+'k'; return '$'+Math.round(n); }
+ 
+  // ---- state ----
+  const S={
+    step:48230, totalSteps:120000,
+    seen:1.31e12, target:3.0e12,
+    loss:2.182, lossEMA:2.182, val:2.246,
+    mfu:0.512, gn:0.84, lr:2.4e-4,
+    world:512, params:70e9, peak:989e12,
+    hist:{loss:[],val:[],mfu:[],gn:[]},
+    gpus:[], spike:0, riskHist:0.08
+  };
+  const N=512, COLS=32;
+  for(let i=0;i<N;i++){ S.gpus.push({util:rand(.88,.99),temp:rand(58,70),mem:rand(.74,.86),ecc:0,bad:false}); }
+  // seed a few warm + one straggler
+  S.gpus[37].temp=84; S.gpus[37].bad='straggler'; S.gpus[37].util=.71;
+  S.gpus[201].temp=78; S.gpus[330].temp=76;
+ 
+  // seed history (~96 pts) with realistic decay
+  for(let i=0;i<96;i++){
+    const t=i/96;
+    const l=2.55-0.42*t+ (Math.random()-.5)*0.04;
+    S.hist.loss.push(l);
+    S.hist.val.push(l+0.06+(Math.random()-.5)*0.02);
+    S.hist.mfu.push(0.51+(Math.random()-.5)*0.05);
+    S.hist.gn.push(0.8+(Math.random()-.5)*0.25);
+  }
+  S.loss=S.hist.loss[95]; S.lossEMA=S.loss;
+ 
+  // ---- svg line drawing ----
+  function path(data,W,H,pad){
+    pad=pad||4; let mn=Math.min(...data),mx=Math.max(...data); if(mx-mn<1e-6)mx=mn+1;
+    const n=data.length;
+    return data.map((v,i)=>{
+      const x=pad+(W-2*pad)*i/(n-1);
+      const y=H-pad-(H-2*pad)*(v-mn)/(mx-mn);
+      return (i?'L':'M')+x.toFixed(1)+' '+y.toFixed(1);
+    }).join(' ');
+  }
+  function drawChart(svg,series){
+    const vb=svg.getAttribute('viewBox').split(' '),W=+vb[2],H=+vb[3];
+    let html='';
+    // grid baseline
+    html+='<line x1=&quot;0&quot; y1=&quot;'+(H-4)+'&quot; x2=&quot;'+W+'&quot; y2=&quot;'+(H-4)+'&quot; stroke=&quot;rgba(255,255,255,.06)&quot;/>';
+    series.forEach(s=>{
+      const d=path(s.data,W,H,5);
+      if(s.fill){
+        const area=d+' L'+(W-5)+' '+(H-5)+' L5 '+(H-5)+' Z';
+        html+='<path d=&quot;'+area+'&quot; fill=&quot;'+s.color+'&quot; opacity=&quot;.10&quot;/>';
+      }
+      html+='<path d=&quot;'+d+'&quot; fill=&quot;none&quot; stroke=&quot;'+s.color+'&quot; stroke-width=&quot;'+(s.w||1.6)+'&quot; stroke-linejoin=&quot;round&quot; stroke-linecap=&quot;round&quot; opacity=&quot;'+(s.op||1)+'&quot;/>';
+    });
+    svg.innerHTML=html;
+  }
+ 
+  // ---- heatmap ----
+  const heat=$('heat');
+  for(let i=0;i<N;i++){ const c=document.createElement('div'); c.className='cell'; heat.appendChild(c); }
+  const cells=heat.children;
+  function tempColor(t,bad){
+    if(bad)return 'var(--red)';
+    if(t>82)return 'var(--red)';
+    if(t>72)return 'var(--amber)';
+    // interpolate teal darkness by util
+    return 'var(--teal-d)';
+  }
+  function renderHeat(){
+    let mx=0,nbad=0,avg=0;
+    for(let i=0;i<N;i++){ const g=S.gpus[i]; const c=cells[i];
+      c.style.background=tempColor(g.temp,g.bad);
+      c.style.boxShadow = g.bad ? '0 0 0 1px var(--red)' : 'none';
+      c.title='GPU '+i+' · node-'+(i>>3)+' · '+g.temp.toFixed(0)+'°C · util '+(g.util*100).toFixed(0)+'% · HBM '+(g.mem*100).toFixed(0)+'%'+(g.bad?' · '+g.bad:'');
+      mx=Math.max(mx,g.temp); avg+=g.temp; if(g.temp>82||g.bad)nbad++;
+    }
+    $('heatStat').textContent='peak '+mx.toFixed(0)+'°C · avg '+(avg/N).toFixed(0)+'°C · 异常 '+nbad;
+  }
+ 
+  // ---- system bars ----
+  function bar(name,val,pct,color){
+    return '<div class=&quot;bar&quot;><div class=&quot;top&quot;><span style=&quot;color:var(--mut)&quot;>'+name+'</span><span class=&quot;val&quot;>'+val+'</span></div>'+
+      '<div class=&quot;track&quot;><div class=&quot;fill&quot; style=&quot;width:'+clamp(pct,0,100)+'%;background:'+color+'&quot;></div></div></div>';
+  }
+ 
+  // ---- data mix ----
+  const MIX=[['Web',43,'var(--blue)'],['Code',22,'var(--purple)'],['书籍/论文',16,'var(--teal)'],['多语种',13,'var(--amber)'],['数学',6,'var(--red)']];
+  $('mix').innerHTML=MIX.map(m=>'<div class=&quot;mixrow&quot;><span class=&quot;nm&quot;>'+m[0]+'</span><span class=&quot;mixbar&quot;><i style=&quot;width:'+m[1]+'%;background:'+m[2]+'&quot;></i></span><span class=&quot;pc&quot;>'+m[1]+'%</span></div>').join('');
+ 
+  // ---- event feed ----
+  const feed=$('feed'); const EVB=[
+    ['info','checkpoint 写入完成 · step {s} · 用时 41s'],
+    ['ok','NCCL all-reduce 带宽恢复至 388 GB/s'],
+    ['info','数据分片 shard-{r} 预取完成'],
+    ['warn','node-{r} GPU{g} 结温 84°C · 触发降频预警'],
+    ['warn','straggler 检测 · node-37 落后 1.8× · 平均步长'],
+    ['info','梯度同步耗时 11.2ms · overlap 92%'],
+    ['ok','EMA loss 持续下降 · 收敛正常'],
+    ['warn','dataloader 等待 6.3% · I/O 轻度瓶颈'],
+  ];
+  function clock(){ const d=new Date(); return d.toTimeString().slice(0,8); }
+  function pushEvent(sev,msg){
+    const el=document.createElement('div'); el.className='ev '+sev;
+    el.innerHTML='<span class=&quot;t&quot;>'+clock()+'</span><span class=&quot;sev&quot;></span><span class=&quot;msg&quot;>'+msg+'</span>';
+    feed.insertBefore(el,feed.firstChild);
+    while(feed.children.length>40)feed.removeChild(feed.lastChild);
+  }
+  function seedEvents(){ for(let i=0;i<6;i++){ const e=EVB[Math.floor(rand(0,EVB.length))]; const msg=e[1].replace('{s}',(S.step-i*40)).replace('{r}',Math.floor(rand(0,64))).replace('{g}',Math.floor(rand(0,8))); pushEvent(e[0],msg); } }
+ 
+  // ---- fault risk ----
+  function computeRisk(){
+    let mx=0,bad=0,warm=0; for(const g of S.gpus){ mx=Math.max(mx,g.temp); if(g.bad)bad++; if(g.temp>78)warm++; }
+    const fThermal=clamp((mx-72)/18,0,1);
+    const fStrag=clamp(bad*0.4,0,1);
+    const fSpike=clamp(S.spike,0,1);
+    const fEcc=clamp(warm/14,0,1);
+    let r=0.04+0.45*fThermal+0.30*fStrag+0.30*fSpike+0.12*fEcc;
+    r=clamp(r,0.02,0.97);
+    S.riskHist=S.riskHist*0.6+r*0.4;
+    return {r:S.riskHist,f:[['热/降频',fThermal],['Straggler',fStrag],['Loss spike',fSpike],['ECC/告警',fEcc]]};
+  }
+  function renderRisk(){
+    const {r,f}=computeRisk(); const pct=Math.round(r*100);
+    const col = r>0.5?'var(--red)': r>0.22?'var(--amber)':'var(--teal)';
+    const lab = r>0.5?'高 · 建议预防性 checkpoint': r>0.22?'中 · 持续观察':'低 · 稳定';
+    $('riskNum').textContent=pct+'%'; $('riskNum').style.color=col;
+    $('riskLabel').textContent=lab; $('riskLabel').style.color=col;
+    $('factors').innerHTML=f.map(x=>'<div class=&quot;factor&quot;><span style=&quot;color:var(--mut);width:78px&quot;>'+x[0]+'</span><span class=&quot;ftrack&quot;><i class=&quot;ffill&quot; style=&quot;width:'+Math.round(x[1]*100)+'%;background:'+col+'&quot;></i></span><span class=&quot;mono&quot; style=&quot;width:34px;text-align:right;color:var(--ink)&quot;>'+Math.round(x[1]*100)+'%</span></div>').join('');
+  }
+ 
+  // ---- main tick ----
+  function tick(){
+    S.step+=2;
+    // loss dynamics + occasional spike
+    if(Math.random()<0.03 &amp;&amp; S.spike<0.2){ S.spike=rand(0.5,1); pushEvent('crit','⚠ loss spike 检测 · '+(S.loss+rand(.1,.3)).toFixed(3)+' · 孪生体上调中断概率'); }
+    let target=Math.max(1.55, S.lossEMA-0.0008);
+    S.loss=target + (Math.random()-.5)*0.03 + S.spike*rand(.05,.2);
+    S.lossEMA=S.lossEMA*0.98+S.loss*0.02;
+    S.spike*=0.78;
+    S.val=S.lossEMA+0.06+(Math.random()-.5)*0.015;
+    S.mfu=clamp(0.512+(Math.random()-.5)*0.04 - S.spike*0.05 - (S.gpus[37].bad?0.015:0),0.3,0.62);
+    S.gn=clamp(0.82+(Math.random()-.5)*0.3+S.spike*1.5,0.2,4);
+    S.seen+=S.mfu*S.world*S.peak/(6*S.params)*1; // ~tokens this tick
+ 
+    // gpu thermal drift
+    for(const g of S.gpus){ g.temp=clamp(g.temp+(Math.random()-.5)*1.4 + (g.bad?0.3:0) ,52,92); g.util=clamp(g.util+(Math.random()-.5)*0.03,.5,1); }
+    if(Math.random()<0.04){ const i=Math.floor(rand(0,N)); S.gpus[i].temp=clamp(S.gpus[i].temp+rand(4,9),52,92); }
+ 
+    // history push
+    S.hist.loss.push(S.loss); S.hist.val.push(S.val); S.hist.mfu.push(S.mfu*100); S.hist.gn.push(S.gn);
+    for(const k in S.hist){ if(S.hist[k].length>96)S.hist[k].shift(); }
+ 
+    // random events
+    if(Math.random()<0.5){ const e=EVB[Math.floor(rand(0,EVB.length))]; pushEvent(e[0],e[1].replace('{s}',S.step).replace('{r}',Math.floor(rand(0,64))).replace('{g}',Math.floor(rand(0,8)))); }
+ 
+    render();
+  }
+ 
+  function render(){
+    const tokps=S.mfu*S.world*S.peak/(6*S.params);
+    const eta=(S.target-S.seen)/tokps;
+    // vitals
+    $('vStep').textContent=S.step.toLocaleString(); $('vStepSub').textContent='/ '+S.totalSteps.toLocaleString()+' · '+(S.step/S.totalSteps*100).toFixed(1)+'%';
+    $('vLoss').textContent=S.loss.toFixed(3); $('vLossSub').textContent='val '+S.val.toFixed(3)+' · ema '+S.lossEMA.toFixed(3);
+    $('vLoss').style.color = S.spike>0.3?'var(--red)':'var(--ink)';
+    $('vMfu').innerHTML=(S.mfu*100).toFixed(1)+'<small>%</small>';
+    $('vTok').textContent=fmtBig(tokps);
+    $('vSeen').textContent=fmtBig(S.seen); $('vSeenSub').textContent='/ 3.0T · '+(S.seen/S.target*100).toFixed(1)+'%';
+    $('vEta').textContent=fmtTime(eta);
+ 
+    // charts
+    $('lossNow').textContent=S.loss.toFixed(3);
+    $('mfuNow').textContent=(S.mfu*100).toFixed(1)+'%';
+    $('gnNow').textContent=S.gn.toFixed(2);
+    drawChart($('lossChart'),[
+      {data:S.hist.val,color:'var(--dim)',w:1.2,op:.7},
+      {data:S.hist.loss,color:'var(--teal)',fill:true,w:1.8}
+    ]);
+    drawChart($('mfuChart'),[{data:S.hist.mfu,color:'var(--purple)',fill:true,w:1.6}]);
+    drawChart($('gnChart'),[{data:S.hist.gn,color:'var(--amber)',w:1.6}]);
+ 
+    renderHeat();
+    renderRisk();
+ 
+    // system bars
+    const hbm=78+ (Math.random()-.5)*3, nvl=rand(360,420), net=rand(180,210), nccl=rand(8,14), frag=rand(4,9);
+    $('sysBars').innerHTML=
+      bar('HBM 显存占用','80.4 / 80 GB · '+hbm.toFixed(0)+'%',hbm,'var(--blue)')+
+      bar('NVLink 带宽',nvl.toFixed(0)+' GB/s',nvl/450*100,'var(--teal)')+
+      bar('IB 网络吞吐',net.toFixed(0)+' Gbps',net/200*100,'var(--purple)')+
+      bar('NCCL all-reduce 耗时',nccl.toFixed(1)+' ms',100-nccl*4,'var(--amber)')+
+      bar('显存碎片率',frag.toFixed(1)+'%',frag*4,'var(--mut)');
+ 
+    // data bars
+    const load=rand(580,640), prep=rand(2.1,3.4), wait=rand(2,7);
+    $('dataBars').innerHTML=
+      bar('加载吞吐',load.toFixed(0)+'k tok/s',load/700*100,'var(--blue)')+
+      bar('预处理耗时',prep.toFixed(1)+' ms/batch',100-prep*15,'var(--teal)')+
+      bar('dataloader 等待',wait.toFixed(1)+'%',100-wait*6,'var(--amber)')+
+      bar('平均序列长度','7.6k / 8k tokens',95,'var(--purple)');
+ 
+    $('syncLag').textContent=Math.floor(rand(8,22));
+  }
+ 
+  // ---- what-if ----
+  const TPv=[1,2,4,8], PPv=[1,2,4,8,16], MBv=[1,2,4,8], GAv=[1,2,4,8,16,32];
+  const baseline={mfu:0.512,world:512,tokps:0,eta:0,gh:0,cost:0,batch:512};
+  function modelMFU(c){
+    let m=0.58;
+    m-=(c.TP-1)*0.012;                       // tensor-parallel comm overhead
+    const bubble=(c.PP-1)/(c.GA+c.PP-1);     // pipeline bubble
+    m*=(1-bubble*0.6);
+    if(c.MB<2)m*=0.90;                        // tiny micro-batch hurts kernel eff
+    m-=Math.max(0,(c.TP*c.PP-16))*0.004;
+    return {mfu:clamp(m,0.12,0.62),bubble};
+  }
+  function whatif(){
+    const c={TP:TPv[+$('rTP').value],PP:PPv[+$('rPP').value],DP:+$('rDP').value,MB:MBv[+$('rMB').value],GA:GAv[+$('rGA').value],price:(+$('rPR').value)/10};
+    $('lTP').textContent=c.TP; $('lPP').textContent=c.PP; $('lDP').textContent=c.DP; $('lMB').textContent=c.MB; $('lGA').textContent=c.GA; $('lPR').textContent=c.price.toFixed(1);
+    const world=c.TP*c.PP*c.DP;
+    const {mfu,bubble}=modelMFU(c);
+    const tokps=world*S.peak*mfu/(6*S.params);
+    const batch=c.DP*c.MB*c.GA;
+    const remaining=S.target-S.seen;
+    const eta=remaining/tokps;
+    const gh=world*eta/3600;
+    const cost=gh*c.price;
+ 
+    function delta(id,cur,base,inv,fmt){
+      const e=$(id); if(base===0){e.textContent='—';e.className='d flat';return;}
+      const pc=(cur-base)/base*100; const good = inv? pc<0 : pc>0;
+      e.textContent=(pc>=0?'+':'')+pc.toFixed(0)+'% vs 当前';
+      e.className='d '+(Math.abs(pc)<0.5?'flat':(good?'up':'down'));
+    }
+    $('oWorld').textContent=world; $('dWorld').textContent=(world-512>=0?'+':'')+(world-512)+' GPU';
+    $('dWorld').className='d '+(world===512?'flat':(world>512?'down':'up'));
+    $('oMfu').textContent=(mfu*100).toFixed(1)+'%'; delta('dMfu',mfu,baseline.mfu,false);
+    $('oTok').textContent=fmtBig(tokps); delta('dTok',tokps,baseline.tokps,false);
+    $('oBatch').textContent=batch; $('dBatch').textContent=(batch-512>=0?'+':'')+(batch-512)+' samples';
+    $('oEta').textContent=fmtTime(eta); delta('dEta',eta,baseline.eta,true);
+    $('oGh').textContent=fmtBig(gh); delta('dGh',gh,baseline.gh,true);
+    $('oCost').textContent=fmtMoney(cost); delta('dCost',cost,baseline.cost,true);
+    $('oBub').textContent=(bubble*100).toFixed(0)+'%';
+  }
+  ['rTP','rPP','rDP','rMB','rGA','rPR'].forEach(id=>$(id).addEventListener('input',whatif));
+  // set baseline from default config
+  (function(){ const c={TP:4,PP:4,DP:32,MB:2,GA:8,price:2.5}; const world=c.TP*c.PP*c.DP; const {mfu}=modelMFU(c);
+    const tokps=world*S.peak*mfu/(6*S.params); const eta=(S.target-S.seen)/tokps;
+    baseline.world=world;baseline.mfu=mfu;baseline.tokps=tokps;baseline.eta=eta;baseline.gh=world*eta/3600;baseline.cost=baseline.gh*c.price;baseline.batch=c.DP*c.MB*c.GA;
+  })();
+ 
+  // boot
+  seedEvents(); render(); whatif();
+  let simTimer=setInterval(tick,1200);
+
+  // ================= 任务模式（来自父页面 postMessage）=================
+  let MODE='demo';
+  function greyVital(id){ const el=$(id); if(!el)return; el.innerHTML='—'; el.style.color=''; const v=el.closest('.vital'); if(v)v.classList.add('no-data'); }
+  function ungreyVital(id){ const el=$(id); if(!el)return; const v=el.closest('.vital'); if(v)v.classList.remove('no-data'); }
+  function greyCard(id){ const el=$(id); if(el)el.classList.add('no-data'); }
+  function normMfu(arr){ if(!arr||!arr.length)return null; const mx=Math.max.apply(null,arr); return mx>1.5?arr.map(v=>v/100):arr.slice(); }
+
+  function enterTaskMode(d){
+    MODE='task'; d=d||{};
+    if(simTimer){ clearInterval(simTimer); simTimer=null; }
+
+    // header
+    const h=document.querySelector('header .run h1'); const meta=document.querySelector('header .meta'); const sync=document.querySelector('header .sync');
+    if(h) h.textContent='训练任务实况';
+    if(meta) meta.innerHTML='run <b style=&quot;color:var(--ink)&quot;>'+(d.name||d.title||'-')+'</b>'+(d.gpuInfo?' · '+d.gpuInfo:'');
+    if(sync) sync.style.display='none';
+
+    // vitals — step / loss
+    if(d.step!=null){ ungreyVital('vStep'); $('vStep').textContent=Number(d.step).toLocaleString(); $('vStepSub').textContent=(d.totalSteps!=null?'/ '+Number(d.totalSteps).toLocaleString():'')+(d.pct!=null?' · '+d.pct+'%':''); }
+    else greyVital('vStep');
+    if(d.lossLast!=null){ ungreyVital('vLoss'); $('vLoss').textContent=Number(d.lossLast).toFixed(3); $('vLoss').style.color='var(--ink)'; $('vLossSub').textContent=(d.val&amp;&amp;d.val.length)?('val '+d.val[d.val.length-1].toFixed(3)):'当前 loss'; }
+    else greyVital('vLoss');
+    const mfuArr=normMfu(d.mfu);
+    if(mfuArr){ ungreyVital('vMfu'); $('vMfu').innerHTML=(mfuArr[mfuArr.length-1]*100).toFixed(1)+'<small>%</small>'; }
+    else greyVital('vMfu');
+    if(d.tput!=null){ ungreyVital('vTok'); $('vTok').textContent=fmtBig(d.tput); }
+    else greyVital('vTok');
+    greyVital('vSeen'); greyVital('vEta');
+
+    // charts — loss / mfu / grad
+    if(d.loss&amp;&amp;d.loss.length){
+      const series=[]; if(d.val&amp;&amp;d.val.length)series.push({data:d.val,color:'var(--dim)',w:1.2,op:.7});
+      series.push({data:d.loss,color:'var(--teal)',fill:true,w:1.8});
+      drawChart($('lossChart'),series); $('lossNow').textContent=d.loss[d.loss.length-1].toFixed(3);
+      $('lossChart').closest('.chartbox').classList.remove('no-data');
+    } else { $('lossChart').innerHTML=''; $('lossNow').textContent='—'; $('lossChart').closest('.chartbox').classList.add('no-data'); }
+    if(mfuArr){ drawChart($('mfuChart'),[{data:mfuArr.map(v=>v*100),color:'var(--purple)',fill:true,w:1.6}]); $('mfuNow').textContent=(mfuArr[mfuArr.length-1]*100).toFixed(1)+'%'; $('mfuChart').closest('.chartbox').classList.remove('no-data'); }
+    else { $('mfuChart').innerHTML=''; $('mfuNow').textContent='—'; $('mfuChart').closest('.chartbox').classList.add('no-data'); }
+    if(d.gradNorm&amp;&amp;d.gradNorm.length){ drawChart($('gnChart'),[{data:d.gradNorm,color:'var(--amber)',w:1.6}]); $('gnNow').textContent=d.gradNorm[d.gradNorm.length-1].toFixed(2); $('gnChart').closest('.chartbox').classList.remove('no-data'); }
+    else { $('gnChart').innerHTML=''; $('gnNow').textContent='—'; $('gnChart').closest('.chartbox').classList.add('no-data'); }
+
+    // events
+    feed.innerHTML='';
+    const evs=d.events||[];
+    if(evs.length){ evs.forEach(e=>{ const el=document.createElement('div'); el.className='ev '+(e.sev||'info'); el.innerHTML='<span class=&quot;t&quot;>'+(e.time||'')+'</span><span class=&quot;sev&quot;></span><span class=&quot;msg&quot;>'+(e.msg||'')+'</span>'; feed.appendChild(el); }); $('cardFeed').classList.remove('no-data'); }
+    else greyCard('cardFeed');
+
+    // 无任务遥测的区域整体置灰
+    greyCard('cardHw'); greyCard('cardSys'); greyCard('cardRisk'); greyCard('cardPipe'); greyCard('cardWhatif');
+  }
+
+  function exitTaskMode(){ location.reload(); }
+
+  window.addEventListener('message',function(e){
+    const m=e&amp;&amp;e.data; if(!m||typeof m!=='object')return;
+    if(m.type==='twin:task') enterTaskMode(m.data);
+    else if(m.type==='twin:demo'){ if(MODE==='task') exitTaskMode(); }
+  });
+})();
+</script>
+</body>
+</html>
+"></iframe>
     </div>
 
     <div id="compareView" style="display:none"></div>
@@ -670,6 +1290,7 @@
       <div class="float-tab" data-tab="hparams">超参</div>
       <div class="float-tab" data-tab="events">事件</div>
       <div class="float-tab" data-tab="logs">日志</div>
+      <div class="float-tab" data-tab="dashboard">大盘</div>
     </div>
   </div>
 </div>
@@ -776,7 +1397,7 @@ const TASKS = {
   // ===== 真实公开 W&B 数据 =====
   pythia: {
     name: "Pythia-6.9B TL;DR PPO", dot: "green", status: "var(--green)",
-    title: "Pythia-6.9B · TL;DR Summarization RLHF (PPO)", creator: "wzh", description: "真实数据来源：W&B 公开项目 <a href=\"https://wandb.ai/openrlbenchmark/lm_human_preference_details\" target=\"_blank\">openrlbenchmark/lm_human_preference_details</a>，论文 <a href=\"https://arxiv.org/abs/2403.17031\" target=\"_blank\">arXiv:2403.17031《The N+ Implementation Details of RLHF with PPO: TL;DR Summarization》</a>，代码 <a href=\"https://github.com/vwxyzjn/summarize_from_feedback_details\" target=\"_blank\">vwxyzjn/summarize_from_feedback_details</a>。关键值：1,000,000 episodes(≈8.56 epoch)、batch 512、lr 3e-6、kl_coef 0.05、8×H100；6.9B 平均 RM 得分 4.783、胜率≈80%，超过 OpenAI 1.3B 基线。",
+    title: "Pythia-6.9B · TL;DR Summarization RLHF (PPO)", creator: "wzh", description: "真实数据来源：W&B 公开项目 <a href=\"https://wandb.ai/openrlbenchmark/lm_human_preference_details\" target=\"_blank\">openrlbenchmark/lm_human_preference_details</a>，论文 <a href=\"https://arxiv.org/abs/2403.17031\" target=\"_blank\">arXiv:2403.17031《The N+ Implementation Details of RLHF with PPO: TL;DR Summarization》</a>，代码 <a href=\"https://github.com/vwxyzjn/summarize_from_feedback_details\" target=\"_blank\">vwxyzjn/summarize_from_feedback_details</a>。关键值：1,000,000 episodes(≈8.56 epoch)、batch 512、lr 3e-6、kl_coef 0.05、8×H100；6.9B 平均 RM 得分 4.783、胜率≈77%，超过 OpenAI 1.3B 基线。",
     metrics: [
       { label: "reward (RM scores)", value: "4.78", key: "scores", shown: true },
       { label: "objective/kl", value: "28.0", key: "kl", shown: true },
@@ -798,12 +1419,12 @@ const TASKS = {
       { name:"ppo-step-1953", meta:"scores 4.78", best:true }, { name:"ppo-step-1500", meta:"scores 4.55" },
       { name:"ppo-step-1000", meta:"scores 4.10" }, { name:"ppo-step-500", meta:"scores 2.40" } ],
     events: [
-      { c:"var(--green)", t:"RM 得分达 4.78，6.9B 模型 GPT-3.5 评测胜率 ≈ 80%，超过 OpenAI 1.3B 基线", time:"完成", step:1953 },
+      { c:"var(--green)", t:"RM 得分达 4.78，6.9B 模型 GPT-3.5 评测胜率 ≈ 77%，超过 OpenAI 1.3B 基线", time:"完成", step:1953 },
       { c:"#ffab00", t:"KL 稳定在 ≈28，未出现 1B 模型的过优化（KL 50–85）现象", time:"运行中", step:800 },
       { c:"var(--green)", t:"完成 1,000,000 episodes（≈8.56 epoch）", time:"完成", step:1953 } ],
     diag: {
       paras: [
-        `训练健康：RM 得分随模型规模提升至 <span class="hl">4.78</span>，6.9B 模型 GPT-3.5 评测胜率约 <span class="hl">80%</span>，已超过 OpenAI 发布的 1.3B 基线。`,
+        `训练健康：RM 得分随模型规模提升至 <span class="hl">4.78</span>，6.9B 模型 GPT-3.5 评测胜率约 <span class="hl">77%</span>，已超过 OpenAI 发布的 1.3B 基线。`,
         `风险提示：同源 <span class="hl-red">1B 模型出现过优化</span>（KL 飙至 50–85、reward 虚高但人类胜率下降）。当前 6.9B 在 <span class="hl">kl_coef=0.05</span> 下把 KL 控制在 ≈28，建议保持该配置。` ],
       before: { cap:"修改前（1B 过优化）", val:"KL 85 ↑", color:"var(--red)", key:"diagBefore" },
       after:  { cap:"修改后（6.9B 受控）", val:"KL 28 ✓", color:"var(--green)", key:"diagAfter" } },
@@ -827,14 +1448,37 @@ const TASKS = {
       gpu:[0.50,0.54,0.57,0.59,0.61,0.62,0.60,0.62,0.63,0.61,0.63,0.62,0.64,0.63,0.62,0.64,0.63,0.63,0.64,0.63],
       diagBefore:[0,5,10,15,19,22,24,40,60,75,83,85],
       diagAfter:[0,5,10,15,19,22,24,25,26,27,27.5,28] },
-    source: `真实数据来源：W&B 公开项目 <a href="https://wandb.ai/openrlbenchmark/lm_human_preference_details" target="_blank">openrlbenchmark/lm_human_preference_details</a>，论文 <a href="https://arxiv.org/abs/2403.17031" target="_blank">arXiv:2403.17031《The N+ Implementation Details of RLHF with PPO: TL;DR Summarization》</a>，代码 <a href="https://github.com/vwxyzjn/summarize_from_feedback_details" target="_blank">vwxyzjn/summarize_from_feedback_details</a>。关键值：1,000,000 episodes(≈8.56 epoch)、batch 512、lr 3e-6、kl_coef 0.05、8×H100；6.9B 平均 RM 得分 4.783、胜率≈80%，超过 OpenAI 1.3B 基线。`,
+    source: `真实数据来源：W&B 公开项目 <a href="https://wandb.ai/openrlbenchmark/lm_human_preference_details" target="_blank">openrlbenchmark/lm_human_preference_details</a>，论文 <a href="https://arxiv.org/abs/2403.17031" target="_blank">arXiv:2403.17031《The N+ Implementation Details of RLHF with PPO: TL;DR Summarization》</a>，代码 <a href="https://github.com/vwxyzjn/summarize_from_feedback_details" target="_blank">vwxyzjn/summarize_from_feedback_details</a>。关键值：1,000,000 episodes(≈8.56 epoch)、batch 512、lr 3e-6、kl_coef 0.05、8×H100；6.9B 平均 RM 得分 4.783、胜率≈77%，超过 OpenAI 1.3B 基线。`,
     hparams: [
       { name: "lr",         value: "3e-6",  history: [{ step: null, from: null, to: "3e-6",  note: "初始配置" }]},
       { name: "kl_coef",    value: "0.05",  history: [{ step: null, from: null, to: "0.05",  note: "初始配置" }]},
       { name: "batch_size", value: "512",   history: [{ step: null, from: null, to: "512",   note: "初始配置" }]},
       { name: "ppo_epochs", value: "4",     history: [{ step: null, from: null, to: "4",     note: "初始配置" }]},
       { name: "cliprange",  value: "0.2",   history: [{ step: null, from: null, to: "0.2",   note: "初始配置" }]},
-    ]
+    ],
+    // 真实数据：复现论文 Figure 1。胜率 = 模型摘要被 GPT-3.5-turbo-0125 判定优于「人工参考摘要」的比例
+    // （preferred="ours" / (ours+reference)）。每个规模 4 个随机种子，逐条评测后按本机 Import-Csv 聚合。
+    // PPO/SFT 均来自 vwxyzjn/summarize_from_feedback_details（tag refactor-chosen-rejected3）；
+    // OpenAI 1.3B 来自 eval/oai_final.csv（验证值 0.7045，与论文 Figure 1 红星一致）。
+    scaleResult: {
+      title: "胜率 vs 模型规模（对人工参考摘要，GPT-3.5 评判）",
+      yref: 0.5,
+      xticks: [ {v:1.0,label:"1B"}, {v:1.3,label:"1.3B"}, {v:2.8,label:"2.8B"}, {v:6.9,label:"6.9B"} ],
+      series: [
+        { name:"PPO（本工作）", color:"#1863dc", points:[
+          { p:1.0, mean:0.3721, seeds:[0.1813,0.5574,0.1172,0.6326] },
+          { p:2.8, mean:0.7245, seeds:[0.7472,0.6967,0.7136,0.7405] },
+          { p:6.9, mean:0.7673, seeds:[0.7883,0.7450,0.7626,0.7733] } ]},
+        { name:"SFT 基线", color:"#b45c17", points:[
+          { p:1.0, mean:0.3270, seeds:[0.3226,0.3291,0.3287,0.3278] },
+          { p:2.8, mean:0.4067, seeds:[0.4059,0.4021,0.4118,0.4069] },
+          { p:6.9, mean:0.4337, seeds:[0.4356,0.4389,0.4346,0.4257] } ]},
+      ],
+      star: { name:"OpenAI 1.3B PPO（Stiennon 2020）", color:"#b42318", p:1.3, mean:0.7045 },
+      note: `真实数据 · 由论文开源仓库逐条 GPT-3.5 评测结果本机聚合（每点 4 seeds，连线为均值，淡点为各 seed）。`
+        + ` 随规模上升 PPO 胜率 0.37→0.72→<b>0.77</b>，6.9B/2.8B 均已超过 OpenAI 1.3B PPO 检查点（★ 0.70）与各自 SFT 基线；`
+        + ` 1B PPO seed 间方差极大（0.12–0.63），与论文 Figure 1 一致。RM 得分随规模上升的曲线存于 W&B（需 key 导出）。`
+    }
   },
 
   dpo: {
@@ -975,6 +1619,7 @@ const TASKS = {
       { name: "target_kl",     value: "6",       history: [{ step: null, from: null, to: "6",        note: "初始配置" }]},
       { name: "batch_size",    value: "256",     history: [{ step: null, from: null, to: "256",      note: "初始配置" }]},
       { name: "ppo_epochs",    value: "4",       history: [{ step: null, from: null, to: "4",        note: "初始配置" }]},
+      { name: "cliprange",     value: "0.2",     history: [{ step: null, from: null, to: "0.2",      note: "初始配置" }]},
     ],
     source: `真实数据来源：Hugging Face TRL 官方示例「Tune GPT2 to generate positive reviews」 ——
       模型 <a href="https://huggingface.co/lvwerra/gpt2-imdb" target="_blank">lvwerra/gpt2-imdb</a>、奖励模型 <a href="https://huggingface.co/lvwerra/distilbert-imdb" target="_blank">lvwerra/distilbert-imdb</a>、产物 <a href="https://huggingface.co/lvwerra/gpt2-imdb-pos-v2" target="_blank">lvwerra/gpt2-imdb-pos-v2</a>；
@@ -1117,10 +1762,19 @@ function pathFrom(data, w, h, pad){
     return (i?'L':'M')+x.toFixed(1)+' '+y.toFixed(1);
   }).join(' ');
 }
+let _sparkId = 0;
 function sparkSVG(data, color){
   const w=110,h=34,pad=3;
-  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><path d="${pathFrom(data,w,h,pad)}"
-    fill="none" stroke="${color}" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
+  const line = pathFrom(data,w,h,pad);
+  const area = line + ` L ${w-pad} ${h-pad} L ${pad} ${h-pad} Z`;
+  const gid = 'sg'+(_sparkId++);
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+    <defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="${color}" stop-opacity="0.30"/>
+      <stop offset="1" stop-color="${color}" stop-opacity="0"/>
+    </linearGradient></defs>
+    <path d="${area}" fill="url(#${gid})" stroke="none"/>
+    <path d="${line}" fill="none" stroke="${color}" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
 }
 // 返回值：若存在「最佳收敛区间」绿带，返回其在图内的垂直中心 y（像素，与 SVG 高度 1:1），否则 null。
 // 绿带由曲线尾段（已收敛的平稳段）的取值范围自动推导，因此始终贴合曲线收敛后停留的水平区间。
@@ -1212,6 +1866,58 @@ function startLiveTicker(r){
   }
   update();
   liveTimer = setInterval(update, 500);
+}
+
+// ---------- 顶部卡片流动（仅进行中的任务）----------
+// 每 2 秒：mini 曲线向左滚动一个新点，卡片数值做轻微抖动，模拟实时数据。
+let cardsTimer = null;
+
+function startCardsTicker(){
+  clearInterval(cardsTimer);
+  const r = TASKS[current].runtime;
+  if(!r || !r.live) return;
+  cardsTimer = setInterval(tickLiveCards, 2000);
+}
+
+// 保留原数值的前缀/小数位/单位，仅对数字部分做 ±1% 抖动；科学计数法（如 lr）不抖动。
+function jitterValue(str){
+  const m = /^(\D*?)(-?\d*\.?\d+)([^\d]*)$/.exec(str);
+  if(!m || /e/i.test(str)) return str;
+  const prefix = m[1], numStr = m[2], suffix = m[3];
+  const num = parseFloat(numStr);
+  const decimals = (numStr.split('.')[1] || '').length;
+  let next = num * (1 + (Math.random()-0.5)*0.02);
+  if(decimals === 0 && Math.abs(num) < 5) return str;   // 过小的整数不抖动，避免突变
+  return prefix + next.toFixed(decimals) + suffix;
+}
+
+function tickLiveCards(){
+  const t = TASKS[current];
+  if(!t.runtime || !t.runtime.live){ clearInterval(cardsTimer); return; }
+  const cards = document.querySelectorAll('#cards .metric-card');
+  if(!cards.length){ clearInterval(cardsTimer); return; }   // 卡片已被重渲染
+  const shown = t.metrics.filter(m=>m.shown);
+  cards.forEach((card, i)=>{
+    const c = shown[i];
+    if(!c) return;
+    // 曲线滚动：尾部推入一个沿当前水平的小幅波动点，头部弹出一个，长度不变
+    const series = t.series[c.key];
+    if(series && series.length > 1){
+      const min = Math.min(...series), max = Math.max(...series), rng = (max-min)||Math.abs(max)||1;
+      const last = series[series.length-1];
+      let next = last + (Math.random()-0.5)*rng*0.12;
+      next = Math.max(min - rng*0.1, Math.min(max + rng*0.1, next));   // 软约束在历史区间附近
+      series.push(next); series.shift();
+      const sp = card.querySelector('.spark');
+      if(sp) sp.innerHTML = sparkSVG(series, '#1863dc');
+    }
+    // 数值轻微抖动
+    const valEl = card.querySelector('.value');
+    if(valEl){
+      c.value = jitterValue(c.value);
+      valEl.textContent = c.value;
+    }
+  });
 }
 
 // ---------- render ----------
@@ -1448,8 +2154,11 @@ function renderAll(){
   // source note
 
   drawCharts();
+  renderScaleSection();
   renderEventsTab();
   renderHparamsTab();
+  const _at = document.querySelector('.tab.active');
+  if(_at && _at.dataset.tab==='dashboard' && dashSource==='task') dashApply();
 }
 
 // ---------- 指标卡片 + 数据配置 ----------
@@ -1461,6 +2170,7 @@ function renderCards(){
        <div class="mc-info"><span class="label">${c.label}</span><span class="value">${c.value}</span></div>
        <div class="spark">${sparkSVG(t.series[c.key],'#1863dc')}</div></div>`).join('')
     : `<div class="metric-card" style="justify-content:center;color:var(--text-3)">未选择任何指标</div>`;
+  startCardsTicker();
 }
 
 function renderDropdown(){
@@ -1672,6 +2382,72 @@ function drawCharts(){
   });
 }
 
+// ---------- 模型规模 → 胜率（仅 Pythia，真实数据，复现论文 Figure 1） ----------
+function scaleChart(el, sr){
+  const W = el.clientWidth || 680, H = 264, padL = 50, padR = 16, padT = 16, padB = 50;
+  const allV = sr.xticks.map(t=>t.v);
+  const xmin = Math.log10(Math.min(...allV)) - 0.08, xmax = Math.log10(Math.max(...allV)) + 0.08;
+  const ymin = 0.18, ymax = 0.84;
+  const X = p => padL + (Math.log10(p)-xmin)/(xmax-xmin)*(W-padL-padR);
+  const Y = w => padT + (1-(w-ymin)/(ymax-ymin))*(H-padT-padB);
+  const yTicks = [0.2,0.3,0.4,0.5,0.6,0.7,0.8];
+  let svg = `<svg width="100%" height="${H}" viewBox="0 0 ${W} ${H}">`;
+  // y grid + labels
+  yTicks.forEach(v=>{
+    svg += `<line x1="${padL}" y1="${Y(v).toFixed(1)}" x2="${W-padR}" y2="${Y(v).toFixed(1)}" stroke="rgba(33,33,33,.06)" stroke-width="1"/>`;
+    svg += `<text x="${padL-8}" y="${(Y(v)+3).toFixed(1)}" text-anchor="end" font-size="10" font-family="var(--font-mono)" fill="var(--text-3)">${v.toFixed(1)}</text>`;
+  });
+  // reference (50%) line
+  svg += `<line x1="${padL}" y1="${Y(sr.yref).toFixed(1)}" x2="${W-padR}" y2="${Y(sr.yref).toFixed(1)}" stroke="var(--text-3)" stroke-width="1.2" stroke-dasharray="5 4"/>`;
+  svg += `<text x="${W-padR}" y="${(Y(sr.yref)-5).toFixed(1)}" text-anchor="end" font-size="10" font-family="var(--font-mono)" fill="var(--text-3)">参考摘要基准 50%</text>`;
+  // x ticks
+  sr.xticks.forEach(t=>{
+    svg += `<text x="${X(t.v).toFixed(1)}" y="${H-padB+18}" text-anchor="middle" font-size="10.5" font-family="var(--font-mono)" fill="var(--text-2)">${t.label}</text>`;
+  });
+  svg += `<text x="${((padL+W-padR)/2).toFixed(1)}" y="${H-6}" text-anchor="middle" font-size="10" font-family="var(--font-mono)" fill="var(--text-3)">模型规模（参数量，对数轴）</text>`;
+  // each series: mean polyline + seed dots + mean dots
+  sr.series.forEach(s=>{
+    const pts = s.points.slice().sort((a,b)=>a.p-b.p);
+    const line = pts.map((pt,i)=>(i?'L':'M')+X(pt.p).toFixed(1)+' '+Y(pt.mean).toFixed(1)).join(' ');
+    svg += `<path d="${line}" fill="none" stroke="${s.color}" stroke-width="2.2" stroke-linejoin="round"/>`;
+    pts.forEach(pt=>{
+      (pt.seeds||[]).forEach(sd=>{
+        svg += `<circle cx="${X(pt.p).toFixed(1)}" cy="${Y(sd).toFixed(1)}" r="2.6" fill="${s.color}" opacity="0.35"/>`;
+      });
+      svg += `<circle cx="${X(pt.p).toFixed(1)}" cy="${Y(pt.mean).toFixed(1)}" r="4.2" fill="#fff" stroke="${s.color}" stroke-width="2"/>`;
+      svg += `<text x="${X(pt.p).toFixed(1)}" y="${(Y(pt.mean)-9).toFixed(1)}" text-anchor="middle" font-size="10" font-weight="600" font-family="var(--font-mono)" fill="${s.color}">${(pt.mean*100).toFixed(0)}%</text>`;
+    });
+  });
+  // OpenAI star
+  if(sr.star){
+    const sx = X(sr.star.p), sy = Y(sr.star.mean);
+    let star='';
+    for(let i=0;i<10;i++){ const r=i%2?3.2:7.5, a=Math.PI/5*i - Math.PI/2;
+      star += (i?'L':'M')+(sx+r*Math.cos(a)).toFixed(1)+' '+(sy+r*Math.sin(a)).toFixed(1); }
+    svg += `<path d="${star}Z" fill="${sr.star.color}" stroke="#fff" stroke-width="0.8"/>`;
+    svg += `<text x="${sx.toFixed(1)}" y="${(sy-12).toFixed(1)}" text-anchor="middle" font-size="10" font-weight="600" font-family="var(--font-mono)" fill="${sr.star.color}">${(sr.star.mean*100).toFixed(0)}%</text>`;
+  }
+  svg += `</svg>`;
+  el.innerHTML = svg;
+}
+function renderScaleSection(){
+  const host = document.getElementById('scaleSection');
+  if(!host) return;
+  const sr = TASKS[current] && TASKS[current].scaleResult;
+  if(!sr){ host.innerHTML=''; return; }
+  const legend = sr.series.map(s=>`<span class="cmp-legend-item"><span class="cmp-tip-dot" style="background:${s.color}"></span>${s.name}（均值 · 4 seeds）</span>`).join('')
+    + (sr.star?`<span class="cmp-legend-item"><span style="color:${sr.star.color}">★</span>${sr.star.name}</span>`:'');
+  host.innerHTML = `
+    <div class="section-title" style="margin-top:24px;">模型规模 → 效果 <span class="more">真实数据 · 论文 Figure 1</span></div>
+    <div class="card">
+      <div class="card-head"><h3>${sr.title}</h3></div>
+      <div class="cmp-legend" style="margin-bottom:12px;">${legend}</div>
+      <div id="scaleChart"></div>
+      <p style="font-size:11.5px;color:var(--text-3);line-height:1.7;margin-top:10px;">${sr.note}</p>
+    </div>`;
+  scaleChart(document.getElementById('scaleChart'), sr);
+}
+
 // ---------- description tooltip ----------
 const _tip = document.createElement('div');
 _tip.id = 'descTooltip';
@@ -1744,6 +2520,10 @@ function initTabs(){
       if(panel) panel.style.display='';
       if(tab.dataset.tab==='overview') drawCharts();
       if(tab.dataset.tab==='hparams') renderHparamsTab();
+      const _isDash = tab.dataset.tab==='dashboard';
+      const _tgl = document.getElementById('dashSourceToggle');
+      if(_tgl) _tgl.style.display = _isDash ? 'flex' : 'none';
+      if(_isDash) dashApply();
       syncFloatTabs(tab.dataset.tab);
     });
   });
@@ -1989,6 +2769,7 @@ function enterCompare(){
   document.getElementById('taskSubtitle').innerHTML = '';
   document.getElementById('navCompareIcon').textContent = '←';
   clearInterval(liveTimer);
+  clearInterval(cardsTimer);
   renderCompareSidebar();
   renderCompare();
 }
@@ -2483,6 +3264,73 @@ function cmpFillTip(c, idx){
   c.tip.style.left = left + 'px';
   c.tip.style.top = '4px';
 }
+
+// ---------- 大盘数据源切换（Demo数据 / 来自任务）----------
+let dashSource = 'demo';     // 当前选择
+let dashIframeMode = 'demo'; // iframe 实际呈现的模式
+
+// 从任务抽取孪生体可用的数据；缺失字段留空（由孪生体置灰对应区域）
+function dashTaskPayload(task){
+  const s = task.series || {};
+  const rt = task.runtime || {};
+  const gpuInfo = ((rt.info || [])[0] || ['',''])[1] || '';
+  const loss = (s.loss && s.loss.length) ? s.loss : null;
+  const val  = (s.val && s.val.length) ? s.val : null;
+  const mfu  = (s.mfu && s.mfu.length) ? s.mfu : null;
+  const grad = (s.grad_norm && s.grad_norm.length) ? s.grad_norm
+             : (s.grad && s.grad.length) ? s.grad : null;
+  const events = (task.events || []).map(e=>({
+    sev: /red/i.test(e.c) ? 'crit'
+       : /#ffab00|orange/i.test(e.c) ? 'warn'
+       : /green|teal/i.test(e.c) ? 'ok' : 'info',
+    msg: e.t || '',
+    time: e.step != null ? ('step ' + e.step) : (e.time || '')
+  }));
+  return {
+    name: task.name || '', title: task.title || '', gpuInfo,
+    step: parseInt(rt.stepCur) || null,
+    totalSteps: parseInt(rt.stepTotal) || null,
+    pct: rt.pct != null ? rt.pct : null,
+    loss, lossLast: loss ? loss[loss.length-1] : null,
+    val,
+    mfu, gradNorm: grad,
+    tput: null,
+    events
+  };
+}
+
+function dashApply(){
+  const iframe = document.getElementById('dashboardIframe');
+  if(!iframe || !iframe.contentWindow) return;
+  if(dashSource === 'task'){
+    iframe.contentWindow.postMessage({ type:'twin:task', data: dashTaskPayload(TASKS[current]) }, '*');
+    dashIframeMode = 'task';
+  } else if(dashIframeMode === 'task'){
+    // 仅当此前处于任务模式时才重置回 Demo（重新加载得到纯净 Demo）
+    iframe.contentWindow.postMessage({ type:'twin:demo' }, '*');
+    dashIframeMode = 'demo';
+  }
+}
+
+(function initDashSourceToggle(){
+  document.querySelectorAll('#dashSourceToggle .dash-src-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('#dashSourceToggle .dash-src-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      dashSource = btn.dataset.src;
+      dashApply();
+    });
+  });
+  // iframe（重新）加载完成后，若处于任务模式则补发一次数据
+  const iframe = document.getElementById('dashboardIframe');
+  if(iframe) iframe.addEventListener('load', ()=>{
+    dashIframeMode = 'demo';
+    if(dashSource === 'task'){
+      const at = document.querySelector('.tab.active');
+      if(at && at.dataset.tab === 'dashboard') dashApply();
+    }
+  });
+})();
 
 initTabs();
 initFloatBar();
