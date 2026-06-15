@@ -133,6 +133,53 @@ body { background: var(--background); color: var(--foreground); font-family: var
 .insp-kv { display: flex; justify-content: space-between; align-items: center; font-size: var(--font-size-body-sm); color: var(--foreground-secondary); padding: 3px 0; }
 .insp-kv code { font-family: var(--font-mono); color: var(--foreground); }
 .insp-kv.bad code { color: var(--danger); }
+.rank-topo-transport { display: grid; grid-template-columns: 28px minmax(0, 1fr) minmax(74px, auto); gap: 7px; align-items: center; margin: -2px 0 var(--space-2); }
+.rank-play-btn { width: 28px; height: 28px; border-radius: var(--radius-sm); border: 1px solid var(--border-default); background: var(--surface-1); color: var(--foreground); cursor: pointer; font-size: 12px; line-height: 1; }
+.rank-play-btn:hover,
+.rank-play-btn:focus-visible { border-color: var(--border-strong); outline: none; }
+.rank-play-range { width: 100%; accent-color: var(--primary); }
+.rank-play-step { min-width: 0; font-size: 12px; color: var(--foreground-secondary); font-family: var(--font-mono); text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rank-topo-meta { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: var(--space-2); font-size: 12px; color: var(--foreground-secondary); }
+.rank-topo-meta span { border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 2px 6px; background: var(--surface-1); }
+.rank-topo-meta .bad { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 38%, transparent); background: color-mix(in srgb, var(--danger) 9%, transparent); }
+.rank-batch-card,
+.rank-logits-card { border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 6px 8px; background: var(--surface-1); color: var(--foreground-secondary); font-size: 12px; line-height: 1.25; text-align: center; cursor: help; }
+.rank-batch-card { margin-bottom: 5px; }
+.rank-logits-card { margin-top: 5px; color: var(--foreground-muted); }
+.rank-batch-card.is-active,
+.rank-logits-card.is-active { border-color: color-mix(in srgb, var(--primary) 55%, transparent); background: color-mix(in srgb, var(--primary) 14%, var(--surface-1)); color: var(--primary); }
+.rank-stage-strip { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; margin-bottom: var(--space-2); }
+.rank-stage-chip { min-width: 0; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 5px 7px; background: var(--surface-1); color: var(--foreground-secondary); cursor: help; }
+.rank-stage-chip b { display: block; font-family: var(--font-mono); font-size: 12px; color: var(--foreground); line-height: 1.2; }
+.rank-stage-chip span { display: block; margin-top: 2px; font-size: 10px; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rank-stage-chip.is-active { border-color: color-mix(in srgb, var(--primary) 55%, transparent); background: color-mix(in srgb, var(--primary) 16%, var(--surface-1)); }
+.rank-stage-chip.is-active b,
+.rank-stage-chip.is-active span { color: var(--primary); }
+.rank-stage-chip.is-flow-active { box-shadow: inset 3px 0 0 var(--primary); }
+.rank-flow-rail { display: flex; gap: 5px; overflow-x: auto; padding: 0 0 var(--space-2); scrollbar-width: thin; }
+.rank-flow-chip { flex: 0 0 auto; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); background: transparent; color: var(--foreground-secondary); padding: 3px 7px; font-size: 12px; line-height: 1.25; cursor: pointer; white-space: nowrap; }
+.rank-flow-chip:hover,
+.rank-flow-chip:focus-visible { border-color: var(--border-strong); outline: none; }
+.rank-flow-chip.is-active { border-color: color-mix(in srgb, var(--primary) 55%, transparent); background: color-mix(in srgb, var(--primary) 14%, transparent); color: var(--primary); }
+.rank-topo-grid { display: grid; gap: 5px; align-items: stretch; margin-top: var(--space-2); }
+.rank-topo-label { min-height: 22px; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 12px; color: var(--foreground-muted); line-height: 1; }
+.rank-topo-row { justify-content: flex-end; padding-right: 3px; }
+.rank-topo-col { color: var(--foreground-secondary); }
+.rank-topo-col.is-bad { color: var(--danger); }
+.rank-topo-cell { min-width: 0; min-height: 54px; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 5px 6px; background: color-mix(in srgb, var(--highlight-ub-green-source) 8%, var(--surface-1)); cursor: help; outline: 1px solid transparent; overflow: hidden; }
+.rank-topo-cell:hover,
+.rank-topo-cell:focus-visible { outline-color: var(--border-strong); }
+.rank-topo-cell b { display: block; font-family: var(--font-mono); font-size: 12px; color: var(--foreground); line-height: 1.2; }
+.rank-topo-cell span,
+.rank-topo-cell em { display: block; margin-top: 2px; font-size: 10px; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rank-topo-cell span { color: var(--foreground-secondary); }
+.rank-topo-cell em { color: var(--highlight-ub-green-source); font-style: normal; font-family: var(--font-mono); }
+.rank-topo-cell.is-bad { border-color: color-mix(in srgb, var(--danger) 54%, transparent); background: repeating-linear-gradient(45deg, color-mix(in srgb, var(--danger) 9%, transparent), color-mix(in srgb, var(--danger) 9%, transparent) 5px, transparent 5px, transparent 9px); }
+.rank-topo-cell.is-bad b,
+.rank-topo-cell.is-bad span,
+.rank-topo-cell.is-bad em { color: var(--danger); }
+.rank-topo-cell.is-anomaly-active { outline-color: color-mix(in srgb, var(--danger) 58%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--danger) 40%, transparent); }
+.rank-topo-caption { margin-top: var(--space-2); color: var(--foreground-muted); font-size: 12px; line-height: 1.45; }
 .insp-heat { --insp-heat-cell: 14px; --insp-heat-track: 22px; display: grid; grid-template-columns: 30px repeat(4, var(--insp-heat-track)); gap: 1px 4px; margin-top: 6px; align-items: center; justify-content: start; }
 .insp-heat-label { width: 100%; height: var(--insp-heat-cell); display: flex; align-items: center; justify-content: center; color: var(--foreground-muted); font-family: var(--font-mono); font-size: 12px; line-height: 1; overflow: hidden; white-space: nowrap; }
 .insp-heat-row { justify-content: flex-end; padding-right: 3px; }

@@ -24,8 +24,9 @@
     Info.addPaneInfo('#inspector', '权重 / Shape Inspector · 证据层',
       '看中央选中节点的权重证据，定位<b>数值畸变</b>。两张图：<br><br>' +
       '<b>① Weight Diff 直方图</b>：横轴=权重数值分桶，纵轴=频数。<b>紫色</b>=正常 step 分布；<b>红色</b>左端高桶=异常 step 的 <b>-inf 下溢</b>。左右两张并排=normal vs Step1998，看分布是否塌缩。<br><br>' +
-      '<b>② 路由热图</b>：行=MoGE 专家组（G0–G7），列=TP rank（TP0–3）；格子<b>越亮</b>=该专家组在该 rank 的 token 负载越高。<b>斜线空白列</b>（TP2 / Rank2）=0 token、整列专家未激活。<br><br>' +
-      '中间还有 <b>Gate dispatch shape</b>：Rank2 从 [2048,4] 变 [2048,1] 即跨 rank 不一致。');
+      '<b>② Rank 拓扑总图</b>：继承 ParallelDemo 的细粒度 rank map 读法，把全局 <b>DP32 × PP8 × TP4 = 1024 ranks</b> 映射到当前 MoE 诊断窗口。顶部播放条会按 <b>one step batch → embedding → attention → Gate → All-to-All → Experts → logits/loss</b> 推进，并同步点亮中间 Pangu 架构图的对应算子。这里高亮的是 <b>TP2 / Rank2 列</b>，表示 TP 维度第 3 个分片列异常，不是单个 global rank 2。<br><br>' +
+      '<b>③ 路由热图</b>：行=MoGE 专家组（G0–G7），列=TP rank（TP0–3）；格子<b>越亮</b>=该专家组在该 rank 的 token 负载越高。<b>斜线空白列</b>（TP2 / Rank2）=0 token、整列专家未激活。<br><br>' +
+      '中间还有 <b>Gate dispatch shape</b>：TP2 / Rank2 从 [2048,4] 变 [2048,1] 即跨 rank 不一致。');
     Info.addPaneInfo('#comm-dock', '通信 + 效果 dock · 时间维度',
       '左为模型效果曲线（train/val loss、eval，可<b>框选兴趣窗口</b>）；右为分布式通信 NPU mesh（边粗细=流量、节点色=利用率、黑洞、P2P 气泡）。底部<b>一条播放条同时驱动</b>两者的 step 游标，可回放崩溃瞬间。');
 

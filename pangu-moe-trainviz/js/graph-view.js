@@ -92,6 +92,7 @@ window.GraphView = (function () {
 
     Bus.on('select', p => {
       if (!p || p.source === 'graph' || selfSelect) return;
+      if (p.id && moeCollapsed && MOE_INNER.includes(p.id)) setCollapsed(false);
       if (p.id && currentGraph().nodes.some(n => n.id === p.id)) {
         controller.selectNode(p.id, { relatedNodeIds: p.relatedNodeIds, source: 'bus' });
       }
