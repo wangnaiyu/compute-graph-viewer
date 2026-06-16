@@ -1,248 +1,362 @@
-# Pangu Pro MoE 分布式训练排障可视化 — 产品 Spec
+# 训练透视 · 工程 Spec（实时监护版）
 
-> 工作代号：**TrainScope（盘古训练透视）**
-> 模型对象：**Pangu Pro MoE**（72B 级，MoGE 分组专家，Ascend NPU，3D 并行 DP32 / PP8 / TP4）
-> 一句话：把一次"loss 崩了但全机零硬件报错"的训练事故，用五层证据一屏闭环、十分钟看穿故障链——而不是翻几小时日志。
+> **工作代号**：TrainScope · 训练透视
+> **一句话**：训练**正在跑**时，沿「计算逻辑架构 × Ascend 910B 物理运行时」两轴，用统一 step/phase 和 **hover-first** 联动把 loss、架构节点、rank、通信流对上号，实时排出偏差最大的节点、直出根因、给出调整建议。
+> **版本**：v2（2026-06-16）　**状态**：开工基线
+> **关系**：本 SPEC 是 `PRD-训练透视.md` 的工程落地；旧 `SPEC-archive.md`（七步事故剧本）降级为 §7「事故回放模式」的内容载体，资产零浪费。
+> **接入对象**：openPangu-Ultra-MoE-718B（真实 config，详见附录）；模型可经 adapter 替换。
 
 ---
 
-## 0. 范围与对象
+## 0. 本版相对 archive 的工程差异
 
-五大可视化对象 + 全局关联：
-
-| # | 可视化对象 | 承载视图 |
+| 维度 | archive（事故复盘剧本） | 本版（实时监护） |
 |---|---|---|
-| ① | 整网算子 + 层数 | 中央 · 架构图 |
-| ② | 权重 + Shape + Rank 拓扑上下文 | 右栏 · Inspector |
-| ③ | 模型效果（loss/eval） | 底部 · 通信 + 效果 dock 左栏 |
-| ④ | 训练关键参数 | 左栏 · 参数信号面板 |
-| ⑤ | **分布式通信** | 底部 · 通信 + 效果 dock 右栏（可拖拽高度） |
-| ★ | **全局关联** | 贯穿全部：一个兴趣窗口锚 + 选中即双向点亮 |
+| 主模式 | 单一已烘焙事故的七步回放 | **实时偏差监护**为主，回放为辅 |
+| 架构图对象 | Pangu Pro MoE（72B）/ 实现里曾是 7B Dense | **openPangu-Ultra-MoE-718B**，整体重建图数据 |
+| 中心交互 | 顺七步点一遍 | **hover 对象 → 双轴点亮 → 内嵌根因 tag/tip → 建议** |
+| 数据 | 全合成 mock | 逻辑轴接真实开源遥测（OLMoE/BLOOM），物理轴自采/合成 |
+| 新增构件 | — | 偏差雷达 C1、内嵌根因 tag/tip C3、调整建议 C4、数据接入层 |
+| 布局 | 三栏 + 底 dock | **A·并置双轴**：左右等宽可拖（50/50），底部实时 loss + step phase dock |
 
-**边界**：这是"训练正确性"排障，不是性能 profiler。**不接 Chrome Trace（CTF）**。通信数据是"按 step 的轻量流量快照"，非 kernel trace。
-
----
-
-## 1. 产品价值（为什么这东西该存在）
-
-**问题现状**：千亿级 MoE 训练，稳定跑了 2000 步后 val loss 突然剧烈振荡、生成质量崩塌，而所有 NPU 零报错。工程师此刻面对的是：几十台机器、海量日志、各自为政的监控工具（loss 看 TensorBoard、通信看 profiler、权重要 dump、参数翻 config）。**排障靠经验在不同工具间搬运上下文，靠运气拼出因果。**
-
-**价值主张**：
-- **把抽象指标异常翻译成看得见的物理失衡**——"负载均衡损失骤降到 0"是个数字，**而"某张卡在通信拓扑上变成流量黑洞"是一眼能指的形状**。
-- **五层证据一屏闭环**：效果 → 参数 → 通信 → 算子 → 权重 → 梯度回溯，在同一界面里沿一条故障链走完，**把数小时的日志考古压缩成一次可视追溯**。
-- **全局关联是核心壁垒**：单视图工具看不到"loss 尖峰 ↔ 某个 Gate 算子 ↔ 某张卡 All-to-All ↔ 混合精度写越界"这种**跨层因果**。TrainScope 的护城河就是这条横切链路。
-
-**差异点**：市面工具要么是性能 profiler（看 kernel 耗时/瓶颈，是另一类排障），要么是单一指标看板。TrainScope 专攻**训练正确性的跨对象关联排障**，并以 Pangu Pro MoE 的真实特征（MoGE 分组专家均衡）为锚。
-
-**受众 / 用途**：训练工程师 / 算法 / infra 排障；同时是对外讲 Pangu × Ascend 训练可观测性能力的旗舰 demo。
+**不变的地基（直接复用，不重写）**：PtoWorkbenchShell 分栏外壳、model-training-graphviz 渲染引擎与联动高亮、model-graphviz mesh、training-metrics-chart、事件总线四类广播、PTO token 视觉规范。
 
 ---
 
-## 2. UX 体验价值点 & 设计点（体验在先）
+## 1. 范围与对象：双轴 × 统一 step/phase
 
-> 先讲体验缺口与设计应答，再讲功能。每个设计点都对应一个真实的认知负担。
-
-### 2.1 体验缺口 → 设计应答
-
-**缺口 A：从"发现异常"到"定位根因"，最大的负担是在工具间搬运上下文。**
-→ **单一兴趣窗口锚**：在底部效果曲线上框选一次异常区间（如 Step 1950~2100），全部五个视图同步聚焦到这段 step，无需在五个工具里各自对一遍时间。**框选一次 = 全局对齐一次。**
-
-**缺口 B：抽象数字（Load Balance Loss 骤降、grad norm 暴涨）无法被直觉感知。**
-→ **物理拓扑把数字变成空间形状**：通信视图以 NPU mesh 为底，通信原语画成有向边，边的粗细+色深=实时流量，节点色=利用率。"某专家没被分到 token"直接呈现为"流入某 rank 的边几乎消失"的**黑洞**。数字 → 形状，认知零翻译。
-
-**缺口 C：用户不知道"这个异常到底和哪些东西相关"。**
-→ **选中即自解释关联**：点任一视图里的任一对象（算子节点 / 通信边 / 参数尖峰 / 权重项），其余四视图自动点亮关联部分（双向高亮）。关系不靠文档解释，靠点亮自证。
-
-**缺口 D：排障是一个时间过程，不是一张快照。**
-→ **时间是一等公民**：底部 dock 的共享播放条 scrubber 驱动全局 step 游标，**模型效果曲线与通信 mesh 同步演化**，可回放 Step 1997（混合精度更新）→ 1998（路由坍缩）的崩溃瞬间，让"事故发生"被看见而非被推断。
-
-**缺口 E：Rank2 到底是哪个 rank？和 DP/PP/TP 拓扑是什么关系？**
-→ **Rank 拓扑总图 + 局部证据放大**：右侧 Inspector 先用 ParallelDemo 风格的细粒度 rank map 展示 `DP32 × PP8 × TP4 = 1024 ranks` 在当前 MoE 诊断窗口里的映射，顶部播放条按 Pangu 算子流推进并联动中间架构图；下方路由热图再放大 `TP2 / Rank2` 列的 0 token 证据。先定位全局位置，再验证局部异常。
-
-### 2.2 设计点（贯穿原则）
-
-1. **信息层级沿排障叙事布局**：左 signal（参数，读到失衡信号）→ 中 stage（架构，定位根算子）→ 右 inspector（权重/shape/rank 拓扑，看清数值畸变与异常 rank 位置）→ 底 dock（效果 + 通信，回放时间过程）。**布局即引导路径。**
-2. **全局关联的两根支柱**：① 一个兴趣窗口锚（时间维度对齐）+ ② 选中双向高亮（对象维度对齐）。所有联动都从这两件事派生。
-3. **克制的强调（遵守 PTO 硬规则）**：一次只用一种强调机制。流量用粗细、优先级用 fill、关联用描边点亮——**不堆叠 border + 阴影 + 渐变**。至多一层可见边界，不做卡中卡。
-4. **viz 色与 UI 色分离**：highlight 色带只出现在图/边/热图/legend，面板/卡片一律走 surface token，深色舞台、白色边线、图节点无阴影。
-5. **物理与逻辑同框**：架构图是逻辑视图（层/算子），通信 dock 是物理视图（卡/链路）。同一个故障在两个抽象层各点亮一次，**逻辑根因 ↔ 物理表现**互相印证，是这套设计的高光。
-
----
-
-## 3. 界面分区（workbench-shell 落地）
-
-```
-┌──────────────────────────────────────────────────────────────────────────┐
-│  TrainScope · 盘古训练透视      事故：Step2000 后 val loss 振荡 · 零硬件报错     │
-├───────────────┬──────────────────────────────────────┬─────────────────────┤
-│ ④ 参数信号面板 │  ① 整网架构图 [主舞台]                 │ ② 权重/Shape Inspector│
-│  [左 rail]    │  Pangu Pro MoE DAG · PP分色            │  [右 inspector]      │
-│  ▸静态配置     │  展开 Layer-k MoE 块:                  │  Weight Diff +       │
-│   DP/PP/TP/EP │   Gate→All-to-All分发→MoGE专家         │  路由热图(双联对比)   │
-│   lr/batch/seq│   →All-to-All汇聚                      │                     │
-│  ▸动态指标     │  通信算子=蓝色 edge tag                 │                     │
-│   grad norm   │  异常步节点=黄色告警                    │                     │
-│   Load Bal⚡   │                                       │                     │
-│   ⟵宽可拖⟶     │            ⟵ 宽可拖 ⟶                  │      ⟵宽可拖⟶        │
-├───────────────┴──────────────────────────────────────┴─────────────────────┤
-│  ⟱ 高度可拖 ⟱                                                               │
-│  ③ 模型效果 + ⑤ 分布式通信 [底部 dock · 左右并排 · 共用 step 播放条]             │
-│  左：train/val loss · eval(MMLU) 曲线，可框选兴趣窗口                         │
-│  右：8 DP × 4 TP NPU mesh，边粗细=流量，节点色=利用率，TP2 黑洞，P2P 气泡        │
-│  ◀ ▶ ▮ ───●────── shared scrubber：同时驱动效果曲线 + 通信 mesh              │
-└──────────────────────────────────────────────────────────────────────────┘
-```
-
-**两层 frame/split（PtoWorkbenchShell）**：
-- 外层 `.workbench-frame`（column）：frame header = 顶部品牌/事故条；其下是一个 **vertical split**（`direction:'vertical'`，panes=`[主区, 通信+效果dock]`，当前实现 `sizes:[61,39]`，`minSize:[260,200]`，gutter 可上下拖 → dock 高度可调）。
-- 主区内层 = **horizontal split**（`panes:['#param-rail','#graph-stage','#inspector']`，当前实现 `sizes:[21,51,28]`，`minSize:[220,480,340]`，三栏宽可拖）。用 `initNestedResizablePanes` 组织外 vertical + 内 horizontal。
-- 每个 pane 视觉由产品侧给：`background:var(--surface-2)` + `1px solid var(--border-subtle)` + `border-radius:var(--radius-md)`，内部内容块用 recessed `--surface-1`。gutter 把手由 pattern `::before` 免费提供，不自造。
-- `storageKey` 持久化各分栏比例。
-
----
-
-## 4. 排障叙事（七步闭环 · 串起所有视图的脚本）
-
-**故事张力**：Pangu Pro MoE 的招牌是 **MoGE（Mixture of Grouped Experts）**，设计上就保证专家负载跨设备均衡。本次事故的反差在于——**故障源是混合精度写越界，绕过了路由逻辑本身**，让"本该不会失衡"的 MoGE 也崩了。
-
-| 步 | 用户动作 | 点亮的视图 | 看到什么 |
+| 轴 | 承载 | 视图 | 回答 |
 |---|---|---|---|
-| 1 | 在底部效果曲线③**框选** loss 异常段 | 设全局兴趣窗口 → ②③④⑤ 全按该 step 聚焦 | val loss Step2000 后高频尖峰、eval 跳水 |
-| 2 | 看左栏④自动高亮的尖峰 → 点它 | 中央①展开对应 MoE 块 + 底部⑤高亮该 TP 组 | **Load Balance Loss 骤降≈0** + MoE 梯度暴涨（路由失效） |
-| 3 | 点底部⑤的**流量黑洞边**(All-to-All) | 中央①刷亮 All-to-All 算子 + Gate 节点亮黄 | TP Rank2 流入边几乎消失、token 交换量低两个量级、P2P 气泡累积 |
-| 4 | 点中央①的 **Gate 节点** | 右栏②出 Weight Diff + Rank 拓扑总图 + 路由热图；底部⑤标受影响 Rank2 | Gate dispatch shape 不一致：TP2 / Rank2 `[2048,1]` vs 其余 `[2048,4]` |
-| 5 | 播放右栏② Rank 拓扑总图 | 中央架构图按 Pangu 算子流同步选中 | `one step batch → Embedding → Attention → Gate → Dispatch → Experts → Combine → logits/loss`；TP2 列在异常阶段高亮 |
-| 6 | 看右栏②权重详情与路由热图 | — | `W_gate` Rank2 分片 `[4096,256]`→`[4096,64]`，数值 -inf（混合精度下溢）；路由热图 TP2 / Rank2 列全白 |
-| 7 | 中央①右键 Gate **"追溯梯度流"** | 底部效果曲线③回退标到 Step1997 + 左栏④标混合精度更新事件 | **根因链闭环**：混合精度存储越界 → 权重畸变 → 路由坍缩 → 通信失衡 → loss 爆炸 |
+| **计算轴**（逻辑架构） | 层 / 算子 / 专家桶 / 权重 / 梯度 / loss contribution | 左舞台 · 718B MoE 架构图 + step phase overlay | 当前 step 的计算逻辑里**哪个环节**先偏了？ |
+| **物理轴**（910B 运行时） | Ascend 910B 卡 / device / rank / TP·PP·CP·DP·EP 坐标 / HCCL 通信 | 右舞台 · 910B physical base + runtime overlay | **哪张卡 / 哪个 rank / 哪条通信流**表现异常？ |
+| **关系层**（核心价值） | model object ↔ rank placement ↔ device ↔ weight shard ↔ comm flow | hover-first 联动 + 统一 step/phase + 底部 loss cursor | 同一异常的多个投影**对上号** = 可解释 |
+
+**边界**：训练**正确性**排障，不是性能 profiler。不接 Chrome Trace（CTF）；通信是按 step/phase 的轻量流量快照，非 kernel trace。`rank` 是分布式进程/通信成员，常见 demo 可一 rank 绑定一张 910B 卡，但产品语义不能写成“rank 就是卡”。
 
 ---
 
-## 5. 全局关联机制（技术）
+## 2. 信息架构（A·并置双轴）
 
-**两个广播通道**，由一个轻量事件总线（借 workbench `GEW.bus` 思路自建，不接其 trace）驱动：
+```
+┌─ 顶部：run 标识 + 实时状态条（当前 step · 偏差雷达 TOP-N 告警）───────────────────┐
+├──────────────────────────────────┬──────────────────────────────────────────┤
+│  计算轴 · 718B MoE 架构图 [主舞台]   ┃  物理轴 · Ascend 910B Runtime Placement │
+│  Step phase rail: Batch/Fwd/Loss/Bwd/Sync/Update ┃  910B 卡底图 + rank placement     │
+│  Gate→A2A→256 routed experts【32 runtime buckets】→Combine ┃  TP/PP/CP/DP/EP lens 切换 │
+│  节点叠加 execution / metric / parameter 状态   ┃  通信 overlay：All2All/AllReduce/P2P │
+│            ⟵ 中缝可拖（默认 50/50）⟶  ┃                                          │
+├──────────────────────────────────┴──────────────────────────────────────────┤
+│  ⟱ 高度可拖 ⟱   底部 realtime loss console（图表即 step cursor，无独立播放条）       │
+│  主图：global train/val loss · expected/previous/threshold · 异常点 · 兴趣窗口   │
+│  辅助：grad norm / load balance loss / router z-loss / expert load var           │
+│  交互：hover loss/phase/rank/node → step + phase → 架构路径 + 910B 通信 overlay  │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
 
-1. **兴趣窗口广播** `interestWindow:{ stepStart, stepEnd }`：时间轴框选发出 → 各视图按 step 范围取值/聚焦/求异常步。
-2. **选中广播** `select:{ objectType, id, relatedNodeIds, rankIds, stepCursor }`：任一视图选中一个对象发出 → 各视图点亮关联。
-   - 关系解析复用 model-training-graphviz 的 `relationForNode`：自身 ∪ `relatedNodeIds` ∪ `trainingEvidence[id].relatedNodeIds` ∪ 图上直连节点。
-   - 跨视图映射表 `byNode / byRank`：nodeId ↔ relatedNodeIds ↔ 物理 rankIds ↔ evidence 双向索引。
-
-3. **时间游标** `stepCursor`（底部 shared scrubber 驱动）：通信 dock 按 stepCursor 取该步流量快照实时重绘；效果曲线/参数面板画游标竖线。播放=游标自增。
-4. **拓扑播放** `topology-playback`（右栏 Rank 拓扑总图发出 select）：按 Pangu 算子流推进 `token_ids → embedding → attention → moe_norm → gate → a2a_dispatch → experts → a2a_combine → final_norm → lm_head → logits`；每一步 `Bus.emit('select')` 到中央架构图，MoE 内部节点会触发中间图自动展开并选中。
-
-**联动调用**：架构图用 `controller.selectNode(id,{relatedNodeIds,source})` / `controller.setPhase({nodeId,relatedNodeIds})`（**只改强调，绝不移动视口**）。
+**workbench-shell 落地**：
+- 外层 `.workbench-frame`（column）：header = run 标识 + 实时状态条；其下 **vertical split**（`direction:'vertical'`，panes=`[双轴主区, 底部 dock]`，`sizes:[64,36]`，`minSize:[320,220]`，gutter 上下拖 → dock 高度可调）。
+- 主区内层 = **horizontal split**（`panes:['#axis-compute','#axis-physical']`，`sizes:[50,50]`，`minSize:[420,420]`，中缝左右拖）。用 `initNestedResizablePanes`。
+- pane 视觉由产品侧给：`--surface-2` + `1px solid --border-subtle` + `--radius-md`；内部内容块 recessed `--surface-1`。gutter 把手用 pattern `::before`，不自造。
+- `storageKey` 持久化比例。**默认左右等宽**（中缝可拖）。
 
 ---
 
-## 6. 数据模型（schema）
+## 3. 计算轴：718B MoE 架构图（本版重头戏 · 整体重建）
 
-五类数据，全部静态 JSON / JS globals（demo 自带，无后端）：
+> 复用 `model-training-graphviz` 渲染引擎 + 交互基建（`controller.selectNode`/`data-node-id`/折叠展开/证据面板/provenance/主题）。**只重写图数据 JSON**，从旧拓扑整体换成 718B MoE。
+> 新文件：`patterns/.../openpangu_ultramoe_718b_architecture_graphviz.html`（不覆盖现有 7B-Dense 文件，保留为对照样例）。
+
+### 3.1 拓扑骨架
+
+```
+输入(Token IDs / Embeds / Position / Mask)
+  → Embedding → RoPE
+  ├─[Dense 解码层 ×3]              ← first_k_dense_replace=3，前 3 层无路由
+  │     MLA 注意力 → Dense MLP(SwiGLU)
+  ├─[MoE 解码层 ×58  ▼默认折叠]    ← 出事/选中时展开内部
+  │     MLA 注意力(q_lora 1536 / kv_lora 512)
+  │     → Pre-RMSNorm
+  │     → Gate 路由器(top-8, routed_scaling 2.5, norm_topk_prob)
+  │     → All-to-All 分发（通信事件，投影到物理轴 overlay）
+  │     → 256 路由专家【聚合成 32 个 runtime EP buckets，每桶 8 专家】
+  │       ＋ 共享专家(单独画 · 恒亮 · 永不黑)
+  │     → All-to-All 汇聚（通信事件，投影到物理轴 overlay）
+  │     → 残差(sandwich_norm)
+  └─ Final RMSNorm → LM Head → Logits
+       ＋ MTP 头 ×1(num_nextn_predict_layers=1，尾部多 token 预测)
+```
+
+### 3.2 cluster / node / edge 清单（图数据规格）
+
+**clusters**（带 `repeat:"× N"` 折叠标签）：
+| id | label | repeat | colorKey |
+|---|---|---|---|
+| `wrapper` | PanguUltraMoEForCausalLM | — | neutral |
+| `dense_layer` | Dense 解码层 | × 3 | layer-dense |
+| `moe_layer` | MoE 解码层 | × 58 | layer-moe |
+| `mla` | MLA 注意力 | — | attention |
+| `moe_block` | MoE 块（Gate→A2A→专家→Combine） | — | moe |
+| `mtp_head` | MTP 头 | × 1 | head |
+
+**nodes**（关键，`kind:op|tensor`）：
+- 输入/嵌入：`token_ids` `input_embeds` `position_ids` `attn_mask` `embedding` `rope`
+- MLA：`q_lora_down`(1536) `q_up` `kv_lora_down`(512) `kv_up` `rope_apply` `attn_scores` `softmax` `attn_ctx` `attn_out`
+- MoE 块：`moe_prenorm` `gate`(top-8) `routed_scaling` `a2a_dispatch` `expert_group_00…expert_group_31`（32 个聚合组）`shared_expert`（单独·恒亮）`a2a_combine` `moe_residual`
+- 尾部：`final_norm` `lm_head` `logits` `mtp_norm` `mtp_head` `mtp_logits`
+
+**edges**（`edgeType` 决定颜色 —— 这是桥的视觉关键）：
+| edgeType | 用途 | 视觉 |
+|---|---|---|
+| `activation` | 前向数据流 | 默认细灰 |
+| `parameter` | 权重边（W_gate / W_expert） | 紫 |
+| `gradient` | 梯度回溯边 | 橙 |
+| `communication` | **All-to-All 分发/汇聚** | **专门通信色**（只在计算轴内部表达通信语义；不画跨轴连线） |
+
+### 3.3 三个表达决策（已定）
+
+1. **256 routed experts 聚合成 32 个 runtime EP buckets**（demo 中每桶 8 专家）→ 这是运行时放置桶，不等同于模型架构里只有 32 个专家，也不天然等同于 32 张卡。
+2. **共享专家单独画、恒亮**——作对照组，一眼看出坏的只是 256 路由专家。
+3. **通信边专色**——All-to-All 边在计算轴内部单独配色，区别于权重边/梯度边；跨到物理轴时使用 hover-first 高亮和通信 overlay，select 仅作锁定兜底，不使用 gutter 连线。
+
+### 3.4 关系钩子（archive 缺失，本版新增）
+
+每个 `expert_group_NN` 节点写 `data-ep-bucket="NN"`。选中专家桶 → 物理轴点亮当前 placement 中承载该 bucket 的 rank/device；选中 910B 卡或 rank → 计算轴点亮它承载的 expert bucket / weight shard / communication event。引擎在 `pattern.js` 渲染时已把 `node.id` 写进 `el.dataset.nodeId`，关系映射另建 `placementMap.byNode/byRank/byDevice` 索引（§8/§9）。
+
+### 3.5 折叠/展开行为
+- 默认：61 层折叠为 `Dense×3` + `MoE×58` + `MTP×1` 三个折叠簇，主干清爽。
+- 偏差雷达告警某 MoE 层 / 用户选中 → 该 MoE 层 cluster 展开，露出 Gate→A2A→专家→Combine 内部；其余仍折叠。
+- `controller.selectNode(id,{relatedNodeIds})` 只改强调，**绝不移动视口**。
+
+### 3.6 trainingEvidence（挂在关键节点）
+`gate` / `a2a_dispatch` / `expert_group_NN` 上挂证据：`{dimension, metric, what, evidence[], action, relatedNodeIds[], sources[]}`，接路由坍缩故事（负载均衡损失骤降 → 部分专家被饿死 → 对应卡变黑洞）。`provenance` 溯源到真实 openPangu `config.json`。
+
+---
+
+## 4. 物理轴：Ascend 910B Runtime Placement
+
+物理轴以 **Ascend 910B 卡**为稳定底图，rank 和并行策略是运行时叠加层：
+
+```text
+910B Card = 物理实体
+device_id / host / slot = 设备坐标
+rank = 分布式进程 / 通信成员
+TP / PP / CP / DP / EP = 该 rank 在训练策略里的坐标
+```
+
+### 4.1 三层渲染
+
+1. **Hardware Base Layer**：910B card grid，显示 host、slot、device_id、HBM、util。demo 可先画 32 张 910B 卡作为当前诊断窗口，不声称这是完整物理全集。
+2. **Rank Placement Layer**：每张卡贴 `global_rank / local_rank / TP / PP / CP / DP / EP`；默认 demo 可一 rank 一卡，但 schema 支持一机多卡、多 rank 复用或 rank 迁移。
+3. **Comm Overlay Layer**：按当前 `step + phase + lens` 叠加通信流；只画在物理轴内，不画计算轴到物理轴的线。
+
+### 4.2 TP / PP / CP / DP / EP 是 lens，不是五张同构网格
+
+- **DP lens**：高亮 replica group，显示 global loss 聚合、gradient all-reduce、慢 replica。
+- **TP lens**：高亮同一层 tensor shard group，显示 matmul shard 汇合、reduce-scatter/all-reduce。
+- **PP lens**：按模型深度 stage 分区，显示 microbatch 气泡、send/recv stage boundary。
+- **CP lens**：按 sequence/context shard 分段，显示 context exchange / all-gather。
+- **EP lens**：显示 expert placement、token dispatch、All-to-All inflow/outflow、专家桶黑洞。
+
+### 4.3 通信 overlay 规则
+
+- `all2all`：EP/MoE token dispatch，默认只画聚合流与 TOP-K 异常边；hover 才展开源/目标 rank 细边。
+- `allreduce`：DP/TP 梯度或 shard 聚合，用 group 边界 + pulse 表达同步。
+- `p2p`：PP stage 间 send/recv，用相邻 stage 单向箭头 + microbatch bubble 表达。
+- `allgather/reducescatter`：CP/TP shard 交换，用 shard band 表达。
+
+**节点色** = 当前 lens 的主指标（util / local loss contribution / HBM / token inflow）；**overlay 边宽 + 透明度** = bytes 或 tokens；**动画/脉冲**只用于当前 phase，不常驻。
+
+---
+
+## 5. Step / Phase / 桥机制：让多个投影对上号
+
+**两根支柱**（一切联动从此派生）：
+1. **统一 step 轴**（时间对齐）：底部 realtime loss 的 cursor 是全局时间锚点，框选一次 = 所有视图聚焦同一窗口。
+2. **Step Execution Rail**（计算相位对齐）：每个 step 拆成 `Batch → Forward → Loss → Backward → Grad Sync → Optimizer Update`；**按这个顺序执行完一次就是一个训练 step**。hover 某 phase 时，计算轴高亮对应执行路径，物理轴切换对应通信 overlay。
+3. **hover 即双向点亮**（对象对齐）：hover 任一对象，两轴其余部分自动点亮关联；click 只作为可选锁定/键盘兜底，不作为默认理解路径。
+
+**映射表**：`placementMap.byNode`（nodeId ↔ expert bucket ↔ rankIds ↔ weightShard）+ `placementMap.byRank`（rankId ↔ deviceId ↔ TP/PP/CP/DP/EP ↔ nodeIds）+ `placementMap.byDevice`（910B card ↔ rankIds）。不再假设 expert bucket ↔ rank ↔ card 永远 1:1，只把 demo 当前 placement 画出来。
+
+**一个故障，四种说法（产品要自动对上号）**：loss=曲线异常点　逻辑=路由坍缩/专家饿死　通信=All-to-All 入流黑洞　物理=某 910B card/rank util 与 token inflow 同步下降。
+
+---
+
+## 6. 实时监护能力（新增构件）
+
+### C0 Step Execution Rail（计算逻辑解释层）
+- 把 `step` 从一个数字拆成可播放的训练相位：`Batch / Forward / Loss / Backward / Grad Sync / Optimizer Update`。
+- 每个 phase 必须有 hover tip，明确说明：`Batch → Forward → Loss → Backward → Grad Sync → Optimizer Update` 按顺序执行一次 = 一个 step。
+- 每个 phase 绑定 `nodePath[]`：Forward 高亮 activation 路径，Backward 高亮 gradient 路径，Update 高亮 parameter/update 节点。
+- loss 异常点 hover 后自动定位到最可能 phase，例如 MoE 路由异常定位到 `Forward · Gate → A2A Dispatch → Expert Bucket`。
+
+### C1 Realtime Loss Console（底部 dock 主体）
+- 主图复用 `training-metrics-chart`：`train_loss / val_loss / expected_loss / previous_run_loss / spike_threshold`，支持 cursor、异常点、brush 兴趣窗口。
+- 辅助前导指标：`eval_mmlu / grad_norm / load_balance_loss / router_z_loss / expert_load_var`。eval 不再混在主 loss 图里。
+- per-rank 不铺 32 张小图；默认显示 rank loss contribution 分布带，hover 某 rank 时叠加该 rank local loss overlay。
+
+### C2 偏差雷达
+- 把当前 step「偏差最大」的对象（层/卡/链路/专家组）自动排序、置顶、告警。
+- **「偏差大」度量（可解释，不上黑盒）**：候选信号 = 指标对滚动 EMA/方差带的 z-score、梯度范数突变、负载均衡损失骤降、某 rank 流量/利用率对同组均值偏离。MVP 用阈值/基线规则。
+- **前导指标**：grad norm、负载均衡损失、router z-loss、专家负载方差——常先于 loss 崩动；雷达盯"谁先偏、偏得最大"。
+
+### C3 内嵌根因 tag / hover tip
+- 不再做右下角独立根因模块；一句自然语言根因 + 证据链融入对象 tag、phase tip、loss tooltip。
+- 监控→诊断交接：hover loss 越带 → 哪个前导指标先偏 → 指向轴（负载均衡损失骤降=逻辑轴 Gate；某 PP stage grad 尖峰=物理轴）。
+
+### C4 调整建议（对象 hover tip 内 · 就地展开）
+- 给可操作下一步：隔离某 rank / 跳过某 step / 调 lr / 重平衡专家。MVP 规则化，二期智能化，不占用底部 loss console。
+
+---
+
+## 7. 事故回放模式（辅 · 沙盒隔离）
+
+> **硬隔离规则（最高优先）**：本节是一个**插件式的可选样本**，**不得反向约束 §1–§6 的实时监护设计**。两轴布局、718B MoE 架构图、偏差雷达、根因/建议、桥——这些的形态由"实时监护"独立决定，**绝不为了兼容旧七步而妥协**。旧七步的"预置答案/展览馆"性质已被否决，只有它的**零件**（视图构件、联动基建）和**回放样本价值**被收编。
+
+回放模式与实时模式**共用同一套已建好的双轴视图与 step 轴**，仅切换数据源（历史快照 vs 实时流）。它作为一个独立数据包载入 `SPEC-archive.md` 的七步因果链——是这套视图的一个"可重复演示样本"，而非另一套界面。**实现上排在最后（§11 step 6），且砍掉它不影响 step 1–5 的任何交付。** 七步脚本见 archive §4。
+
+---
+
+## 8. 数据模型（schema · 在 archive 基础上扩展）
 
 ```jsonc
-// 1) model graph —— 复用 model-training-graphviz 运行时 schema
-{
-  "width": ..., "height": ...,
-  "clusters": [{ "id","label","x","y","width","height","colorKey","repeat":"× N" }],
-  "nodes":    [{ "id","label","typeLabel","kind":"op|tensor","x","y","width","height","colorKey" }],
-  "edges":    [{ "source","target","tag","edgeType":"communication|parameter|gradient|cache" }],
-  "trainingEvidence": {
-    "<nodeId>": { "dimension","metric","what","evidence":[],"action","relatedNodeIds":[],"sources":[] }
-  }
-}
-// Pangu Pro MoE 拓扑：Embedding → N×Transformer(含 MoE 块: Gate→All-to-All分发→MoGE专家组→All-to-All汇聚) → LM Head
-// All-to-All / AllReduce 边 edgeType:"communication"（蓝），权重边 parameter（紫），梯度边 gradient（橙）
+// 1) model graph —— model-training-graphviz 运行时 schema（718B MoE 拓扑，§3）
+{ "width","height",
+  "clusters":[{ "id","label","x","y","width","height","colorKey","repeat":"× N" }],
+  "nodes":   [{ "id","label","typeLabel","kind","x","y","width","height","colorKey",
+                "epBucket":"00..31"  /* 仅 expert_group_NN，关系钩子 */ }],
+  "edges":   [{ "source","target","tag","edgeType":"activation|parameter|gradient|communication" }],
+  "trainingEvidence": { "<nodeId>": { "dimension","metric","what","evidence":[],"action","relatedNodeIds":[],"sources":[] } },
+  "provenance": { "config":"openPangu config.json", "values":{...} } }
 
-// 2) timeseries —— 每 step 训练指标（自绘曲线用）
-{ "steps":[...], "series": { "train_loss":[], "val_loss":[], "eval_mmlu":[], "grad_norm":[], "load_balance_loss":[] } }
+// 2) stepTrace —— step 数字到计算逻辑的可解释关系
+{ "byStep":{ "<step>":{ "activePhase":"forward|loss|backward|sync|update",
+    "phases":[{ "id":"forward", "label":"Forward",
+      "nodePath":["embedding","moe_prenorm","gate","a2a_dispatch","expert_group_19","a2a_combine","lm_head"],
+      "commPrimitive":"all2all", "physicalLens":"ep",
+      "metrics":{ "gate":{"router_z_loss":3.2}, "expert_group_19":{"token_inflow":0.12} } },
+    { "id":"loss", "nodePath":["logits","loss"], "metrics":{"global_loss":4.83} },
+    { "id":"backward", "nodePath":["lm_head","a2a_combine","expert_group_19","gate"], "metrics":{"grad_norm":2.7} },
+    { "id":"sync", "nodePath":["a2a_combine"], "commPrimitive":"allreduce", "physicalLens":"dp" },
+    { "id":"update", "nodePath":["gate_weight","expert_weight_19"], "metrics":{"update_ratio":0.018} }] } } }
 
-// 3) commSnapshots —— 每 step 物理 mesh 流量快照
-{ "devices":[{ "rankId","dp","pp","tp","util" }],
-  "byStep": { "<step>": { "flows":[{ "src","dst","prim":"all2all|allreduce|p2p","bytes" }], "util":{ "<rankId>":0..1 } } } }
+// 3) timeseries —— realtime loss + 前导指标 + per-rank overlay
+{ "steps":[...],
+  "series":{ "train_loss":[],"val_loss":[],"eval_mmlu":[],
+    "grad_norm":[],"load_balance_loss":[],"router_z_loss":[],"expert_load_var":[] },
+  "rankSeries":{ "<rankId>":{ "local_loss":[],"loss_contribution":[] } },
+  "baseline":{ "<series>":{ "ema":[],"band":[lo,hi] } },
+  "anomalies":[{ "step", "seriesId", "phaseId", "nodeIds":[], "rankIds":[] }] }
 
-// 4) weightDetail —— 每节点权重/shape 详情
-{ "<nodeId>": { "normal":{ "shape":[...],"hist":[...] }, "anomaly":{ "step":1998,"shape":[...],"hist":[...],"note":"-inf 下溢" },
-  "routingHeatmap":{ "rows","cols","matrix":[[...]] } } }
+// 4) physicalTopology + rankPlacement —— 910B 物理底图与运行时放置
+{ "cards":[{ "cardId":"card_019","kind":"Ascend 910B","hostId","slot","deviceId",
+    "hbmGb":64,"rankIds":["rank_19"] }],
+  "ranks":[{ "rankId":"rank_19","globalRank":19,"localRank":3,"cardId":"card_019",
+    "coords":{"tp":3,"pp":1,"cp":0,"dp":2,"ep":19} }] }
 
-// 5) rankTopologyPlayback —— 右栏 Rank 拓扑总图的播放步骤（当前实现内置于 inspector.js）
-[
-  { "id":"batch", "nodeId":"token_ids", "stage":0, "label":"one step batch" },
-  { "id":"embedding", "nodeId":"embedding", "stage":0 },
-  { "id":"attention", "nodeId":"attention", "stage":1 },
-  { "id":"gate", "nodeId":"gate", "stage":3, "anomaly":true },
-  { "id":"dispatch", "nodeId":"a2a_dispatch", "stage":3, "anomaly":true },
-  { "id":"experts", "nodeId":"experts", "stage":4, "anomaly":true },
-  { "id":"combine", "nodeId":"a2a_combine", "stage":5, "anomaly":true },
-  { "id":"logits", "nodeId":"logits", "stage":7 }
-]
+// 5) commSnapshots —— 每 step/phase 的通信 overlay
+{ "byStep":{ "<step>":{ "<phaseId>":{ "primitive":"all2all|allreduce|p2p|allgather|reducescatter",
+    "parallelAxis":"ep|dp|tp|pp|cp",
+    "affectedNodeId":"a2a_dispatch",
+    "flows":[{ "srcRank","dstRank","bytes","tokens","latencyMs","anomaly":"blackhole|slow|none" }],
+    "rankStats":{ "<rankId>":{ "util","hbm","inflowBytes","outflowBytes","localLoss" } } } } } }
+
+// 6) weightDetail —— 每节点权重/shape 详情
+{ "<nodeId>":{ "normal":{ "shape":[...],"hist":[...] },
+   "anomaly":{ "step","shape":[...],"hist":[...],"note" },
+   "routingHeatmap":{ "rows","cols","matrix":[[...]] } } }
+
+// 7) deviationRadar —— 当前 step TOP-N 偏差对象（派生，可预算或实时算）
+[ { "objectType":"expert_group|rank|edge|layer","id","epRank","zScore","signal","leadIndicator" } ]
+
+// 8) placementMap —— 对象↔rank↔device↔weight，而不是跨轴视觉连线
+{ "byNode":{ "<nodeId>":{ "relatedNodeIds":[],"rankIds":[],"cardIds":[],"weightShards":[] } },
+  "byRank":{ "<rankId>":{ "cardId","nodeIds":[],"expertBuckets":[],"coords":{} } },
+  "byDevice":{ "<cardId>":{ "rankIds":[],"hostId","slot" } } }
 ```
 
----
-
-## 7. 功能点（MVP vs 二期）
-
-**MVP（七步闭环跑通所必需）**：
-- F1 底部效果曲线：train/val loss + eval 曲线，**框选兴趣窗口**，画 step 游标竖线，与通信 dock 共用播放条。
-- F2 中央架构图：Pangu Pro MoE 拓扑渲染，cluster 折叠/展开（展开 MoE 块见 Gate/专家/All-to-All），节点 hover 证据面板，选中双向高亮，右键"追溯梯度流"。
-- F3 左栏参数面板：静态配置（并行/lr/batch/seq）+ 动态指标小图（grad norm / Load Balance Loss），异常尖峰高亮+可点。
-- F4 右栏 Inspector：Weight Diff（正常 vs 异常 step 直方图）+ Gate dispatch shape + **Rank 拓扑总图（顶部播放条、PP stage、rank cell、TP2 高亮、logits/loss）** + 路由热图，点/播放时联动中央架构图。
-- F5 底部通信 + 效果 dock：左曲线、右 NPU mesh + 通信原语边，**流量与效果曲线随 step 同步变化**，黑洞/气泡高亮，shared scrubber 播放/拖动。
-- F6 全局联动：兴趣窗口 + 选中 + step 游标 + 拓扑播放四类事件贯通。
-
-**二期**：
-- 多故障场景切换（除路由坍缩外，加 TP AllReduce 掉队 / PP 气泡）。
-- 显存维度叠加（接 ParallelDemo 的并行/显存逻辑，补激活显存公式）。
-- 证据导出 / 排障报告快照。
-- 接灵衢硬件层口子（mesh 之下的物理互联故障对照）。
+**接入层（让"模型对象可换"成立）**：各源写 adapter（wandb / tensorboard / msprof / HCCL trace / ckpt dump）归一化进上述统一 schema，视图只认 schema。换模型 = 换 adapter + 换拓扑 JSON，视图层不动。逻辑轴首发推荐 **OLMoE**（路由/负载均衡真实逐步曲线）；物理轴短期自采或合成（§附录）。
 
 ---
 
-## 8. 复用 / 新建 / 设计系统缺口
+## 9. 联动机制（事件总线）
 
-| 模块 | 来源 | 状态 |
-|---|---|---|
-| 分栏外壳（含底部可拖拽 dock） | `PtoWorkbenchShell.initNestedResizablePanes` | ✅ 直接复用 |
-| 中央架构图 + 联动高亮 + 证据 hover | `PtoModelTrainingGraphvizPattern.render` | ✅ 直接复用，新造 Pangu Pro MoE graph JSON |
-| 通信拓扑 mesh + 通信边 | `PtoModelGraphvizPattern`（device 节点 + communication 蓝边） | ✅ 复用底图，流量粗细/黑洞用 edge 权重 + node fill；逐 step 重绘 |
-| 底部播放条 / scrubber | 产品侧轻量 transport + design-system button/input token | ✅ 已实现，绑定 `stepCursor`，同时驱动效果曲线与通信 mesh |
-| 右栏 Rank 拓扑播放条 | ParallelDemo 拓扑语义 + 产品侧轻量 transport | ✅ 已实现，绑定 `topology-playback → select`，联动中央架构图 |
-| 右栏 Inspector 外壳 | `panel-shell` + `panel` + `tag`/`status-*` | ✅ 基础组件组合 |
-| 参数面板 | `card`/`input`/`tag` + form grid | ✅ 基础组件组合 |
-| loss/梯度数值曲线（折线图） | `patterns/training-metrics-chart` | ✅ 已沉淀为共享 pattern，支持曲线、异常点、brush 兴趣窗口、cursor |
+轻量事件总线（借 workbench `GEW.bus` 思路自建，不接其 trace），七类广播：
+1. `interestWindow:{stepStart,stepEnd}`——底部框选 → 各视图按 step 聚焦。
+2. `hoverState:{objectType,id,relatedNodeIds,rankIds,cardIds,stepCursor,phaseId}`——任一对象 hover → 两轴点亮。关系解析复用 `relationForNode`：自身 ∪ relatedNodeIds ∪ evidence.relatedNodeIds ∪ 图上直连 ∪ **placementMap**。
+3. `select:{objectType,id,...}`——仅用于用户显式锁定或键盘可访问性；不作为默认联动入口。
+4. `stepCursor`——底部 loss chart hover/brush 驱动，stepTrace、计算轴、物理轴 overlay、曲线 cursor 同步。
+5. `phaseCursor:{step,phaseId}`——Step Execution Rail hover 驱动，计算轴高亮 nodePath，物理轴切换 comm overlay。
+6. `commHover:{flowId,srcRank,dstRank,primitive}`——物理轴通信流 hover → 高亮 rank/card/nodePath。
+7. `deviation:{step,topN}`——偏差雷达广播当前 step TOP-N，置顶告警，hover 触发联动，click 可锁定。
+
+架构图联动调用 `controller.selectNode(id,{relatedNodeIds,source})` / `controller.setPhase(...)`，**只改强调，绝不移动视口**。
 
 ---
 
-## 9. 技术栈 & 工程
+## 10. 技术栈 & 文件结构
 
-- 纯原生 HTML/CSS/JS，无框架、无外部 UI 库、无 CDN（不引 split.js，分栏用 PtoWorkbenchShell）。
-- **Token 引入顺序**：`tokens/foundation.css` → `tokens/semantic.css` → `tokens/components.css` → `css/style.css`。
-- **Pattern 引入顺序**：`model-graphviz` 的 css/js → `model-training-graphviz` 的 css/js → `workbench-shell` → `training-metrics-chart`。
-- 颜色/间距/字体/圆角一律 `var(--*)`；viz 色带仅用于图/边/热图；优先级用 fill（P0 红 / P1 橙 / P2 黄，**P2 不用蓝**）。
-- 页面 chrome 走 PTO 基线：透明顶栏、首个外壳紧贴 header、不加装饰带。
-- 数据全静态 JSON 内嵌/同目录加载；通信快照按 step 取，**不接 CTF trace**。
-- 文件结构（建议）：
+- 纯原生 HTML/CSS/JS，无框架、无外部 UI 库、无 CDN。分栏用 PtoWorkbenchShell，不引 split.js。
+- **Token 顺序**：`foundation → semantic → components → style`。
+- **Pattern 顺序**：`model-graphviz → model-training-graphviz → workbench-shell → training-metrics-chart`。
+- 颜色/间距/字体/圆角一律 `var(--*)`；viz 色带仅用于图/边/热图；优先级用 fill（P0 红/P1 橙/P2 黄，P2 不用蓝）；至多一层可见边界，图节点无阴影；不卡中卡、不左侧描边条。
+- 文件结构（现状 + 新增）：
   ```
   pangu-moe-trainviz/
     index.html
     css/app.css
     js/{bus,graph-view,timeline,param-rail,inspector,comm-dock,info,app}.js
+    js/{deviation-radar,rootcause,placement,step-trace}.js # 新增 C1/C3/关系层
     data/{graph,timeseries,comm,weight}.js
+    data/{graph-ultramoe-718b,deviation,placement,step-trace}.js # 新增 718B 拓扑 + 派生
+    data/adapters/{olmoe,bloom,msprof}.js             # 新增接入层
   ```
 
 ---
 
-## 10. 验收 / 成功标准
+## 11. MVP 构建顺序 & 验收
 
-1. 七步排障叙事在界面上**全程可点、可联动**走通，无需任何外部日志。
-2. 框选一次兴趣窗口，五视图同步聚焦；点任一对象，其余视图点亮关联。
-3. 通信流量与效果曲线随 shared scrubber 播放**逐 step 演化**，能回放出 Step1997→1998 的崩溃瞬间。
-4. 右栏 Rank 拓扑总图可播放/拖动，步骤能联动中央架构图对应节点；播放到 MoE 内部节点时，中央图自动展开并选中。
-5. 视觉 100% 走 PTO token，零私造控件，至多一层可见边界，图节点无阴影。
+**构建顺序**（增量，每步可在 localhost 验收）：
+1. **左·计算轴 718B MoE 架构图**（§3）——先单独做对：61 层折叠、MoE 层展开、32 runtime EP buckets、共享专家单独、通信边专色。
+2. **Step Execution Rail + realtime loss console**（§5/§6）——复用 `training-metrics-chart`，hover loss 异常点能定位 step + phase + nodePath。
+3. **右·Ascend 910B 物理轴**（§4）——910B card base + rank placement + TP/PP/CP/DP/EP lens。
+4. **通信 overlay**（§4.3/§8）——All-to-All / AllReduce / P2P 等叠在物理轴内部，不画跨轴线。
+5. **关系联动**（§5/§9）：hover 专家桶/rank/card/flow ↔ 两轴点亮，click 只作为可选锁定兜底，统一 step/phase。
+6. **数据接入层**：接通 1 个真实逻辑轴源（OLMoE/BLOOM）+ 1 套物理轴（自采/合成，清晰标注 synthetic physical telemetry）。
+7. **事故回放模式**：载入 archive 七步资产。
+
+**验收标准**：
+1. 训练正在跑时，偏差雷达自动排出 TOP-N 偏差对象，无需翻日志。
+2. 选中任一对象，计算轴与物理轴**两投影同时点亮、能对上号**（model object ↔ rank placement ↔ 910B card ↔ comm flow）。
+3. 根因以**一句自然语言 + 证据链**呈现，非堆栈。
+4. 每个已识别异常给**至少一条可操作调整建议**。
+5. 至少接通**一个真实逻辑轴源**（OLMoE/BLOOM），对象可经 adapter 替换。
+6. 事故回放模式下，archive 七步因果链 1:1 可用。
+7. 视觉 100% 走 PTO token，至多一层可见边界，图节点无阴影。
 
 ---
 
-## 11. 当前实现状态
+## 12. 风险与开放项
 
-- 页面目录：`/Users/yin/pto/pangu-moe-trainviz/`
-- 工作代号：**TrainScope · 盘古训练透视**
-- 已接入 launch 入口与预览图。
-- 已实现：三栏主区、底部通信+效果 dock、共享 step 播放条、架构图 MoE 折叠/展开、权重/shape Inspector、Rank 拓扑总图播放条、路由热图 hover、面板 info 说明。
-- 已验证：JS 语法检查、浏览器截图、右栏拓扑播放条拖到 `Attention` 后中央架构图同步选中 `attention` 节点。
+1. **「偏差大」度量定义**（§6 C1）：阈值/基线规则需和算法/Infra 共定，必须可解释，不上黑盒。— 最高优先。
+2. **物理轴真实数据缺口**：逐 rank 通信 trace 开源拿不到，MVP 物理轴大概率自采或合成。— 需定首发口径。
+3. **实时性工程代价**：真·流式接入需训练侧埋点 + 近实时管道；一期落不了可先做近实时轮询过渡。
+4. **图数据规模**：61 层 × 256 专家若全展开会糊屏——默认折叠 + 32 组聚合是必须，不是可选。
+5. **证据可靠性**：用研 13 条 insight 全 `unverified`，重投入前对核心支撑页人审。
+
+---
+
+## 附录：接入对象真实规格（openPangu-Ultra-MoE-718B）
+
+**架构**：61 层（前 `first_k_dense_replace=3` dense + 58 MoE）+ 1 MTP 头；hidden 7680，intermediate 18432，moe_intermediate 2048。
+**MoE**：256 路由专家 + 1 共享专家，top-8 激活，`routed_scaling_factor=2.5`，`norm_topk_prob=true`。共享专家恒激活 → 路由坍缩只影响 256 路由专家。
+**MLA**：128 头，`q_lora_rank=1536`，`kv_lora_rank=512`，`qk_nope=128`+`qk_rope=64`，`v_head_dim=128`。
+**其它**：vocab 153600，max_position 131072，`sandwich_norm=true`，`rope_theta=2.56e7`。
+**规模/训练**：718B 总 / 39B 活；19T tokens；4000×昇腾 910B（64GB HBM），MFU 18.9%，0.61M tok/s。
+
+**并行/渲染网格**：物理卡总数由训练策略与 placement 共同决定，常见表达可写成 `N = TP × PP × CP × DP`，MoE 专家并行 `EP` 通常作为 DP 维内的专家放置维度。demo 页面可渲染 32 张 Ascend 910B 作为当前诊断窗口，显示 `rank → device → TP/PP/CP/DP/EP coords → expert bucket` 的运行时映射；这不是“1 个 EP 组天然等于 32 张卡”的定义。推荐配置示例可保留为配置说明：`TP=8 × PP=16 × CP=1 × DP=32`，`EP=32`，总规模约 4096 卡，每卡承载若干层/张量分片/专家桶，具体以 `rankPlacement` 为准。
+
+术语大白话见 `PRD-训练透视.md` 附录 C（256 人会诊中心比喻）。
+
+---
+
+*配套：`PRD-训练透视.md`（产品需求）、`SPEC-archive.md`（事故回放七步剧本，本版 §7 内容载体）、`design-brief-昇腾CANN.md`（用研约束）、`INSIGHT-ANALYSIS.md`（现状对标）。*

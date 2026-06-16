@@ -1,0 +1,2177 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TrainScope · 训练透视实时监护</title>
+  <script>
+    (() => {
+      const params = new URLSearchParams(window.location.search);
+      const stored = window.localStorage && window.localStorage.getItem('trainscope-live-theme');
+      const theme = params.get('theme') || stored;
+      if (theme === 'light' || theme === 'dark' || theme === 'glass') {
+        document.documentElement.dataset.theme = theme;
+      }
+    })();
+  </script>
+  <link rel="stylesheet" href="../vendor/pto-design-system/tokens/foundation.css">
+  <link rel="stylesheet" href="../vendor/pto-design-system/tokens/semantic.css">
+  <link rel="stylesheet" href="../vendor/pto-design-system/tokens/components.css">
+  <link rel="stylesheet" href="../vendor/pto-design-system/css/style.css">
+  <link rel="stylesheet" href="../vendor/pto-design-system/patterns/workbench-shell/pattern.css">
+  <link rel="stylesheet" href="../vendor/pto-design-system/patterns/model-graphviz/pattern.css">
+  <link rel="stylesheet" href="../vendor/pto-design-system/patterns/model-training-graphviz/pattern.css">
+  <link rel="stylesheet" href="../vendor/pto-design-system/patterns/training-metrics-chart/pattern.css">
+  <style>
+    * { box-sizing: border-box; }
+    :root {
+      --ts-loss-baseline: color-mix(in srgb, var(--foreground) 52%, transparent);
+      --ts-loss-previous: color-mix(in srgb, var(--warning) 62%, transparent);
+      --ts-loss-threshold: color-mix(in srgb, var(--danger) 78%, transparent);
+      --ts-highlight-border: color-mix(in srgb, var(--foreground) 96%, transparent);
+      --ts-highlight-fill: color-mix(in srgb, var(--foreground) 10%, transparent);
+    }
+
+    html, body { width: 100%; height: 100%; margin: 0; }
+    body {
+      overflow: hidden;
+      background: var(--background);
+      color: var(--foreground);
+      font-family: var(--font-sans);
+    }
+
+    .ts-app {
+      width: 100vw;
+      height: 100vh;
+      background: var(--background);
+      color: var(--foreground);
+    }
+
+    .ts-header {
+      flex: 0 0 auto;
+      min-height: 52px;
+      padding-inline: var(--space-4);
+      border-bottom: 1px solid var(--border-subtle);
+      background: var(--background);
+    }
+
+    .ts-header-title {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 220px;
+      padding-right: var(--space-4);
+      margin-right: var(--space-2);
+      border-right: 1px solid var(--border-subtle);
+    }
+
+    .ts-header-title strong {
+      font: var(--text-title-2);
+      line-height: 1.1;
+      color: var(--foreground);
+    }
+
+    .ts-header-title span {
+      font: var(--text-label);
+      color: var(--foreground-muted);
+      letter-spacing: 0;
+      text-transform: none;
+    }
+
+    .ts-runline {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .ts-runline .stat-chip {
+      max-width: 260px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .ts-alert-chip {
+      border-color: color-mix(in srgb, var(--warning) 52%, transparent);
+      background: color-mix(in srgb, var(--warning) 15%, var(--surface-2));
+      color: var(--foreground);
+    }
+
+    .ts-main {
+      flex: 1 1 auto;
+      min-height: 0;
+      padding: var(--space-3);
+      gap: 0;
+      background: var(--background);
+    }
+
+    .ts-axis-area {
+      min-height: 0;
+    }
+
+    .ts-axis-split {
+      min-height: 0;
+      height: 100%;
+    }
+
+    .ts-pane {
+      min-height: 0;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      background: var(--surface-2);
+      overflow: hidden;
+    }
+
+    .ts-pane-head {
+      flex: 0 0 auto;
+      min-height: 42px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-2);
+      padding: 0 var(--space-3);
+      border-bottom: 1px solid var(--border-subtle);
+      background: var(--surface-2);
+    }
+
+    .ts-pane-title {
+      display: flex;
+      align-items: baseline;
+      gap: var(--space-2);
+      min-width: 0;
+    }
+
+    .ts-pane-title strong {
+      font: var(--text-title-2);
+      color: var(--foreground);
+      white-space: nowrap;
+    }
+
+    .ts-pane-title span {
+      min-width: 0;
+      overflow: hidden;
+      color: var(--foreground-secondary);
+      font: var(--text-body-sm);
+      letter-spacing: 0;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      text-transform: none;
+    }
+
+    .ts-lens-caption {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      min-width: 0;
+      overflow: visible;
+      color: var(--foreground-secondary);
+      line-height: 1.35;
+      white-space: normal;
+    }
+
+    .ts-lens-chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 22px;
+      padding: 0 var(--space-2);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-pill);
+      background: var(--surface-1);
+      color: var(--foreground);
+      font: var(--text-label);
+      letter-spacing: 0;
+      white-space: nowrap;
+    }
+
+    .ts-lens-copy {
+      min-width: 180px;
+      color: var(--foreground-secondary);
+      font: var(--text-body-sm);
+    }
+
+    .ts-pane-tools {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      flex: 0 0 auto;
+    }
+
+    .ts-phase-rail {
+      flex: 0 0 auto;
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: var(--space-2);
+      padding: var(--space-2) var(--space-3);
+      border-bottom: 1px solid var(--border-subtle);
+      background: var(--surface-1);
+    }
+
+    .ts-phase-btn {
+      position: relative;
+      min-width: 0;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: center;
+      gap: var(--space-2);
+      padding: 6px var(--space-2);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      background: var(--surface-2);
+      color: var(--foreground-secondary);
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .ts-phase-btn:hover,
+    .ts-phase-btn:focus-visible {
+      border-color: var(--ts-highlight-border);
+      background: color-mix(in srgb, var(--foreground) 10%, var(--surface-2));
+      color: var(--foreground);
+      outline: none;
+    }
+
+    .ts-phase-btn.is-selected {
+      border-color: var(--ts-highlight-border);
+      background: color-mix(in srgb, var(--foreground) 10%, var(--surface-2));
+      color: var(--foreground);
+    }
+
+    .ts-phase-btn:hover::after,
+    .ts-phase-btn:focus-visible::after {
+      content: attr(data-tip);
+      position: absolute;
+      left: 0;
+      top: calc(100% + 8px);
+      z-index: var(--z-dropdown);
+      width: min(320px, 70vw);
+      padding: var(--space-2) var(--space-3);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-md);
+      background: var(--surface-4);
+      color: var(--foreground);
+      box-shadow: var(--shadow-md);
+      font: var(--text-body-sm);
+      line-height: 1.45;
+      white-space: normal;
+      pointer-events: none;
+    }
+
+    .ts-phase-index {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      border-radius: var(--radius-pill);
+      background: var(--state-muted);
+      font: var(--text-label);
+      color: var(--foreground-muted);
+    }
+
+    .ts-phase-copy {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .ts-phase-copy strong {
+      min-width: 0;
+      overflow: hidden;
+      font: var(--text-body-sm);
+      font-weight: var(--font-weight-semibold);
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .ts-phase-copy span {
+      min-width: 0;
+      overflow: hidden;
+      font: var(--text-label);
+      letter-spacing: 0;
+      text-overflow: ellipsis;
+      text-transform: none;
+      white-space: nowrap;
+      color: var(--foreground-muted);
+    }
+
+    .ts-stage {
+      position: relative;
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: hidden;
+      background-color: var(--background);
+      background-image: radial-gradient(circle, color-mix(in srgb, var(--foreground) 12%, transparent) 1px, transparent 1.2px);
+      background-position: 11px 11px;
+      background-size: 22px 22px;
+    }
+
+    .ts-compute-stage .pto-model-graphviz-node.is-op .pto-model-graphviz-node-type {
+      display: none;
+    }
+
+    .ts-compute-stage .pto-model-graphviz-node.is-op .pto-model-graphviz-node-label {
+      dominant-baseline: central;
+      transform: translateY(4px);
+    }
+
+    .ts-compute-stage .pto-model-graphviz-cluster-label {
+      font-size: 12px;
+    }
+
+    .ts-compute-stage .pto-model-graphviz-cluster .pto-model-graphviz-toggle,
+    .ts-compute-stage .pto-model-graphviz-cluster .pto-model-graphviz-toggle-icon {
+      display: none;
+    }
+
+    /* EP 桶：标签贴顶（让出下方给 8 点点阵），不走 op 居中规则 */
+    .ts-compute-stage .pto-model-graphviz-node[data-ep-rank] .pto-model-graphviz-node-label {
+      dominant-baseline: auto; transform: none; font-size: 9px; font-weight: var(--font-weight-medium);
+    }
+    .ts-compute-stage .ax-grid-sub { fill: var(--foreground-secondary); font-size: 11px; text-anchor: middle; }
+    .ts-compute-stage .ax-expert-dot { fill: color-mix(in srgb, var(--foreground) 82%, transparent); }
+
+    .ts-compute-stage .pto-model-graphviz-node.is-runtime-hover rect {
+      stroke: var(--ts-highlight-border);
+      stroke-width: 2.8px;
+      fill: color-mix(in srgb, var(--foreground) 10%, var(--surface-3));
+    }
+
+    .ts-compute-stage .pto-model-graphviz-node.is-runtime-linked rect {
+      stroke: var(--ts-highlight-border);
+      stroke-width: 2.2px;
+      fill: color-mix(in srgb, var(--foreground) 10%, var(--surface-3));
+    }
+
+    .ts-compute-stage .pto-model-graphviz-node.is-phase-node rect {
+      stroke: var(--ts-highlight-border);
+      stroke-width: 2px;
+      stroke-dasharray: 4 3;
+      fill: color-mix(in srgb, var(--foreground) 10%, var(--surface-3));
+    }
+
+    .ts-compute-stage .pto-model-graphviz-node.is-update-node rect {
+      stroke: var(--ts-highlight-border);
+      stroke-width: 2.2px;
+      fill: color-mix(in srgb, var(--foreground) 10%, var(--surface-3));
+    }
+
+    .ts-physical-stage {
+      padding: var(--space-3);
+      background: var(--surface-1);
+    }
+
+    .ts-axis-toggle .btn {
+      min-width: 38px;
+    }
+
+    .ts-physical-canvas {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      background:
+        linear-gradient(180deg, color-mix(in srgb, var(--foreground) 3%, transparent), transparent),
+        var(--background);
+    }
+
+    .ts-flow-svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+      overflow: visible;
+    }
+
+    .ts-flow-link {
+      fill: none;
+      stroke: var(--primary);
+      stroke-linecap: round;
+      opacity: 0.68;
+      vector-effect: non-scaling-stroke;
+    }
+
+    .ts-flow-link.is-rail {
+      opacity: 0.44;
+      stroke-dasharray: none;
+    }
+
+    .ts-flow-link.is-core {
+      stroke-dasharray: 8 5;
+      opacity: 0.92;
+    }
+
+    .ts-flow-link.is-weak {
+      stroke: var(--foreground-muted);
+      opacity: 0.34;
+    }
+
+    .ts-flow-link.is-hot {
+      stroke: var(--warning);
+      opacity: 0.82;
+    }
+
+    .ts-flow-link.is-alert {
+      stroke: var(--danger);
+      opacity: 0.95;
+    }
+
+    .ts-flow-link.is-sync {
+      stroke: var(--highlight-ub-green-source);
+      opacity: 0.74;
+    }
+
+    .ts-flow-link.is-rail.is-weak { opacity: 0.28; }
+    .ts-flow-link.is-core.is-weak { opacity: 0.60; }
+    .ts-flow-link.is-rail.is-hot,
+    .ts-flow-link.is-rail.is-alert,
+    .ts-flow-link.is-rail.is-sync { opacity: 0.56; }
+    .ts-flow-link.is-core.is-hot,
+    .ts-flow-link.is-core.is-alert,
+    .ts-flow-link.is-core.is-sync { opacity: 0.95; }
+    .ts-flow-link.is-rail.is-sync {
+      stroke-dasharray: none;
+    }
+    .ts-flow-link.is-core.is-sync {
+      stroke-dasharray: 8 5;
+    }
+
+    .ts-flow-labels {
+      position: absolute;
+      left: var(--space-3);
+      right: var(--space-3);
+      bottom: var(--space-3);
+      z-index: 2;
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+      pointer-events: none;
+    }
+
+    .ts-flow-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 22px;
+      padding: 2px 8px;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-pill);
+      background: color-mix(in srgb, var(--background) 92%, transparent);
+      color: var(--foreground);
+      font: var(--text-body-sm);
+      letter-spacing: 0;
+      text-transform: none;
+    }
+
+    .ts-rank-grid {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: repeat(8, minmax(64px, 1fr));
+      grid-template-rows: repeat(4, minmax(58px, 1fr));
+      gap: 14px 16px;
+      width: 100%;
+      height: 100%;
+      padding: 14px 18px;
+    }
+
+    .ts-rank-node {
+      --rank-accent: var(--success);
+      --rank-heat: 12%;
+      --rank-flow: 50%;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-width: 0;
+      min-height: 0;
+      padding: 7px 8px;
+      border: 1px solid color-mix(in srgb, var(--rank-accent) 35%, var(--border-subtle));
+      border-radius: var(--radius-md);
+      background:
+        linear-gradient(180deg, color-mix(in srgb, var(--rank-accent) var(--rank-heat), var(--surface-2)), var(--surface-2));
+      color: var(--foreground);
+      cursor: pointer;
+      outline: none;
+      transition:
+        border-color var(--duration-fast) var(--easing-default),
+        background var(--duration-fast) var(--easing-default),
+        transform var(--duration-fast) var(--easing-default);
+    }
+
+    .ts-rank-node:hover,
+    .ts-rank-node:focus-visible {
+      border-color: var(--ts-highlight-border);
+      background:
+        linear-gradient(
+          180deg,
+          color-mix(in srgb, var(--foreground) 10%, color-mix(in srgb, var(--rank-accent) var(--rank-heat), var(--surface-2))),
+          color-mix(in srgb, var(--foreground) 10%, var(--surface-2))
+        );
+      transform: translateY(-1px);
+    }
+
+    .ts-rank-node.is-hover-linked {
+      border-color: var(--ts-highlight-border);
+      background:
+        linear-gradient(
+          180deg,
+          color-mix(in srgb, var(--foreground) 10%, color-mix(in srgb, var(--rank-accent) var(--rank-heat), var(--surface-2))),
+          color-mix(in srgb, var(--foreground) 10%, var(--surface-2))
+        );
+      transform: translateY(-1px);
+    }
+
+    .ts-rank-node.is-selected {
+      border-color: var(--ts-highlight-border);
+      background:
+        linear-gradient(
+          180deg,
+          color-mix(in srgb, var(--foreground) 10%, color-mix(in srgb, var(--rank-accent) var(--rank-heat), var(--surface-3))),
+          color-mix(in srgb, var(--foreground) 10%, var(--surface-3))
+        );
+    }
+
+    .ts-rank-node.is-related {
+      border-color: color-mix(in srgb, var(--foreground) 54%, var(--border-strong));
+    }
+
+    .ts-rank-node.is-runtime-linked:not(.is-selected):not(.is-hover-linked) {
+      border-color: var(--ts-highlight-border);
+    }
+
+    .ts-rank-node.is-alert {
+      --rank-accent: var(--danger);
+    }
+
+    .ts-rank-node.is-warn {
+      --rank-accent: var(--warning);
+    }
+
+    .ts-rank-main,
+    .ts-rank-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-1);
+      min-width: 0;
+    }
+
+    .ts-rank-main strong {
+      min-width: 0;
+      max-width: 100%;
+      overflow: hidden;
+      font: 600 11px / 1.2 var(--font-sans);
+      color: var(--foreground);
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .ts-rank-main [data-rank-role] {
+      display: none;
+    }
+
+    .ts-rank-main span,
+    .ts-rank-meta span {
+      min-width: 0;
+      flex: 0 0 auto;
+      font: 500 10px / 1.2 var(--font-sans);
+      color: var(--foreground-muted);
+      letter-spacing: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-transform: none;
+      white-space: nowrap;
+    }
+
+    .ts-rank-meter {
+      position: relative;
+      width: 100%;
+      height: 5px;
+      border-radius: var(--radius-pill);
+      background: var(--surface-disabled);
+      overflow: hidden;
+    }
+
+    .ts-rank-meter::before {
+      content: "";
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: var(--rank-flow);
+      border-radius: inherit;
+      background: var(--rank-accent);
+      opacity: 0.82;
+    }
+
+    .ts-rank-device {
+      display: block;
+      overflow: hidden;
+      color: var(--foreground-muted);
+      font: 500 10px / 1.2 var(--font-sans);
+      letter-spacing: 0;
+      text-overflow: ellipsis;
+      text-transform: none;
+      white-space: nowrap;
+    }
+
+    .ts-dock {
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      background: var(--surface-2);
+      overflow: hidden;
+    }
+
+    .ts-dock-grid {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: block;
+      padding: var(--space-3);
+      overflow: hidden;
+    }
+
+    .ts-dock-panel {
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      background: var(--surface-1);
+      overflow: hidden;
+    }
+
+    .ts-dock-panel-head {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-2);
+      min-height: 38px;
+      padding: 0 var(--space-3);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .ts-dock-panel-head strong {
+      font: var(--text-title-2);
+      color: var(--foreground);
+    }
+
+    .ts-loss-headline {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      min-width: 0;
+    }
+
+    .ts-dock-panel-body {
+      flex: 1 1 auto;
+      min-height: 0;
+      padding: var(--space-3);
+      overflow: auto;
+    }
+
+    .ts-radar-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+      margin-bottom: var(--space-3);
+    }
+
+    .ts-radar-item {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      align-items: center;
+      gap: var(--space-2);
+      width: 100%;
+      min-height: 46px;
+      padding: var(--space-2);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      background: var(--surface-2);
+      color: var(--foreground);
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .ts-radar-item:hover,
+    .ts-radar-item:focus-visible,
+    .ts-radar-item.is-selected {
+      border-color: var(--border-strong);
+      background: var(--surface-3);
+      outline: none;
+    }
+
+    .ts-radar-index {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      border-radius: var(--radius-pill);
+      background: var(--state-muted);
+      color: var(--foreground-secondary);
+      font: var(--text-label);
+    }
+
+    .ts-radar-copy {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .ts-radar-copy strong {
+      overflow: hidden;
+      font: var(--text-body-sm);
+      font-weight: var(--font-weight-semibold);
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .ts-radar-copy span {
+      overflow: hidden;
+      color: var(--foreground-muted);
+      font: var(--text-label);
+      letter-spacing: 0;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      text-transform: none;
+    }
+
+    .ts-zscore {
+      color: var(--warning);
+      font: var(--text-mono);
+      white-space: nowrap;
+    }
+
+    .ts-chart {
+      min-height: 156px;
+      margin-top: var(--space-2);
+    }
+
+    .ts-loss-stack {
+      display: grid;
+      grid-template-rows: minmax(170px, 1.4fr) minmax(82px, 0.56fr) auto;
+      gap: var(--space-3);
+      min-height: 100%;
+    }
+
+    .ts-loss-chart,
+    .ts-aux-chart {
+      min-height: 0;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      background: var(--surface-2);
+      padding: var(--space-2);
+      overflow: hidden;
+    }
+
+    .ts-loss-chart .pto-tmchart,
+    .ts-aux-chart .pto-tmchart {
+      width: 100%;
+      height: 100%;
+    }
+
+    .ts-loss-chart .pto-tmchart__axis text,
+    .ts-aux-chart .pto-tmchart__axis text {
+      font-size: 7px;
+      fill: color-mix(in srgb, var(--foreground) 56%, transparent);
+    }
+
+    .ts-loss-chart .pto-tmchart__line,
+    .ts-aux-chart .pto-tmchart__line {
+      stroke-width: 1.15;
+    }
+
+    .ts-loss-chart .pto-tmchart__line--emph,
+    .ts-aux-chart .pto-tmchart__line--emph {
+      stroke-width: 1.55;
+    }
+
+    .ts-loss-chart .pto-tmchart__line.is-baseline,
+    .ts-loss-chart .pto-tmchart__line.is-previous,
+    .ts-loss-chart .pto-tmchart__line.is-threshold {
+      stroke-width: 1;
+      opacity: 0.72;
+    }
+
+    .ts-loss-chart .pto-tmchart__line.is-baseline,
+    .ts-loss-chart .pto-tmchart__line.is-previous {
+      stroke-dasharray: 5 4;
+    }
+
+    .ts-loss-chart .pto-tmchart__line.is-threshold {
+      stroke-dasharray: 2 5;
+      opacity: 0.82;
+    }
+
+    .ts-loss-chart .pto-tmchart__cursor-chip,
+    .ts-loss-chart .pto-tmchart__cursor-chip-text {
+      display: none;
+    }
+
+    .ts-loss-chart .pto-tmchart__tip,
+    .ts-aux-chart .pto-tmchart__tip {
+      max-width: 220px;
+      padding: 6px 8px;
+      font-size: 10px;
+      line-height: 1.4;
+    }
+
+    .ts-loss-chart .pto-tmchart__tip-step,
+    .ts-aux-chart .pto-tmchart__tip-step {
+      font-size: 9px;
+    }
+
+    .ts-loss-source-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--space-2);
+      min-height: 26px;
+      color: var(--foreground-secondary);
+      font: var(--text-label);
+    }
+
+    .ts-source-chip {
+      border-color: var(--border-default);
+      color: var(--foreground-secondary);
+    }
+
+    .ts-loss-rank {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      align-items: center;
+      gap: var(--space-2);
+      min-height: 34px;
+      padding: 0 var(--space-2);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      background: var(--surface-2);
+    }
+
+    .ts-loss-rank span {
+      color: var(--foreground-secondary);
+      font: var(--text-label);
+      letter-spacing: 0;
+      text-transform: none;
+      white-space: nowrap;
+    }
+
+    .ts-loss-band {
+      position: relative;
+      height: 8px;
+      border-radius: var(--radius-pill);
+      background: var(--surface-disabled);
+      overflow: hidden;
+    }
+
+    .ts-loss-band::before {
+      content: "";
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: var(--loss-rank-width, 50%);
+      border-radius: inherit;
+      background: var(--warning);
+      opacity: 0.82;
+    }
+
+    @media (max-width: 1100px) {
+      .ts-header {
+        align-items: flex-start;
+        min-height: 94px;
+        padding-block: var(--space-2);
+      }
+
+      .ts-runline {
+        flex-wrap: wrap;
+      }
+
+      .ts-phase-rail {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .ts-dock-grid { display: block; }
+    }
+  </style>
+</head>
+<body class="pto-model-graphviz-pattern-page">
+  <div class="ts-app pto-workbench-shell" id="app">
+    <header class="layout-header layout-header-filled ts-header">
+      <div class="layout-header-left">
+        <div class="ts-header-title">
+          <strong>TrainScope · 训练透视</strong>
+          <span>openPangu-Ultra-MoE-718B 实时监护</span>
+        </div>
+        <div class="ts-runline" aria-live="polite">
+          <span class="stat-chip">run asc-718b-4096-live</span>
+          <span class="stat-chip" id="stepChip">step 1997</span>
+          <span class="stat-chip">Ascend 910B · 32-card diagnostic window</span>
+          <span class="stat-chip ts-alert-chip" id="topAlertChip">P1 · expert_group_19 偏差 +4.8σ</span>
+        </div>
+      </div>
+      <div class="layout-header-right">
+        <div class="segmented-control segmented-control-muted" aria-label="模式">
+          <button class="btn btn-sm is-selected" type="button">实时</button>
+          <button class="btn btn-sm" type="button" disabled>回放</button>
+        </div>
+        <button class="btn btn-sm btn-ghost" id="themeBtn" type="button">主题</button>
+      </div>
+    </header>
+
+    <main class="pto-workbench-shell__panes ts-main" id="outerSplit">
+      <section class="pto-workbench-shell__pane ts-axis-area" id="axisArea" data-split-pane>
+        <div class="pto-workbench-shell__panes ts-axis-split" id="axisSplit">
+          <section class="pto-workbench-shell__pane ts-pane" id="axis-compute" data-split-pane>
+            <div class="ts-pane-head">
+              <div class="ts-pane-title">
+                <strong>计算轴</strong>
+                <span>Step phase drives execution path · Gate → A2A → 32 runtime buckets</span>
+              </div>
+              <div class="ts-pane-tools">
+                <button class="btn btn-sm" id="moeBtn" type="button">折叠 MoE 层</button>
+                <button class="btn btn-sm" id="expertBtn" type="button">折叠专家</button>
+              </div>
+            </div>
+            <div class="ts-phase-rail" id="phaseRail" aria-label="step execution phases"></div>
+            <div class="ts-stage ts-compute-stage" id="computeStage" aria-label="718B MoE 计算轴"></div>
+          </section>
+
+          <section class="pto-workbench-shell__pane ts-pane" id="axis-physical" data-split-pane>
+            <div class="ts-pane-head">
+              <div class="ts-pane-title">
+                <strong>物理轴</strong>
+                <span class="ts-lens-caption" id="physicalCaption">Ascend 910B 运行时放置 · rank 是进程，卡是物理底座</span>
+              </div>
+              <div class="ts-pane-tools">
+                <div class="segmented-control segmented-control-muted ts-axis-toggle" aria-label="物理并行维度">
+                  <button class="btn btn-sm" type="button" data-physical-view="tp">TP</button>
+                  <button class="btn btn-sm" type="button" data-physical-view="pp">PP</button>
+                  <button class="btn btn-sm" type="button" data-physical-view="cp">CP</button>
+                  <button class="btn btn-sm" type="button" data-physical-view="dp">DP</button>
+                  <button class="btn btn-sm is-selected" type="button" data-physical-view="ep">EP</button>
+                </div>
+              </div>
+            </div>
+            <div class="ts-stage ts-physical-stage">
+              <div class="ts-physical-canvas" id="physicalCanvas">
+                <svg class="ts-flow-svg" id="flowSvg" aria-hidden="true"></svg>
+                <div class="ts-rank-grid" id="rankGrid" aria-label="Ascend 910B card runtime placement"></div>
+                <div class="ts-flow-labels" id="flowLabels" aria-hidden="true"></div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="pto-workbench-shell__pane ts-dock" id="dock" data-split-pane>
+        <div class="ts-dock-grid">
+          <section class="ts-dock-panel" aria-label="实时 loss 图表">
+            <div class="ts-dock-panel-head">
+              <div class="ts-loss-headline">
+                <strong>Realtime Loss Console</strong>
+                <span class="stat-chip ts-source-chip">OLMoE-shaped public-log sample</span>
+              </div>
+              <span class="stat-chip" id="lossMeta">global + selected rank overlay</span>
+            </div>
+            <div class="ts-dock-panel-body">
+              <div class="ts-loss-stack">
+                <div class="ts-loss-chart" id="lossChart" aria-label="train val loss and eval metrics"></div>
+                <div class="ts-aux-chart" id="metricChart" aria-label="前导指标趋势"></div>
+                <div class="ts-loss-rank" id="rankLossOverlay">
+                  <span id="rankLossLabel">rank_19 local loss contribution</span>
+                  <span class="ts-loss-band" id="rankLossBand" aria-hidden="true"></span>
+                  <span id="rankLossValue">+18%</span>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="../vendor/pto-design-system/patterns/workbench-shell/pattern.js"></script>
+  <script src="../vendor/pto-design-system/patterns/model-graphviz/pattern.js"></script>
+  <script src="../vendor/pto-design-system/patterns/model-training-graphviz/pattern.js"></script>
+  <script src="../vendor/pto-design-system/patterns/training-metrics-chart/pattern.js"></script>
+  <script src="data/graph-ultramoe-718b.js"></script>
+  <script>
+    (() => {
+      const STEP_MIN = 1940;
+      const STEP_MAX = 2030;
+      const ANOMALY_STEP = 1997;
+      const ALERT_EP = '19';
+      const svgNS = 'http://www.w3.org/2000/svg';
+
+      const els = {
+        outerSplit: document.getElementById('outerSplit'),
+        axisArea: document.getElementById('axisArea'),
+        axisSplit: document.getElementById('axisSplit'),
+        computePane: document.getElementById('axis-compute'),
+        physicalPane: document.getElementById('axis-physical'),
+        dock: document.getElementById('dock'),
+        computeStage: document.getElementById('computeStage'),
+        physicalCaption: document.getElementById('physicalCaption'),
+        physicalCanvas: document.getElementById('physicalCanvas'),
+        flowSvg: document.getElementById('flowSvg'),
+        flowLabels: document.getElementById('flowLabels'),
+        rankGrid: document.getElementById('rankGrid'),
+        phaseRail: document.getElementById('phaseRail'),
+        lossChart: document.getElementById('lossChart'),
+        lossMeta: document.getElementById('lossMeta'),
+        metricChart: document.getElementById('metricChart'),
+        rankLossLabel: document.getElementById('rankLossLabel'),
+        rankLossBand: document.getElementById('rankLossBand'),
+        rankLossValue: document.getElementById('rankLossValue'),
+        stepChip: document.getElementById('stepChip'),
+        topAlertChip: document.getElementById('topAlertChip'),
+        moeBtn: document.getElementById('moeBtn'),
+        expertBtn: document.getElementById('expertBtn'),
+        themeBtn: document.getElementById('themeBtn'),
+        axisViewButtons: Array.from(document.querySelectorAll('[data-physical-view]')),
+      };
+
+      const steps = Array.from({ length: STEP_MAX - STEP_MIN + 1 }, (_item, index) => STEP_MIN + index);
+      const telemetry = makeTelemetry(steps);
+      const phaseDefinitions = [
+        { id: 'batch', label: 'Batch', caption: '取样本', nodePath: ['token_ids', 'embedding'], lens: 'dp', primitive: 'none' },
+        { id: 'forward', label: 'Forward', caption: '路由执行', nodePath: ['embedding', 'moe_prenorm', 'gate', 'a2a_dispatch', 'expert_group_19', 'a2a_combine', 'lm_head'], lens: 'ep', primitive: 'all2all' },
+        { id: 'loss', label: 'Loss', caption: '计算误差', nodePath: ['lm_head', 'logits'], lens: 'dp', primitive: 'none' },
+        { id: 'backward', label: 'Backward', caption: '梯度回传', nodePath: ['logits', 'lm_head', 'a2a_combine', 'expert_group_19', 'gate'], lens: 'ep', primitive: 'all2all' },
+        { id: 'sync', label: 'Grad Sync', caption: '梯度同步', nodePath: ['a2a_combine', 'gate'], lens: 'dp', primitive: 'allreduce' },
+        { id: 'update', label: 'Update', caption: '权重更新', nodePath: ['gate', 'expert_group_19'], lens: 'tp', primitive: 'update' },
+      ];
+      const phaseById = new Map(phaseDefinitions.map((phase) => [phase.id, phase]));
+      const ranks = Array.from({ length: 32 }, (_item, index) => {
+        const ep = String(index).padStart(2, '0');
+        return {
+          ep,
+          rankId: `rank_${ep}`,
+          cardId: `card_${ep}`,
+          hostId: `host_${String(Math.floor(index / 8)).padStart(2, '0')}`,
+          slot: index % 8,
+          deviceId: index % 8,
+          localRank: index % 8,
+          globalRank: index,
+          nodeId: `expert_group_${ep}`,
+          row: Math.floor(index / 8),
+          col: index % 8,
+        };
+      });
+      const rankById = new Map(ranks.map((rank) => [rank.rankId, rank]));
+      const parallelViews = {
+        tp: {
+          label: 'TP',
+          caption: 'Ascend 910B · TP lens：同一层 tensor shard group，叠加 reduce/all-reduce 通信',
+          chip: 'TP shard view',
+          role: (rank) => `TP${rank.col}`,
+          group: (rank) => `tp-${rank.row}`,
+        },
+        pp: {
+          label: 'PP',
+          caption: 'Ascend 910B · PP lens：按 pipeline stage 分区，叠加 send/recv microbatch',
+          chip: 'PP stage view',
+          role: (rank) => `PP${Math.floor(rank.col / 2)}`,
+          group: (rank) => `pp-${Math.floor(rank.col / 2)}`,
+        },
+        cp: {
+          label: 'CP',
+          caption: 'Ascend 910B · CP lens：按 sequence/context shard 查看 context exchange',
+          chip: 'CP shard view',
+          role: (rank) => `CP${rank.col % 4}`,
+          group: (rank) => `cp-${rank.col % 4}`,
+        },
+        dp: {
+          label: 'DP',
+          caption: 'Ascend 910B · DP lens：replica group + global loss 聚合 + gradient all-reduce',
+          chip: 'DP replica view',
+          role: (rank) => `DP${rank.row}`,
+          group: (rank) => `dp-${rank.row}`,
+        },
+        ep: {
+          label: 'EP',
+          caption: 'Ascend 910B · EP lens：expert bucket placement + MoE All-to-All token dispatch',
+          chip: 'EP placement view',
+          role: (rank) => `EP${rank.ep}`,
+          group: (rank) => `ep-${rank.ep}`,
+        },
+      };
+
+      let currentStep = ANOMALY_STEP;
+      let currentPhase = 'forward';
+      let interestWindow = { start: 1988, end: 2004 };
+      let moeExpanded = true;
+      let expertExpanded = true;
+      let physicalView = 'ep';
+      let graphController = null;
+      let lossChartController = null;
+      let auxChartController = null;
+      let currentGraph = null;
+      let active = { nodeId: 'expert_group_19', rankId: 'rank_19', source: 'init' };
+      let hoverLink = null;
+      let suppressGraphSelect = false;
+
+      runInitStep('shell', initShell);
+      runInitStep('phase rail', renderPhaseRail);
+      runInitStep('physical axis', renderRanks);
+      runInitStep('loss charts', renderChart);
+      runInitStep('step state', () => setStep(currentStep, { source: 'init' }));
+      runInitStep('compute axis', renderComputeGraph);
+      runInitStep('events', bindEvents);
+
+      function runInitStep(label, task) {
+        try {
+          task();
+        } catch (error) {
+          console.error(`[TrainScope] ${label} init failed`, error);
+          if (els.topAlertChip) els.topAlertChip.textContent = `init warning · ${label}`;
+        }
+      }
+
+      function initShell() {
+        if (!window.PtoWorkbenchShell) return;
+        window.PtoWorkbenchShell.initNestedResizablePanes({
+          splits: [
+            {
+              root: els.outerSplit,
+              panes: [els.axisArea, els.dock],
+              direction: 'vertical',
+              sizes: [58, 42],
+              minSize: [320, 220],
+              storageKey: 'trainscope-live-outer-v2',
+            },
+            {
+              root: els.axisSplit,
+              panes: [els.computePane, els.physicalPane],
+              direction: 'horizontal',
+              sizes: [50, 50],
+              minSize: [420, 420],
+              storageKey: 'trainscope-live-axis-v1',
+            },
+          ],
+          defaults: { gutterSize: 10 },
+        });
+      }
+
+      function bindEvents() {
+        els.moeBtn.addEventListener('click', () => {
+          moeExpanded = !moeExpanded;
+          if (!moeExpanded) expertExpanded = false;
+          renderComputeGraph();
+          selectObject(resolveVisibleSelection(active), { source: 'toolbar' });
+        });
+        els.expertBtn.addEventListener('click', () => {
+          if (!moeExpanded) return;
+          expertExpanded = !expertExpanded;
+          renderComputeGraph();
+          selectObject(resolveVisibleSelection(active), { source: 'toolbar' });
+        });
+        els.themeBtn.addEventListener('click', () => {
+          const root = document.documentElement;
+          const next = root.dataset.theme === 'light' ? 'dark' : 'light';
+          root.dataset.theme = next;
+          try { window.localStorage.setItem('trainscope-live-theme', next); } catch (_error) {}
+          renderComputeGraph();
+          renderChart();
+          requestAnimationFrame(updateFlowOverlay);
+        });
+        els.phaseRail.addEventListener('click', (event) => {
+          const button = event.target.closest('[data-phase-id]');
+          if (!button) return;
+          setPhase(button.dataset.phaseId, { source: 'phase-rail', syncLens: true });
+        });
+        els.phaseRail.addEventListener('pointerover', (event) => {
+          const button = event.target.closest('[data-phase-id]');
+          if (!button) return;
+          setPhase(button.dataset.phaseId, { source: 'phase-hover', syncLens: true });
+        });
+        els.phaseRail.addEventListener('focusin', (event) => {
+          const button = event.target.closest('[data-phase-id]');
+          if (!button) return;
+          setPhase(button.dataset.phaseId, { source: 'phase-focus', syncLens: true });
+        });
+        els.axisViewButtons.forEach((button) => {
+          button.addEventListener('click', () => setPhysicalView(button.dataset.physicalView));
+          button.addEventListener('mouseenter', () => setPhysicalView(button.dataset.physicalView));
+          button.addEventListener('focus', () => setPhysicalView(button.dataset.physicalView));
+        });
+        window.addEventListener('resize', scheduleGeometryUpdate);
+        ['pointerup', 'pointermove', 'wheel'].forEach((eventName) => {
+          els.computeStage.addEventListener(eventName, scheduleGeometryUpdate, { passive: true });
+        });
+      }
+
+      function renderPhaseRail() {
+        els.phaseRail.innerHTML = phaseDefinitions.map((phase, index) => `
+          <button class="ts-phase-btn" type="button" data-phase-id="${phase.id}" aria-label="${escapeAttr(phaseTip(phase))}" data-tip="${escapeAttr(phaseTip(phase))}">
+            <span class="ts-phase-index">${index + 1}</span>
+            <span class="ts-phase-copy">
+              <strong>${phase.label}</strong>
+              <span>${phase.caption}</span>
+            </span>
+          </button>
+        `).join('');
+        updatePhaseControls();
+      }
+
+      function setPhase(phaseId, options = {}) {
+        if (!phaseById.has(phaseId)) return;
+        currentPhase = phaseId;
+        if (options.syncLens) {
+          const phase = phaseById.get(phaseId);
+          if (phase.lens && parallelViews[phase.lens] && physicalView !== phase.lens) {
+            physicalView = phase.lens;
+            renderRanks();
+          }
+        }
+        updatePhaseControls();
+        updatePhaseHighlight();
+        updatePhysicalState();
+        updateFlowOverlay();
+        updateDock();
+      }
+
+      function updatePhaseControls() {
+        els.phaseRail.querySelectorAll('[data-phase-id]').forEach((button) => {
+          const phase = phaseById.get(button.dataset.phaseId);
+          if (phase) {
+            const tip = phaseTip(phase);
+            button.setAttribute('aria-label', tip);
+            button.dataset.tip = tip;
+          }
+          button.classList.toggle('is-selected', button.dataset.phaseId === currentPhase);
+        });
+      }
+
+      function currentPhaseInfo() {
+        return phaseById.get(currentPhase) || phaseById.get('forward');
+      }
+
+      function phaseTip(phase) {
+        return `一个 step 会按 1→6 顺序执行：Batch → Forward → Loss → Backward → Grad Sync → Update。当前 ${phase.label}：${phaseTextFor(phase, inspectionTarget().rankId || 'rank_19')}`;
+      }
+
+      function renderComputeGraph() {
+        if (graphController && graphController.destroy) graphController.destroy();
+        currentGraph = enrichGraph(window.buildUltraMoE718BGraph({ moeExpanded, expertExpanded }));
+        graphController = window.PtoModelTrainingGraphvizPattern.render(els.computeStage, currentGraph, {
+          ariaLabel: 'openPangu-Ultra-MoE-718B 计算轴',
+          fitMode: 'full',
+          viewportPadding: 22,
+          minReadableZoom: 0.50,
+          colormap: { saturation: 0.45, lightness: 0.38 },
+          onSelect: ({ nodeId, source }) => {
+            if (suppressGraphSelect) return;
+            const rankId = nodeToRank(nodeId);
+            selectObject({ nodeId, rankId }, { source: source || 'graph' });
+          },
+        });
+        tagEpRanks();
+        paintGraphNodes(currentGraph);
+        decorateGraphGrid(currentGraph);
+        bindGraphExpandHotspots();
+        bindGraphHoverLinks();
+        els.moeBtn.textContent = moeExpanded ? '折叠 MoE 层' : '展开 MoE 层';
+        els.expertBtn.textContent = expertExpanded ? '折叠专家' : '展开 32 EP 组';
+        els.expertBtn.disabled = !moeExpanded;
+        requestAnimationFrame(() => {
+          selectCompute(resolveVisibleSelection(active).nodeId);
+          updatePhaseHighlight();
+          updateLinkHighlight();
+        });
+      }
+
+      function enrichGraph(graph) {
+        const byRank = {};
+        const byNode = {};
+        ranks.forEach((rank) => {
+          byRank[rank.rankId] = {
+            expertGroup: rank.ep,
+            nodeIds: [rank.nodeId, 'gate', 'a2a_dispatch', 'a2a_combine'],
+            weightShard: `W_expert shard ${rank.ep}`,
+          };
+          byNode[rank.nodeId] = {
+            relatedNodeIds: ['gate', 'a2a_dispatch', 'a2a_combine', 'shared_expert'],
+            rankIds: [rank.rankId],
+          };
+        });
+        byNode.gate = { relatedNodeIds: ['a2a_dispatch', 'a2a_combine', 'shared_expert'], rankIds: ranks.map((rank) => rank.rankId) };
+        byNode.a2a_dispatch = { relatedNodeIds: ['gate', 'a2a_combine'], rankIds: ranks.map((rank) => rank.rankId) };
+        byNode.a2a_combine = { relatedNodeIds: ['gate', 'a2a_dispatch'], rankIds: ranks.map((rank) => rank.rankId) };
+        byNode.shared_expert = { relatedNodeIds: ['gate', 'a2a_dispatch', 'a2a_combine'], rankIds: ranks.map((rank) => rank.rankId) };
+        return {
+          ...graph,
+          trainingEvidence: {
+            gate: {
+              priority: 'P1',
+              dimension: 'router',
+              metric: 'load_balance_loss / router_z_loss',
+              what: 'Gate 的 top-8 路由分布偏离基线，导致部分路由专家 token 流入不足。',
+              evidence: [
+                'load_balance_loss 从基线 0.18 降至 0.03 附近',
+                'router_z_loss 同窗口抬升，专家负载方差先于 train loss 变化',
+                '共享专家仍稳定，异常集中在路由专家通路',
+              ],
+              action: '先锁定 Gate 和 A2A 分发，再查看 EP19 运行时专家桶与 rank_19。',
+              relatedNodeIds: ['a2a_dispatch', 'expert_group_19', 'a2a_combine', 'shared_expert'],
+              sources: ['SPEC §6 C1', 'mock telemetry'],
+            },
+            a2a_dispatch: {
+              priority: 'P1',
+              dimension: 'communication',
+              metric: 'all-to-all inflow skew',
+              what: 'All-to-All 分发流量出现单 rank 黑洞，dispatch 到 EP19 bucket 的 token 字节数显著低于邻近 rank。',
+              evidence: [
+                'rank_19 inflow 低于同组均值 70% 以上',
+                'rank_18 / rank_20 未出现同幅度下降',
+              ],
+              action: '切到 EP 放置视图并 hover rank_19，检查 expert shard 和路由权重更新。',
+              relatedNodeIds: ['gate', 'expert_group_19', 'a2a_combine'],
+              sources: ['placementMap.byRank.rank_19'],
+            },
+            expert_group_19: {
+              priority: 'P1',
+              dimension: 'expert load',
+              metric: 'token inflow / util',
+              what: 'EP19 bucket 上的 8 个路由专家被饿死，表现为 token 流入和 rank 利用率同步下降。',
+              evidence: [
+                'rank_19 util 约 12%，组内均值约 70%',
+                'expert_load_var 达到当前窗口最大 z-score',
+              ],
+              action: '隔离 rank_19 或临时重平衡专家，保存 step 1997 前后 checkpoint。',
+              relatedNodeIds: ['gate', 'a2a_dispatch', 'a2a_combine', 'shared_expert'],
+              sources: ['deviationRadar.top1', 'commSnapshots.step1997'],
+            },
+          },
+          provenance: {
+            config: 'openPangu-Ultra-MoE-718B config.json',
+            values: {
+              layers: 61,
+              denseLayers: 3,
+              moeLayers: 58,
+              hiddenSize: 7680,
+              routedExperts: 256,
+              sharedExperts: 1,
+              expertsPerToken: 8,
+              epRanks: 32,
+              routedExpertsPerEpBucket: 8,
+              placementScope: 'runtime EP bucket to rank projection',
+            },
+          },
+          placementMap: { byNode, byRank },
+        };
+      }
+
+      function bindGraphExpandHotspots() {
+        bindNodeToggle('moe_block', () => {
+          moeExpanded = true;
+          expertExpanded = false;
+          renderComputeGraph();
+        });
+        bindNodeToggle('expert_mlp', () => {
+          moeExpanded = true;
+          expertExpanded = true;
+          renderComputeGraph();
+        });
+      }
+
+      function bindNodeToggle(nodeId, handler) {
+        const node = els.computeStage.querySelector(`.pto-model-graphviz-node[data-node-id="${nodeId}"]`);
+        if (!node) return;
+        node.addEventListener('dblclick', (event) => {
+          event.stopPropagation();
+          handler();
+        });
+      }
+
+      function bindGraphHoverLinks() {
+        els.computeStage.querySelectorAll('.pto-model-graphviz-node').forEach((nodeEl) => {
+          nodeEl.addEventListener('mouseenter', () => {
+            const nodeId = nodeEl.dataset.nodeId;
+            const rankId = nodeToRank(nodeId);
+            setHoverLink({ nodeId, rankId, source: 'graph' });
+          });
+          nodeEl.addEventListener('mouseleave', () => setHoverLink(null));
+        });
+      }
+
+      function tagEpRanks() {
+        const byId = new Map((currentGraph.nodes || []).map((node) => [node.id, node]));
+        els.computeStage.querySelectorAll('.pto-model-graphviz-node').forEach((nodeEl) => {
+          const node = byId.get(nodeEl.dataset.nodeId);
+          if (node && node.epRank) nodeEl.dataset.epRank = node.epRank;
+        });
+      }
+
+      // 固定语义色表 → 染色钉死，三态/任意 toggle 不漂（引擎调色板按下标动态分配）
+      const GV_SVGNS = 'http://www.w3.org/2000/svg';
+      const gvEl = (t, a) => { const e = document.createElementNS(GV_SVGNS, t); for (const k in (a || {})) e.setAttribute(k, a[k]); return e; };
+      function gvHslHex(h, s, l) {
+        const a = s * Math.min(l, 1 - l);
+        const f = (n) => { const k = (n + h / 30) % 12; const c = l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)); return Math.round(255 * c).toString(16).padStart(2, '0'); };
+        return '#' + f(0) + f(8) + f(4);
+      }
+      const GV_SEM_HUE = {
+        'sem:embedding': 262, 'module:decoder': 222, 'sem:attention': 205, 'sem:norm': 182,
+        'sem:gate': 330, 'sem:comm': 158, 'sem:moe': 280, 'sem:mlp': 118, 'sem:residual': 242,
+        'sem:head': 20, 'module:moe': 288, 'module:model': 215, 'module:mlp': 118,
+      };
+      const GV_SEM_FILL = {}; for (const k in GV_SEM_HUE) GV_SEM_FILL[k] = gvHslHex(GV_SEM_HUE[k], 0.45, 0.46);
+      function paintGraphNodes(graph) {
+        const byId = new Map((graph.nodes || []).map((n) => [n.id, n]));
+        els.computeStage.querySelectorAll('.pto-model-graphviz-node').forEach((el) => {
+          const n = byId.get(el.dataset.nodeId);
+          if (!n || !GV_SEM_FILL[n.colorKey]) return;
+          const rect = el.querySelector('rect');
+          if (!rect) return;
+          rect.setAttribute('fill', GV_SEM_FILL[n.colorKey]);
+          if (n.height > 80) { rect.setAttribute('rx', 20); rect.setAttribute('ry', 20); }  // 高节点钉成圆角矩形，不变椭圆
+        });
+      }
+
+      // EP 桶点阵（每格 8 点 = 8 专家）＋「≠层≠卡」说明 ＋ 居中竖线在专家池分两段
+      function decorateGraphGrid(graph) {
+        if (!graph.gridMeta) return;
+        const svg = els.computeStage.querySelector('svg'); if (!svg) return;
+        const byId = new Map((graph.nodes || []).map((n) => [n.id, n]));
+        els.computeStage.querySelectorAll('.pto-model-graphviz-node[data-ep-rank]').forEach((el) => {
+          const n = byId.get(el.dataset.nodeId); if (!n) return;
+          const rect = el.querySelector('rect');
+          if (rect) { rect.setAttribute('rx', 8); rect.setAttribute('ry', 8); }
+          const lbl = el.querySelector('.pto-model-graphviz-node-label');
+          if (lbl) lbl.setAttribute('y', -n.height / 2 + 11);
+          const cx = [-12.6, -4.2, 4.2, 12.6], cy = [4, 13];
+          for (const y of cy) for (const x of cx) el.appendChild(gvEl('circle', { class: 'ax-expert-dot', cx: x, cy: y, r: 2.6 }));
+        });
+        const sub = gvEl('text', { class: 'ax-grid-sub', x: 620, y: graph.gridMeta.noteY });
+        sub.textContent = 'EP 桶 = 该层 256 专家的运行时切分（≠ 层 · ≠ 卡）';
+        svg.appendChild(sub);
+        if (graph.gridMeta.splitLine) {
+          const disp = byId.get('a2a_dispatch'), comb = byId.get('a2a_combine');
+          const pool = (graph.clusters || []).find((c) => c.id === 'expert_pool');
+          const ref = els.computeStage.querySelector('.pto-model-graphviz-edge');
+          const marker = ref ? ref.getAttribute('marker-end') : null;
+          if (disp && comb && pool) {
+            [[disp.y + disp.height / 2, pool.y], [pool.y + pool.height, comb.y - comb.height / 2]].forEach(([y1, y2]) => {
+              const p = gvEl('path', { class: 'pto-model-graphviz-edge', d: `M 620 ${y1} L 620 ${y2}` });
+              if (marker) p.setAttribute('marker-end', marker);
+              svg.appendChild(p);
+            });
+          }
+        }
+      }
+
+      function renderRanks() {
+        const view = parallelViews[physicalView] || parallelViews.ep;
+        els.rankGrid.dataset.axisView = physicalView;
+        els.rankGrid.setAttribute('aria-label', `${view.label} lens over Ascend 910B runtime placement`);
+        els.rankGrid.innerHTML = ranks.map((rank) => `
+          <button class="ts-rank-node" type="button" data-rank-id="${rank.rankId}" data-card-id="${rank.cardId}" data-ep-rank="${rank.ep}" data-parallel-group="${view.group(rank)}" aria-label="${rank.cardId} ${rank.rankId} ${view.role(rank)}" title="${rank.cardId} · ${rank.rankId} · device ${rank.deviceId} · ${view.role(rank)}">
+            <span class="ts-rank-main">
+              <strong>${rank.cardId.replace('_', '')}</strong>
+              <span data-rank-role>${view.role(rank)}</span>
+            </span>
+            <span class="ts-rank-device">${rank.rankId}</span>
+            <span class="ts-rank-meter" aria-hidden="true"></span>
+            <span class="ts-rank-meta">
+              <span data-util>util --</span>
+              <span data-flow title="token inflow / routed token load">tok --</span>
+            </span>
+          </button>
+        `).join('');
+        els.rankGrid.querySelectorAll('.ts-rank-node').forEach((node) => {
+          node.addEventListener('click', () => {
+            const rankId = node.dataset.rankId;
+            const rank = rankById.get(rankId);
+            selectObject({ nodeId: rank.nodeId, rankId }, { source: 'physical' });
+          });
+          node.addEventListener('mouseenter', () => {
+            const rankId = node.dataset.rankId;
+            setHoverLink({ nodeId: rankToNode(rankId), rankId, source: 'physical' });
+          });
+          node.addEventListener('mouseleave', () => setHoverLink(null));
+        });
+        updatePhysicalViewControls();
+      }
+
+      function setPhysicalView(nextView) {
+        if (!parallelViews[nextView] || physicalView === nextView) return;
+        physicalView = nextView;
+        renderRanks();
+        updatePhysicalState();
+        updateFlowOverlay();
+        updateDock();
+        updateLinkHighlight();
+      }
+
+      function updatePhysicalViewControls() {
+        const view = parallelViews[physicalView] || parallelViews.ep;
+        els.physicalCaption.innerHTML = lensCaptionHtml(view);
+        els.axisViewButtons.forEach((button) => {
+          button.classList.toggle('is-selected', button.dataset.physicalView === physicalView);
+        });
+      }
+
+      function setHoverLink(next) {
+        hoverLink = next;
+        updatePhaseControls();
+        updateLinkHighlight();
+        updateDock();
+      }
+
+      function updateLinkHighlight() {
+        const target = hoverLink || active;
+        const relation = relationForTarget(target);
+        const targetRank = target?.rankId ? rankById.get(target.rankId) : null;
+        const targetGroup = targetRank ? parallelViews[physicalView].group(targetRank) : null;
+        els.rankGrid.querySelectorAll('.ts-rank-node').forEach((node) => {
+          const rankId = node.dataset.rankId;
+          const selected = rankId === active.rankId;
+          const hover = relation.rankIds.has(rankId);
+          const sameActiveGroup = Boolean(targetGroup && node.dataset.parallelGroup === targetGroup);
+          node.classList.toggle('is-hover-linked', hover);
+          node.classList.toggle('is-runtime-linked', !selected && hover);
+          node.classList.toggle('is-related', !selected && !hover && sameActiveGroup);
+        });
+
+        els.computeStage.querySelectorAll('.pto-model-graphviz-node').forEach((node) => {
+          const nodeId = node.dataset.nodeId;
+          const hover = relation.nodeIds.has(nodeId);
+          const activeLinked = Boolean(active.rankId && nodeId === visibleNodeForRank(active.rankId, active.nodeId));
+          node.classList.toggle('is-runtime-hover', hover);
+          node.classList.toggle('is-runtime-linked', !hover && activeLinked);
+        });
+
+      }
+
+      function relationForTarget(target) {
+        const rankIds = new Set();
+        const nodeIds = new Set();
+        const nodeId = target?.nodeId || rankToNode(target?.rankId);
+        const rankId = target?.rankId || nodeToRank(nodeId);
+        if (rankId) rankIds.add(rankId);
+        if (nodeId) {
+          const visible = visibleGraphNodeFor(nodeId);
+          if (visible) nodeIds.add(visible);
+        }
+
+        const byNode = currentGraph?.placementMap?.byNode?.[nodeId];
+        if (byNode) {
+          (byNode.rankIds || []).forEach((id) => rankIds.add(id));
+          (byNode.relatedNodeIds || []).forEach((id) => {
+            const visible = visibleGraphNodeFor(id);
+            if (visible) nodeIds.add(visible);
+          });
+        }
+
+        const byRank = currentGraph?.placementMap?.byRank?.[rankId];
+        if (byRank) {
+          (byRank.nodeIds || []).forEach((id) => {
+            const visible = visibleGraphNodeFor(id);
+            if (visible) nodeIds.add(visible);
+          });
+        }
+
+        const evidence = currentGraph?.trainingEvidence?.[nodeId];
+        if (evidence) {
+          (evidence.relatedNodeIds || []).forEach((id) => {
+            const visible = visibleGraphNodeFor(id);
+            if (visible) nodeIds.add(visible);
+          });
+        }
+
+        if (hoverLink && currentPhaseInfo().nodePath) {
+          currentPhaseInfo().nodePath.forEach((id) => {
+            const visible = visibleGraphNodeFor(id);
+            if (visible) nodeIds.add(visible);
+          });
+        }
+
+        return { rankIds, nodeIds };
+      }
+
+      function lensCaptionHtml(view) {
+        const [head, detail = view.caption] = String(view.caption).split('：');
+        const parts = head.split(' · ');
+        const hardware = (parts[0] || 'Ascend 910B').replace('Ascend ', '');
+        const lens = parts[1] || `${view.label} lens`;
+        return `<span class="ts-lens-chip">${escapeHtml(hardware)}</span><span class="ts-lens-chip">${escapeHtml(lens)}</span><span class="ts-lens-copy">${escapeHtml(detail)}</span>`;
+      }
+
+      function renderChart() {
+        if (lossChartController && lossChartController.destroy) lossChartController.destroy();
+        if (auxChartController && auxChartController.destroy) auxChartController.destroy();
+        const lossSeries = [
+          { id: 'train_loss', label: 'train loss', key: 'train_loss', colorVar: '--highlight-copy-blue-source', axis: 'left', emphasis: true },
+          { id: 'val_loss', label: 'val loss', key: 'val_loss', colorVar: '--highlight-l0a-violet-source', axis: 'left', emphasis: true },
+          { id: 'expected_loss', label: 'expected trend', key: 'expected_loss', colorVar: '--ts-loss-baseline', axis: 'left' },
+          { id: 'previous_run_loss', label: 'previous run', key: 'previous_run_loss', colorVar: '--ts-loss-previous', axis: 'left' },
+          { id: 'spike_threshold', label: 'spike threshold', key: 'spike_threshold', colorVar: '--ts-loss-threshold', axis: 'left' },
+        ];
+        lossChartController = window.PtoTrainingMetricsChart.render(els.lossChart, {
+          steps,
+          series: lossSeries,
+          data: telemetry.series,
+          anomalies: telemetry.anomalies.val_loss,
+          cursor: currentStep,
+          interestWindow,
+          onBrush: (windowRange) => {
+            interestWindow = windowRange;
+            auxChartController?.setInterestWindow(windowRange);
+          },
+          onCursorHover: (step) => {
+            if (Number.isFinite(step)) setStep(step, { source: 'loss-hover', quietRange: true });
+          },
+          tooltip: (step) => lossTooltip(step),
+          options: { width: 1440, height: 188, pad: { t: 16, r: 32, b: 24, l: 42 } },
+        });
+        auxChartController = window.PtoTrainingMetricsChart.render(els.metricChart, {
+          steps,
+          series: [
+            { id: 'eval', label: 'eval MMLU', key: 'eval_mmlu', colorVar: '--highlight-copy-blue-source', axis: 'right' },
+            { id: 'grad', label: 'grad norm', key: 'gradNorm', colorVar: '--highlight-l0a-violet-source', axis: 'left' },
+            { id: 'lb', label: 'load balance loss', key: 'loadBalanceLoss', colorVar: '--highlight-ub-green-source', axis: 'right', emphasis: true },
+            { id: 'z', label: 'router z-loss', key: 'routerZLoss', colorVar: '--highlight-mte-amber-source', axis: 'left' },
+            { id: 'var', label: 'expert load var', key: 'expertLoadVar', colorVar: '--highlight-accum-orange-source', axis: 'left', emphasis: true },
+          ],
+          data: telemetry.series,
+          anomalies: [
+            { step: ANOMALY_STEP, seriesId: 'lb' },
+            { step: ANOMALY_STEP, seriesId: 'var' },
+            { step: ANOMALY_STEP + 1, seriesId: 'z' },
+          ],
+          cursor: currentStep,
+          interestWindow,
+          onBrush: (windowRange) => {
+            interestWindow = windowRange;
+            lossChartController?.setInterestWindow(windowRange);
+          },
+          onCursorHover: (step) => {
+            if (Number.isFinite(step)) setStep(step, { source: 'aux-hover', quietRange: true });
+          },
+          options: { width: 1440, height: 112, pad: { t: 10, r: 26, b: 18, l: 42 }, compact: true },
+        });
+        requestAnimationFrame(() => tagChartSeries(els.lossChart, lossSeries));
+      }
+
+      function setStep(step, options = {}) {
+        currentStep = Math.max(STEP_MIN, Math.min(STEP_MAX, Math.round(step)));
+        els.stepChip.textContent = `step ${currentStep}`;
+        if (!options.quietRange) {
+          lossChartController?.setCursor(currentStep);
+          auxChartController?.setCursor(currentStep);
+        }
+        if (options.source !== 'phase-rail') {
+          const inferredPhase = inferPhaseForStep(currentStep);
+          if (inferredPhase !== currentPhase) setPhase(inferredPhase, { source: 'step', syncLens: false });
+        }
+        const radar = deviationRadar(currentStep);
+        els.topAlertChip.textContent = `${radar[0].severity} · ${radar[0].id} 偏差 +${radar[0].zScore.toFixed(1)}σ`;
+        updatePhysicalState();
+        updateFlowOverlay();
+        updateDock();
+        scheduleGeometryUpdate();
+      }
+
+      function inferPhaseForStep(step) {
+        if (step >= ANOMALY_STEP - 1 && step <= ANOMALY_STEP + 5) return 'forward';
+        if (step > ANOMALY_STEP + 5 && step <= ANOMALY_STEP + 12) return 'backward';
+        return 'loss';
+      }
+
+      function lossTooltip(step) {
+        if (step < ANOMALY_STEP - 1) return 'train/val 贴近 expected trend，previous run 作为同窗口对照。';
+        if (step === ANOMALY_STEP) return 'val loss 触碰 threshold；前导指标先偏，hover 会定位到 Forward/Gate。';
+        if (step <= ANOMALY_STEP + 5) return 'val loss 超出健康带，Gate → A2A → expert bucket 是当前解释路径。';
+        return 'loss 偏差回落但仍高于 expected trend，继续观察 Backward/Grad Sync 放大效应。';
+      }
+
+      function selectObject(next, options = {}) {
+        const resolved = resolveVisibleSelection(next);
+        active = { ...resolved, source: options.source || 'api' };
+        selectCompute(active.nodeId);
+        updatePhysicalSelection();
+        updateDock();
+        scheduleGeometryUpdate();
+      }
+
+      function resolveVisibleSelection(next) {
+        const rankId = next.rankId || nodeToRank(next.nodeId);
+        let nodeId = next.nodeId || rankToNode(rankId);
+        if (nodeId && !hasGraphNode(nodeId)) {
+          nodeId = moeExpanded ? 'expert_mlp' : 'moe_block';
+        }
+        return { nodeId, rankId };
+      }
+
+      function selectCompute(nodeId) {
+        if (!graphController || !nodeId || !hasGraphNode(nodeId)) return;
+        const relatedNodeIds = relatedNodes(nodeId, active.rankId);
+        suppressGraphSelect = true;
+        graphController.selectNode(nodeId, { relatedNodeIds, source: 'bridge' });
+        suppressGraphSelect = false;
+        updatePhaseHighlight();
+      }
+
+      function hasGraphNode(nodeId) {
+        return Boolean(currentGraph && currentGraph.nodes && currentGraph.nodes.some((node) => node.id === nodeId));
+      }
+
+      function relatedNodes(nodeId, rankId) {
+        const related = new Set(['gate', 'a2a_dispatch', 'a2a_combine']);
+        currentPhaseInfo().nodePath.forEach((id) => {
+          const visible = visibleGraphNodeFor(id);
+          if (visible) related.add(visible);
+        });
+        const evidence = currentGraph?.trainingEvidence?.[nodeId];
+        if (evidence) (evidence.relatedNodeIds || []).forEach((id) => related.add(id));
+        if (rankId) {
+          const node = rankToNode(rankId);
+          if (node) related.add(node);
+        }
+        if (nodeId) related.add(nodeId);
+        return Array.from(related).filter((id) => hasGraphNode(id));
+      }
+
+      function updatePhaseHighlight() {
+        const phase = currentPhaseInfo();
+        const visiblePath = new Set(phase.nodePath.map(visibleGraphNodeFor).filter(Boolean));
+        els.computeStage.querySelectorAll('.pto-model-graphviz-node').forEach((nodeEl) => {
+          const nodeId = nodeEl.dataset.nodeId;
+          nodeEl.classList.toggle('is-phase-node', visiblePath.has(nodeId));
+          nodeEl.classList.toggle('is-update-node', phase.id === 'update' && visiblePath.has(nodeId));
+        });
+      }
+
+      function visibleGraphNodeFor(nodeId) {
+        if (nodeId && hasGraphNode(nodeId)) return nodeId;
+        if (nodeId === 'expert_group_19' && hasGraphNode('expert_mlp')) return 'expert_mlp';
+        if ((nodeId === 'expert_group_19' || nodeId === 'gate' || nodeId === 'a2a_dispatch' || nodeId === 'a2a_combine') && hasGraphNode('moe_block')) return 'moe_block';
+        return null;
+      }
+
+      function updatePhysicalState() {
+        const snapshot = physicalSnapshot(currentStep, physicalView);
+        els.rankGrid.querySelectorAll('.ts-rank-node').forEach((node) => {
+          const rankId = node.dataset.rankId;
+          const info = snapshot.byRank[rankId];
+          const heat = Math.round(Math.max(8, Math.min(34, info.util * 34)));
+          const flow = Math.round(Math.max(4, Math.min(100, info.inflow * 100)));
+          node.style.setProperty('--rank-heat', `${heat}%`);
+          node.style.setProperty('--rank-flow', `${flow}%`);
+          node.classList.toggle('is-alert', info.zScore >= 3.6);
+          node.classList.toggle('is-warn', info.zScore >= 2.0 && info.zScore < 3.6);
+          node.querySelector('[data-util]').textContent = `u${Math.round(info.util * 100)}`;
+          node.querySelector('[data-flow]').textContent = `tok${Math.round(info.inflow * 100)}`;
+        });
+        updatePhysicalSelection();
+      }
+
+      function updatePhysicalSelection() {
+        els.rankGrid.querySelectorAll('.ts-rank-node').forEach((node) => {
+          node.classList.toggle('is-selected', node.dataset.rankId === active.rankId);
+        });
+        updateLinkHighlight();
+      }
+
+      function updateFlowOverlay() {
+        const rect = els.physicalCanvas.getBoundingClientRect();
+        els.flowSvg.setAttribute('viewBox', `0 0 ${Math.max(1, rect.width)} ${Math.max(1, rect.height)}`);
+        els.flowSvg.innerHTML = '';
+        const snapshot = physicalSnapshot(currentStep, physicalView);
+        const phase = currentPhaseInfo();
+        els.flowLabels.innerHTML = [
+          `${phase.primitive === 'none' ? 'no collective' : phase.primitive}`,
+          `${parallelViews[physicalView].label} overlay`,
+          `${snapshot.flows.length} flows`,
+        ].map((label) => `<span class="ts-flow-label">${label}</span>`).join('');
+        snapshot.flows.forEach((flow) => {
+          const src = rankButton(flow.src);
+          const dst = rankButton(flow.dst);
+          if (!src || !dst) return;
+          const a = centerOf(src, els.physicalCanvas);
+          const b = centerOf(dst, els.physicalCanvas);
+          const dx = Math.abs(a.x - b.x);
+          const midX = (a.x + b.x) / 2;
+          const d = dx > 4
+            ? `M ${a.x.toFixed(1)} ${a.y.toFixed(1)} C ${midX.toFixed(1)} ${a.y.toFixed(1)}, ${midX.toFixed(1)} ${b.y.toFixed(1)}, ${b.x.toFixed(1)} ${b.y.toFixed(1)}`
+            : `M ${a.x.toFixed(1)} ${a.y.toFixed(1)} L ${b.x.toFixed(1)} ${b.y.toFixed(1)}`;
+          const railWidth = Math.max(1.8, flow.width * 0.9);
+          const coreWidth = Math.max(3.0, flow.width + 1.8);
+          const offset = Math.max(3.2, Math.min(5.6, coreWidth));
+          const railA = makeFlowPath(d, `ts-flow-link is-rail ${flow.className}`, railWidth, `translate(0 ${-offset.toFixed(1)})`);
+          const railB = makeFlowPath(d, `ts-flow-link is-rail ${flow.className}`, railWidth, `translate(0 ${offset.toFixed(1)})`);
+          const core = makeFlowPath(d, `ts-flow-link is-core ${flow.className}`, coreWidth);
+          const title = document.createElementNS(svgNS, 'title');
+          title.textContent = `${flow.primitive || phase.primitive} ${flow.src} → ${flow.dst} · ${Math.round((flow.bytes || 0) / 1e6)}MB`;
+          core.appendChild(title);
+          els.flowSvg.appendChild(railA);
+          els.flowSvg.appendChild(railB);
+          els.flowSvg.appendChild(core);
+        });
+      }
+
+      function makeFlowPath(d, className, width, transform = '') {
+        const line = document.createElementNS(svgNS, 'path');
+        line.setAttribute('d', d);
+        line.setAttribute('class', className);
+        line.setAttribute('stroke-width', String(width));
+        if (transform) line.setAttribute('transform', transform);
+        return line;
+      }
+
+      function scheduleGeometryUpdate() {
+        window.requestAnimationFrame(() => {
+          updateFlowOverlay();
+          updateLinkHighlight();
+        });
+      }
+
+      function updateDock() {
+        const target = inspectionTarget();
+        const rankId = target.rankId || nodeToRank(target.nodeId) || 'rank_19';
+        const nodeId = target.nodeId || rankToNode(rankId) || 'expert_group_19';
+        const phase = currentPhaseInfo();
+        const idx = stepIndex(currentStep);
+        const localSeries = telemetry.rankSeries[rankId] || telemetry.rankSeries.rank_19;
+        const localLoss = localSeries.local_loss[idx] || telemetry.series.train_loss[idx];
+        const globalLoss = telemetry.series.train_loss[idx] || localLoss;
+        const contribution = Math.max(0, Math.min(1, localSeries.contribution[idx] || 0.5));
+        els.lossMeta.textContent = `step ${currentStep} · ${phase.label} · ${rankId} · ${nodeId}`;
+        els.lossMeta.title = phaseTextFor(phase, rankId);
+        els.rankLossLabel.textContent = `${rankId} local loss contribution`;
+        els.rankLossBand.style.setProperty('--loss-rank-width', `${Math.round(contribution * 100)}%`);
+        els.rankLossValue.textContent = `${localLoss.toFixed(3)} / global ${globalLoss.toFixed(3)}`;
+      }
+
+      function stepIndex(step) {
+        return Math.max(0, Math.min(steps.length - 1, step - STEP_MIN));
+      }
+
+      function inspectionTarget() {
+        return hoverLink || active || { nodeId: 'expert_group_19', rankId: 'rank_19' };
+      }
+
+      function shortNodeLabel(nodeId) {
+        const map = {
+          token_ids: 'Batch',
+          embedding: 'Embed',
+          moe_prenorm: 'PreNorm',
+          gate: 'Gate',
+          a2a_dispatch: 'A2A',
+          expert_group_19: 'EP19',
+          a2a_combine: 'Combine',
+          lm_head: 'LM Head',
+          logits: 'Loss',
+        };
+        return map[nodeId] || nodeId;
+      }
+
+      function phaseTextFor(phase, rankId) {
+        if (phase.id === 'forward') return `Forward phase 把 token 经 Gate 路由到 runtime expert buckets；物理轴用 ${parallelViews[physicalView].label} lens 叠加 ${phase.primitive} 流量，当前关注 ${rankId}。`;
+        if (phase.id === 'loss') return 'Loss phase 只在底部主图观察 global train/val loss 与 eval 变化；物理轴不强行画通信边。';
+        if (phase.id === 'backward') return `Backward phase 观察梯度从 loss 回传到 MoE/Gate；若 expert bucket 被饿死，local grad 和 update ratio 会同时偏。`;
+        if (phase.id === 'sync') return 'Grad Sync phase 在 910B 底图上叠加 DP/TP all-reduce，同步慢点会表现为 group pulse 异常。';
+        if (phase.id === 'update') return `Optimizer Update phase 表达参数正在更新，重点看 Gate/expert shard 的 update ratio，而不是逐参数动画。`;
+        return 'Batch phase 对齐本 step 的输入样本和 rank batch shard。';
+      }
+
+      function makeTelemetry(allSteps) {
+        const series = {
+          train_loss: [],
+          val_loss: [],
+          expected_loss: [],
+          previous_run_loss: [],
+          spike_threshold: [],
+          eval_mmlu: [],
+          gradNorm: [],
+          loadBalanceLoss: [],
+          routerZLoss: [],
+          expertLoadVar: [],
+        };
+        const rankSeries = {};
+        ranksForTelemetry().forEach((rankId) => {
+          rankSeries[rankId] = { local_loss: [], contribution: [] };
+        });
+        allSteps.forEach((step, index) => {
+          const severity = currentSeverity(step);
+          const drift = Math.max(0, step - ANOMALY_STEP);
+          const progress = index / Math.max(1, allSteps.length - 1);
+          const expected = 2.245 - progress * 0.085 + Math.sin(index / 22) * 0.004;
+          const previous = expected + 0.018 + Math.sin(index / 9) * 0.006;
+          const trainNoise = Math.sin(index * 1.7) * 0.006 + Math.cos(index / 3) * 0.004;
+          const valNoise = Math.sin(index / 2.6) * 0.008;
+          const trainBump = severity * 0.018;
+          const valBump = severity * 0.062 + Math.max(0, drift - 2) * 0.0016;
+          series.expected_loss.push(+expected.toFixed(4));
+          series.previous_run_loss.push(+previous.toFixed(4));
+          series.spike_threshold.push(+(expected + 0.095).toFixed(4));
+          series.train_loss.push(+(expected + trainNoise + trainBump).toFixed(4));
+          series.val_loss.push(+(expected + 0.032 + valNoise + valBump).toFixed(4));
+          series.eval_mmlu.push(+Math.max(0.31, 0.552 + progress * 0.026 - severity * 0.011 + Math.sin(index / 12) * 0.003).toFixed(4));
+          series.gradNorm.push(+(1.05 + Math.sin(index / 7) * 0.018 + severity * 0.16).toFixed(4));
+          series.loadBalanceLoss.push(+Math.max(0.014, 0.096 + Math.sin(index / 6) * 0.006 - severity * 0.052).toFixed(4));
+          series.routerZLoss.push(+(0.62 + Math.cos(index / 8) * 0.024 + severity * 0.23).toFixed(4));
+          series.expertLoadVar.push(+(0.15 + Math.sin(index / 5) * 0.012 + severity * 0.44).toFixed(4));
+          Object.keys(rankSeries).forEach((rankId) => {
+            const isAlert = rankId === `rank_${ALERT_EP}`;
+            const localBump = isAlert ? severity * 0.14 : severity * 0.026 * (rankId.endsWith('18') || rankId.endsWith('20') ? 1 : 0.25);
+            rankSeries[rankId].local_loss.push(+(expected + 0.018 + localBump + Math.sin((index + Number(rankId.slice(-2))) / 5) * 0.006).toFixed(4));
+            rankSeries[rankId].contribution.push(+(0.42 + localBump * 1.8).toFixed(4));
+          });
+        });
+        const anomalies = { val_loss: [], train_loss: [], eval_mmlu: [] };
+        allSteps.forEach((step, index) => {
+          if (step >= ANOMALY_STEP - 1 && series.val_loss[index] > series.spike_threshold[index]) anomalies.val_loss.push({ step, seriesId: 'val_loss' });
+        });
+        return { series, rankSeries, anomalies };
+      }
+
+      function ranksForTelemetry() {
+        return Array.from({ length: 32 }, (_item, index) => `rank_${String(index).padStart(2, '0')}`);
+      }
+
+      function currentSeverity(step) {
+        const d = (step - ANOMALY_STEP) / 9;
+        return Math.exp(-(d * d));
+      }
+
+      function deviationRadar(step) {
+        const z = currentSeverity(step);
+        return [
+          {
+            objectType: 'expert_group',
+            id: 'expert_group_19',
+            label: 'expert_group_19 · EP19 bucket',
+            zScore: 1.4 + z * 3.4,
+            severity: z > 0.55 ? 'P1' : 'P2',
+            signal: 'expert load var',
+            leadIndicator: 'token inflow 断崖',
+          },
+          {
+            objectType: 'rank',
+            id: 'rank_19',
+            label: 'rank_19 · 物理卡',
+            zScore: 1.2 + z * 3.1,
+            severity: z > 0.55 ? 'P1' : 'P2',
+            signal: 'util / inflow',
+            leadIndicator: 'A2A 黑洞',
+          },
+          {
+            objectType: 'node',
+            id: 'gate',
+            label: 'Gate · top-8 router',
+            zScore: 1.0 + z * 2.8,
+            severity: z > 0.65 ? 'P1' : 'P2',
+            signal: 'load balance loss',
+            leadIndicator: '先于 loss 偏移',
+          },
+          {
+            objectType: 'node',
+            id: 'a2a_dispatch',
+            label: 'All-to-All dispatch',
+            zScore: 0.9 + z * 2.5,
+            severity: z > 0.70 ? 'P2' : 'P3',
+            signal: 'flow skew',
+            leadIndicator: 'EP19 入流偏低',
+          },
+        ].sort((a, b) => b.zScore - a.zScore);
+      }
+
+      function physicalSnapshot(step, viewName = 'ep') {
+        const z = currentSeverity(step);
+        const byRank = {};
+        ranks.forEach((rank, index) => {
+          const base = 0.68 + Math.sin((step + index * 3) / 17) * 0.07;
+          const distance = Math.abs(Number(rank.ep) - Number(ALERT_EP));
+          const neighborLift = distance <= 1 ? z * 0.12 : 0;
+          const isAlert = rank.ep === ALERT_EP;
+          const util = isAlert ? Math.max(0.10, base - z * 0.58) : Math.min(0.94, base + neighborLift);
+          const inflow = isAlert ? Math.max(0.08, 0.72 - z * 0.62) : Math.min(0.98, 0.70 + neighborLift);
+          byRank[rank.rankId] = {
+            util,
+            inflow,
+            zScore: isAlert ? 1.2 + z * 3.1 : Math.max(0, (neighborLift * 10)),
+          };
+        });
+
+        const flows = flowsForView(viewName, byRank, z, currentPhaseInfo());
+        return { byRank, flows };
+      }
+
+      function flowsForView(viewName, byRank, z, phase) {
+        const flows = [];
+        if (phase.primitive === 'none') return flows;
+        if (phase.id === 'sync') {
+          ranks.forEach((rank) => {
+            if (rank.row < 3) {
+              const dst = rankAt(rank.row + 1, rank.col);
+              if (dst) flows.push(plainFlow(rank.rankId, dst.rankId, byRank[dst.rankId], z, 'is-sync', 'allreduce'));
+            }
+          });
+          return flows;
+        }
+        if (phase.id === 'update') {
+          ranks.forEach((rank) => {
+            if (rank.col < 7 && rank.row === 2) {
+              const dst = rankAt(rank.row, rank.col + 1);
+              if (dst) flows.push(plainFlow(rank.rankId, dst.rankId, byRank[dst.rankId], z, 'is-hot', 'optimizer update'));
+            }
+          });
+          return flows;
+        }
+        if (viewName === 'pp') {
+          ranks.forEach((rank) => {
+            if (rank.col === 1 || rank.col === 3 || rank.col === 5) {
+              const dst = rankAt(rank.row, rank.col + 1);
+              if (dst) flows.push(plainFlow(rank.rankId, dst.rankId, byRank[dst.rankId], z, '', 'p2p'));
+            }
+          });
+          return flows;
+        }
+        if (viewName === 'cp') {
+          ranks.forEach((rank) => {
+            if (rank.row < 3 && rank.col % 2 === 0) {
+              const dst = rankAt(rank.row + 1, rank.col);
+              if (dst) flows.push(plainFlow(rank.rankId, dst.rankId, byRank[dst.rankId], z, '', 'allgather'));
+            }
+            if (rank.col < 7 && rank.col % 2 === 1) {
+              const dst = rankAt(rank.row, rank.col + 1);
+              if (dst) flows.push(plainFlow(rank.rankId, dst.rankId, byRank[dst.rankId], z, '', 'allgather'));
+            }
+          });
+          return flows;
+        }
+        if (viewName === 'dp') {
+          ranks.forEach((rank) => {
+            if (rank.row < 3) {
+              const dst = rankAt(rank.row + 1, rank.col);
+              if (dst) flows.push(plainFlow(rank.rankId, dst.rankId, byRank[dst.rankId], z, 'is-sync', 'allreduce'));
+            }
+          });
+          return flows;
+        }
+        if (viewName === 'tp') {
+          ranks.forEach((rank) => {
+            if (rank.col < 7) {
+              const dst = rankAt(rank.row, rank.col + 1);
+              if (dst) flows.push(plainFlow(rank.rankId, dst.rankId, byRank[dst.rankId], z, '', 'reducescatter'));
+            }
+          });
+          return flows;
+        }
+        ranks.forEach((rank) => {
+          if (rank.col < 7) {
+            const dst = rankAt(rank.row, rank.col + 1);
+            if (dst) flows.push(epFlowFor(rank.rankId, dst.rankId, byRank[dst.rankId], z));
+          }
+          if (rank.row < 3 && rank.col % 2 === 1) {
+            const dst = rankAt(rank.row + 1, rank.col);
+            if (dst) flows.push(epFlowFor(rank.rankId, dst.rankId, byRank[dst.rankId], z));
+          }
+        });
+        flows.push({
+          src: 'rank_11',
+          dst: 'rank_19',
+          width: 1.2,
+          className: z > 0.45 ? 'is-alert' : 'is-weak',
+          primitive: 'all2all',
+          bytes: 120e6,
+        });
+        return flows;
+      }
+
+      function epFlowFor(src, dst, dstInfo, z) {
+        const weak = dst === 'rank_19';
+        const hot = ['rank_18', 'rank_20'].includes(dst) && z > 0.45;
+        return {
+          src,
+          dst,
+          width: weak ? Math.max(0.9, 3.8 - z * 2.5) : (hot ? 3.4 : 1.4 + dstInfo.inflow * 2.0),
+          className: weak ? 'is-weak' : (hot ? 'is-hot' : ''),
+          primitive: 'all2all',
+          bytes: weak ? 48e6 : (hot ? 1100e6 : 720e6),
+        };
+      }
+
+      function plainFlow(src, dst, dstInfo, z, extraClass = '', primitive = 'allreduce') {
+        const alert = dst === `rank_${ALERT_EP}` && z > 0.45;
+        return {
+          src,
+          dst,
+          width: alert ? 2.8 : 1.2 + dstInfo.inflow * 1.8,
+          className: [alert ? 'is-alert' : '', extraClass].filter(Boolean).join(' '),
+          primitive,
+          bytes: alert ? 180e6 : 640e6,
+        };
+      }
+
+      function rankAt(row, col) {
+        return ranks.find((rank) => rank.row === row && rank.col === col);
+      }
+
+      function centerOf(node, root) {
+        const a = node.getBoundingClientRect();
+        const b = root.getBoundingClientRect();
+        return {
+          x: a.left - b.left + a.width / 2,
+          y: a.top - b.top + a.height / 2,
+        };
+      }
+
+      function visibleNodeForRank(rankId, preferredNodeId) {
+        if (preferredNodeId && hasGraphNode(preferredNodeId)) return preferredNodeId;
+        const directNodeId = rankToNode(rankId);
+        if (directNodeId && hasGraphNode(directNodeId)) return directNodeId;
+        if (hasGraphNode('expert_mlp')) return 'expert_mlp';
+        if (hasGraphNode('moe_block')) return 'moe_block';
+        return preferredNodeId || directNodeId;
+      }
+
+      function tagChartSeries(container, series) {
+        const lines = Array.from(container.querySelectorAll('.pto-tmchart__line'));
+        lines.forEach((line, index) => {
+          const id = series[index]?.id;
+          if (!id) return;
+          line.dataset.seriesId = id;
+          line.classList.toggle('is-baseline', id === 'expected_loss');
+          line.classList.toggle('is-previous', id === 'previous_run_loss');
+          line.classList.toggle('is-threshold', id === 'spike_threshold');
+        });
+      }
+
+      function escapeHtml(value) {
+        return String(value ?? '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function escapeAttr(value) {
+        return escapeHtml(value);
+      }
+
+      function rankButton(rankId) {
+        return els.rankGrid.querySelector(`.ts-rank-node[data-rank-id="${rankId}"]`);
+      }
+
+      function nodeToRank(nodeId) {
+        const match = /^expert_group_(\d{2})$/.exec(String(nodeId || ''));
+        return match ? `rank_${match[1]}` : null;
+      }
+
+      function rankToNode(rankId) {
+        const match = /^rank_(\d{2})$/.exec(String(rankId || ''));
+        return match ? `expert_group_${match[1]}` : null;
+      }
+    })();
+  </script>
+</body>
+</html>

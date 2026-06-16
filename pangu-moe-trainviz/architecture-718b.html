@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>openPangu-Ultra-MoE-718B · 计算轴架构图</title>
+  <script>
+    (() => {
+      const params = new URLSearchParams(window.location.search);
+      const stored = window.localStorage && window.localStorage.getItem('ultramoe-718b-theme');
+      const theme = params.get('theme') || stored;
+      if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
+    })();
+  </script>
+  <!-- 设计系统 token + 基线 -->
+  <link rel="stylesheet" href="../vendor/pto-design-system/tokens/foundation.css">
+  <link rel="stylesheet" href="../vendor/pto-design-system/tokens/semantic.css">
+  <link rel="stylesheet" href="../vendor/pto-design-system/tokens/components.css">
+  <link rel="stylesheet" href="../vendor/pto-design-system/css/style.css">
+  <!-- 渲染引擎 pattern CSS（model-graphviz → model-training-graphviz）-->
+  <link rel="stylesheet" href="../vendor/pto-design-system/patterns/model-graphviz/pattern.css">
+  <link rel="stylesheet" href="../vendor/pto-design-system/patterns/model-training-graphviz/pattern.css">
+  <style>
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; }
+    /* body 带 pto-model-graphviz-pattern-page 类 → --model-graphviz-* 变量由 pattern.css 提供，
+       绕开「消费页缺该类导致边/箭头变黑」的变量作用域坑。 */
+    body {
+      display: flex; flex-direction: column; height: 100vh; overflow: hidden;
+      background: var(--background); color: var(--foreground);
+      font-family: var(--font-sans); font-size: 12px;
+    }
+    .ax-header {
+      flex: 0 0 auto; display: flex; align-items: center; gap: var(--space-3);
+      padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border-subtle);
+    }
+    .ax-title { font-size: 16px; font-weight: var(--font-weight-semibold); margin: 0; }
+    .ax-sub { color: var(--foreground-secondary); font-size: 12px; }
+    .ax-spacer { margin-left: auto; }
+    .ax-btn {
+      font: inherit; font-size: 12px; color: var(--foreground); cursor: pointer;
+      background: var(--surface-1); border: 1px solid var(--border-default);
+      border-radius: var(--radius-sm); padding: 5px 12px;
+    }
+    .ax-btn:hover, .ax-btn:focus-visible { border-color: var(--border-strong); outline: none; }
+    .ax-btn:disabled { opacity: 0.42; cursor: default; }
+    /* 簇自带的 toggle 在本页不接逻辑 → 隐藏，避免出现点不动的 +/− */
+    .ax-stage .pto-model-graphviz-cluster .pto-model-graphviz-toggle,
+    .ax-stage .pto-model-graphviz-cluster .pto-model-graphviz-toggle-icon { display: none; }
+    .ax-theme { width: 32px; height: 30px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+    /* 蓝图点阵背景（token 配色、克制）*/
+    .ax-stage {
+      flex: 1 1 auto; min-height: 0;
+      background-color: var(--background);
+      background-image: radial-gradient(circle, color-mix(in srgb, var(--foreground) 13%, transparent) 1.1px, transparent 1.2px);
+      background-size: 22px 22px; background-position: 11px 11px;
+    }
+    /* 隐藏算子第二行 typeLabel，主名上下居中（与产品页一致的克制处理）*/
+    .ax-stage .pto-model-graphviz-node.is-op .pto-model-graphviz-node-type { display: none; }
+    .ax-stage .pto-model-graphviz-node.is-op .pto-model-graphviz-node-label { dominant-baseline: central; transform: translateY(4px); }
+    .ax-stage .pto-model-graphviz-cluster-label { font-size: 12px; }
+    .ax-stage .pto-model-graphviz-toggle { cursor: pointer; }
+    /* 浅色主题下簇/标签底色减淡，避免压过节点 */
+    :root[data-theme='light'] .ax-stage .pto-model-graphviz-cluster-title-bg,
+    :root[data-theme='light'] .ax-stage .pto-model-graphviz-cluster-title-tag,
+    :root[data-theme='light'] .ax-stage .pto-model-graphviz-node rect,
+    :root[data-theme='light'] .ax-stage .pto-model-training-edge-tag rect { fill-opacity: 0.5; }
+    /* EP 桶格子：标签贴顶（让出下方空间给 8 点点阵），不走 op 居中规则 */
+    .ax-stage .pto-model-graphviz-node[data-ep-rank] .pto-model-graphviz-node-label {
+      dominant-baseline: auto; transform: none; font-size: 9px; font-weight: var(--font-weight-medium);
+    }
+    .ax-grid-cap { fill: var(--foreground); font-size: 13px; font-weight: var(--font-weight-semibold); text-anchor: middle; }
+    .ax-grid-sub { fill: var(--foreground-secondary); font-size: 11px; text-anchor: middle; }
+    .ax-expert-dot { fill: color-mix(in srgb, var(--foreground) 82%, transparent); }
+    /* hover tip：PTO token 卡片，跟随光标 */
+    .ax-tip {
+      position: fixed; z-index: 50; max-width: 268px; pointer-events: none; opacity: 0;
+      transition: opacity .12s ease; background: var(--surface-1);
+      border: 1px solid var(--border-default); border-radius: var(--radius-md);
+      padding: 9px 11px; box-shadow: var(--shadow-md, 0 6px 20px rgba(0,0,0,.28));
+    }
+    .ax-tip.is-on { opacity: 1; }
+    .ax-tip-title { font-size: 12px; font-weight: var(--font-weight-semibold); color: var(--foreground); margin-bottom: 3px; }
+    .ax-tip-body { font-size: 11px; line-height: 1.5; color: var(--foreground-secondary); }
+    .ax-stage .pto-model-graphviz-node { cursor: default; }
+  </style>
+</head>
+<body class="pto-model-graphviz-pattern-page">
+  <header class="ax-header">
+    <h1 class="ax-title">openPangu-Ultra-MoE-718B</h1>
+    <span class="ax-sub">计算轴架构图 · 61 层（Dense×3 + MoE×58）+ MTP×1 · 256 路由 + 1 共享专家 · top-8</span>
+    <span class="ax-spacer"></span>
+    <button class="ax-btn" id="fold-btn" type="button">展开 MoE 层</button>
+    <button class="ax-btn" id="expert-btn" type="button" disabled>展开 32 EP 组</button>
+    <button class="ax-btn ax-theme" id="theme-btn" type="button" aria-label="切换明暗主题">◐</button>
+  </header>
+  <main class="ax-stage" id="stage" aria-label="openPangu-Ultra-MoE-718B 计算轴架构图"></main>
+  <div class="ax-tip" id="tip" role="tooltip"><div class="ax-tip-title" id="tip-title"></div><div class="ax-tip-body" id="tip-body"></div></div>
+
+  <!-- 渲染引擎（model-graphviz → model-training-graphviz）→ 图数据 → 初始化 -->
+  <script src="../vendor/pto-design-system/patterns/model-graphviz/pattern.js"></script>
+  <script src="../vendor/pto-design-system/patterns/model-training-graphviz/pattern.js"></script>
+  <script src="data/graph-ultramoe-718b.js"></script>
+  <script>
+    (() => {
+      const stage = document.getElementById('stage');
+      const foldBtn = document.getElementById('fold-btn');
+      const expertBtn = document.getElementById('expert-btn');
+      const themeBtn = document.getElementById('theme-btn');
+      let controller = null, moeExpanded = false, expertExpanded = false;
+
+      // 节点自带 + 钮 → 接展开（按 nodeId 可靠匹配；折叠走顶部按钮）
+      function bindNodeToggle(nodeId, handler) {
+        const el = Array.from(stage.querySelectorAll('.pto-model-graphviz-node'))
+          .find(n => n.dataset.nodeId === nodeId);
+        if (!el) return;
+        el.querySelectorAll('.pto-model-graphviz-toggle, .pto-model-graphviz-toggle-icon').forEach(t => {
+          t.style.cursor = 'pointer';
+          t.addEventListener('pointerdown', e => e.stopPropagation());
+          t.addEventListener('click', e => { e.stopPropagation(); handler(); });
+        });
+      }
+
+      // 桥钩子：把 epRank 落到 DOM（本步只写不联动，给后续物理轴用）
+      function tagEpRanks(graph) {
+        const byId = new Map(graph.nodes.map(n => [n.id, n]));
+        stage.querySelectorAll('.pto-model-graphviz-node').forEach(el => {
+          const n = byId.get(el.dataset.nodeId);
+          if (n && n.epRank) el.dataset.epRank = n.epRank;
+        });
+      }
+
+      const SVGNS = 'http://www.w3.org/2000/svg';
+      const svgEl = (t, a) => { const e = document.createElementNS(SVGNS, t); for (const k in (a || {})) e.setAttribute(k, a[k]); return e; };
+
+      // ① 固定语义色表 → 染色钉死，三态/任意 toggle 不漂（引擎调色板是按下标动态分配的）
+      function hslHex(h, s, l) {
+        const a = s * Math.min(l, 1 - l);
+        const f = n => { const k = (n + h / 30) % 12; const c = l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)); return Math.round(255 * c).toString(16).padStart(2, '0'); };
+        return '#' + f(0) + f(8) + f(4);
+      }
+      const SEM_HUE = {
+        'sem:embedding': 262, 'module:decoder': 222, 'sem:attention': 205, 'sem:norm': 182,
+        'sem:gate': 330, 'sem:comm': 158, 'sem:moe': 280, 'sem:mlp': 118, 'sem:residual': 242,
+        'sem:head': 20, 'module:moe': 288, 'module:model': 215, 'module:mlp': 118,
+      };
+      const SEM_FILL = {}; for (const k in SEM_HUE) SEM_FILL[k] = hslHex(SEM_HUE[k], 0.45, 0.46);
+      function paintNodes(graph) {
+        const byId = new Map(graph.nodes.map(n => [n.id, n]));
+        stage.querySelectorAll('.pto-model-graphviz-node').forEach(el => {
+          const n = byId.get(el.dataset.nodeId);
+          if (!n || !SEM_FILL[n.colorKey]) return;
+          const rect = el.querySelector('rect');
+          if (!rect) return;
+          rect.setAttribute('fill', SEM_FILL[n.colorKey]);
+          // 引擎给 op 设 rx = height/2 → 高节点会变椭圆；高于 80 的钉成圆角矩形
+          if (n.height > 80) { rect.setAttribute('rx', 20); rect.setAttribute('ry', 20); }
+        });
+      }
+
+      // ② EP 桶点阵：每格注入 8 个点（= 8 专家）；网格上方写 256→32×8 caption
+      function decorateGrid(graph) {
+        if (!graph.gridMeta) return;
+        const svg = stage.querySelector('svg'); if (!svg) return;
+        const byId = new Map(graph.nodes.map(n => [n.id, n]));
+        stage.querySelectorAll('.pto-model-graphviz-node[data-ep-rank]').forEach(el => {
+          const n = byId.get(el.dataset.nodeId); if (!n) return;
+          const rect = el.querySelector('rect');
+          if (rect) { rect.setAttribute('rx', 8); rect.setAttribute('ry', 8); }  // 胶囊圆角收小
+          const lbl = el.querySelector('.pto-model-graphviz-node-label');
+          if (lbl) lbl.setAttribute('y', -n.height / 2 + 11);            // 标签贴顶
+          const cx = [-12.6, -4.2, 4.2, 12.6], cy = [4, 13];            // 4 列 × 2 行 = 8 点（更大更密）
+          for (const y of cy) for (const x of cx) el.appendChild(svgEl('circle', { class: 'ax-expert-dot', cx: x, cy: y, r: 2.6 }));
+        });
+        const sub = svgEl('text', { class: 'ax-grid-sub', x: 620, y: graph.gridMeta.noteY });
+        sub.textContent = 'EP 桶 = 该层 256 专家的运行时切分（≠ 层 · ≠ 卡）';
+        svg.appendChild(sub);
+
+        // 居中竖线在专家池上/下沿分两段：dispatch → 进池，出池 → combine（不穿过网格）
+        if (graph.gridMeta.splitLine) {
+          const disp = byId.get('a2a_dispatch'), comb = byId.get('a2a_combine');
+          const pool = (graph.clusters || []).find(c => c.id === 'expert_pool');
+          const marker = (stage.querySelector('.pto-model-graphviz-edge') || {}).getAttribute
+            ? stage.querySelector('.pto-model-graphviz-edge').getAttribute('marker-end') : null;
+          if (disp && comb && pool) {
+            [[disp.y + disp.height / 2, pool.y], [pool.y + pool.height, comb.y - comb.height / 2]].forEach(([y1, y2]) => {
+              const p = svgEl('path', { class: 'pto-model-graphviz-edge', d: `M 620 ${y1} L 620 ${y2}` });
+              if (marker) p.setAttribute('marker-end', marker);
+              svg.appendChild(p);
+            });
+          }
+        }
+      }
+
+      // ③ hover tip：节点 desc 解释（专业名称在节点上，解释说明在 tip 里）
+      const tip = document.getElementById('tip'), tipTitle = document.getElementById('tip-title'), tipBody = document.getElementById('tip-body');
+      let descMap = new Map();
+      function moveTip(e) {
+        const pad = 14, w = tip.offsetWidth, h = tip.offsetHeight;
+        let x = e.clientX + pad, y = e.clientY + pad;
+        if (x + w > innerWidth - 8) x = e.clientX - pad - w;
+        if (y + h > innerHeight - 8) y = e.clientY - pad - h;
+        tip.style.left = x + 'px'; tip.style.top = y + 'px';
+      }
+      stage.addEventListener('pointermove', e => {
+        const node = e.target.closest && e.target.closest('.pto-model-graphviz-node');
+        const id = node && node.dataset.nodeId, d = id && descMap.get(id);
+        if (!d) { tip.classList.remove('is-on'); return; }
+        tipTitle.textContent = d.label; tipBody.textContent = d.desc;
+        tip.classList.add('is-on'); moveTip(e);
+      });
+      stage.addEventListener('pointerleave', () => tip.classList.remove('is-on'));
+
+      function render() {
+        if (controller && controller.destroy) controller.destroy();
+        const graph = window.buildUltraMoE718BGraph({ moeExpanded, expertExpanded });
+        controller = window.PtoModelTrainingGraphvizPattern.render(stage, graph, {
+          ariaLabel: 'openPangu-Ultra-MoE-718B 计算轴架构图',
+          activeNodeId: null, activeRelatedNodeIds: [],
+          fitMode: 'full', viewportPadding: 24,
+          colormap: { saturation: 0.45, lightness: 0.38 },
+        });
+        tagEpRanks(graph);
+        paintNodes(graph);
+        decorateGrid(graph);
+        descMap = new Map(graph.nodes.filter(n => n.desc).map(n => [n.id, { label: n.label, desc: n.desc }]));
+        if (!moeExpanded) bindNodeToggle('moe_block', () => setMoe(true));
+        else if (!expertExpanded) bindNodeToggle('expert_mlp', () => setExpert(true));
+
+        foldBtn.textContent = moeExpanded ? '折叠 MoE 层' : '展开 MoE 层';
+        expertBtn.textContent = expertExpanded ? '折叠专家' : '展开 32 EP 组';
+        expertBtn.disabled = !moeExpanded;
+      }
+
+      function setMoe(v) {
+        if (moeExpanded === v) return;
+        moeExpanded = v; if (!v) expertExpanded = false; render();
+      }
+      function setExpert(v) {
+        if (!moeExpanded || expertExpanded === v) return;
+        expertExpanded = v; render();
+      }
+
+      foldBtn.addEventListener('click', () => setMoe(!moeExpanded));
+      expertBtn.addEventListener('click', () => setExpert(!expertExpanded));
+      themeBtn.addEventListener('click', () => {
+        const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
+        document.documentElement.dataset.theme = next;
+        try { window.localStorage.setItem('ultramoe-718b-theme', next); } catch (e) {}
+        render();
+      });
+
+      render();
+    })();
+  </script>
+</body>
+</html>
