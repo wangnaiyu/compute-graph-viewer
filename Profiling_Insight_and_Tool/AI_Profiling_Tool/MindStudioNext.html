@@ -757,6 +757,23 @@ pre.cv-code-after  { border-left: 3px solid rgba(4,215,147,0.4); }
   letter-spacing: 0.6px; text-transform: uppercase;
 }
 
+.phs-chart-header-full {
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.phs-vsep {
+  width: 1px; height: 14px; background: var(--border); flex-shrink: 0;
+}
+.phs-template-select {
+  flex: 1; min-width: 0; padding: 3px 6px; border-radius: 6px;
+  border: 1px solid var(--border); background: var(--surface-1);
+  color: var(--fg-secondary); font-size: 10px; font-family: var(--font-sans);
+  cursor: pointer; outline: none;
+  transition: border-color 0.12s, background 0.12s;
+}
+.phs-template-select:hover { border-color: var(--border-strong); background: var(--surface-2); }
+.phs-template-select:focus { border-color: var(--primary); }
+
 .phs-info-icon {
   position: relative;
   display: inline-flex; align-items: center; justify-content: center;
@@ -785,7 +802,16 @@ pre.cv-code-after  { border-left: 3px solid rgba(4,215,147,0.4); }
 .ptt-section {
   font-size: 10px; font-weight: 500; text-transform: uppercase;
   letter-spacing: 0.8px; color: var(--primary); margin: 10px 0 5px;
+  display: flex; align-items: center; justify-content: space-between;
 }
+.ptt-set-btn {
+  font-size: 10px; font-weight: 500; color: var(--primary);
+  background: none; border: none; cursor: pointer; padding: 0;
+  text-transform: none; letter-spacing: 0;
+  opacity: 0.6; transition: opacity 0.12s;
+  font-family: var(--font-sans);
+}
+.ptt-set-btn:hover { opacity: 1; }
 .ptt-formula {
   font-size: 12px; color: var(--fg-secondary); background: var(--surface-3);
   border-radius: var(--radius-sm); padding: 8px 10px;
@@ -3762,6 +3788,21 @@ class SwimlaneRenderer {
     }
     .v2-center-tab:disabled:hover { background: transparent; color: var(--fg-muted); }
 
+    /* ── Code tab empty state ── */
+    .code-empty-state {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 14px;
+    }
+    .code-empty-icon { font-size: 44px; opacity: 0.35; }
+    .code-empty-msg { font-size: 14px; font-weight: 500; color: var(--fg-muted); }
+    .code-select-btn {
+      padding: 8px 22px; border-radius: 8px;
+      border: 1px solid var(--primary); background: var(--primary);
+      color: #fff; font-size: 13px; font-weight: 500; cursor: pointer;
+      transition: opacity 0.12s;
+    }
+    .code-select-btn:hover { opacity: 0.82; }
+
     /* ── Disabled tab tooltip ── */
     .v2-tab-disabled-tip {
       position: fixed;
@@ -4025,6 +4066,32 @@ class SwimlaneRenderer {
     }
     .apc-tok-sep { font-size: 10px; color: var(--border-strong); }
     .apc-tok-time { font-size: 10px; font-weight: 600; color: var(--fg-secondary); font-family: var(--font-mono); }
+    .apc-tok-wrap {
+      display: inline-flex; align-items: center; gap: 0;
+      cursor: default;
+      border-bottom: 1px dashed rgba(33,33,33,0.22);
+      padding-bottom: 1px;
+    }
+    .apc-tok-tip {
+      position: fixed;
+      transform: translate(-50%, -100%);
+      background: rgba(12,12,18,0.91);
+      color: #fff;
+      font-size: 11px; font-family: var(--font-sans); line-height: 1.6;
+      padding: 8px 12px; border-radius: 9px;
+      max-width: 300px; text-align: left;
+      pointer-events: none; z-index: 9998;
+      opacity: 0; transition: opacity 0.18s ease;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.26);
+      white-space: normal;
+    }
+    .apc-tok-tip::after {
+      content: '';
+      position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+      border: 5px solid transparent;
+      border-top-color: rgba(12,12,18,0.91);
+    }
+    .apc-tok-tip.show { opacity: 1; }
     .apc-done-btn {
       margin-left: auto; flex-shrink: 0;
       padding: 4px 14px;
@@ -4540,9 +4607,11 @@ class SwimlaneRenderer {
     /* 左侧卡片：仪表盘 + 雷达图 横向并排，定宽 560px，定高 240px，无分割线 */
     .ov3-summary-grid .overview-left.ov3-charts-card {
       width: 560px; min-width: 0; flex: 0 0 560px;
-      height: 240px;
       background: var(--bg-elevated);
-      display: flex; flex-direction: row; align-items: center;
+      display: flex; flex-direction: column; align-items: stretch;
+    }
+    .phs-charts-row {
+      display: flex; flex: 1; min-height: 0; align-items: center;
     }
     .ov3-charts-card .phs-chart-wrap { flex: 0 0 48%; min-width: 0; }
     .ov3-charts-card .sub-items-wrap {
@@ -4741,6 +4810,138 @@ class SwimlaneRenderer {
       font-size: 11px; color: var(--fg-muted); line-height: 1.65;
       font-family: var(--font-sans);
     }
+
+    /* ═══════════════════════════════════════════════════════
+       Skill 管理抽屉
+       ═══════════════════════════════════════════════════════ */
+    .skm-overlay {
+      position: fixed; inset: 0; z-index: 10000;
+      background: rgba(12,12,18,0.36);
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.22s ease;
+    }
+    .skm-overlay.open { opacity: 1; pointer-events: auto; }
+    .skm-drawer {
+      position: fixed; top: 0; right: 0; bottom: 0;
+      width: 390px; z-index: 10001;
+      background: var(--bg-elevated);
+      border-left: 1px solid var(--border);
+      box-shadow: -6px 0 32px rgba(22,23,28,0.13);
+      display: flex; flex-direction: column;
+      transform: translateX(100%);
+      transition: transform 0.25s cubic-bezier(0.32,0,0,1);
+    }
+    .skm-drawer.open { transform: translateX(0); }
+    .skm-hd {
+      display: flex; align-items: center; gap: 8px;
+      padding: 0 14px; min-height: 48px; flex-shrink: 0;
+      border-bottom: 1px solid var(--border-subtle);
+      background: linear-gradient(120deg, rgba(24,99,220,0.06), rgba(155,96,170,0.04));
+    }
+    .skm-hd-title { font-size: 15px; font-weight: 500; color: var(--fg); font-family: var(--font-sans); flex: 1; }
+    .skm-hd-close {
+      width: 24px; height: 24px; border-radius: 6px;
+      background: none; border: none; color: var(--fg-muted);
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: background 0.12s, color 0.12s;
+    }
+    .skm-hd-close:hover { background: var(--surface-2); color: var(--fg); }
+    .skm-body {
+      flex: 1; overflow-y: auto; padding: 12px 12px 20px;
+      display: flex; flex-direction: column; gap: 14px;
+    }
+    /* agent section */
+    .skm-section { display: flex; flex-direction: column; gap: 5px; }
+    .skm-section-hd {
+      display: flex; align-items: center; gap: 7px; padding: 3px 2px 5px;
+    }
+    .skm-agent-badge {
+      font-size: 10px; font-weight: 600; padding: 2px 9px;
+      border-radius: 999px; font-family: var(--font-mono);
+    }
+    .skm-agent-badge.hermes   { background: rgba(24,99,220,0.12);  color: var(--primary); }
+    .skm-agent-badge.icarus   { background: rgba(23,114,69,0.12);  color: var(--success); }
+    .skm-agent-badge.accuracy { background: rgba(180,35,24,0.10);  color: var(--danger); }
+    .skm-agent-sub { font-size: 10px; color: var(--fg-muted); font-family: var(--font-sans); }
+    /* skill card */
+    .skm-card {
+      background: var(--surface-1); border: 1px solid var(--border-subtle);
+      border-radius: 10px; overflow: hidden;
+    }
+    .skm-card-hd {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 10px; cursor: pointer; user-select: none;
+      transition: background 0.12s;
+    }
+    .skm-card-hd:hover { background: var(--surface-2); }
+    .skm-card-icon { font-size: 14px; line-height: 1; flex-shrink: 0; }
+    .skm-card-name { flex: 1; font-size: 12px; font-weight: 500; color: var(--fg); font-family: var(--font-sans); }
+    .skm-card-chevron {
+      flex-shrink: 0; color: var(--fg-muted); opacity: 0.45;
+      transition: transform 0.2s ease, opacity 0.15s;
+    }
+    .skm-card:not(.skm-has-diag) .skm-card-chevron { display: none; }
+    .skm-card.open .skm-card-chevron { transform: rotate(90deg); opacity: 0.7; }
+    .skm-card-desc {
+      font-size: 10px; color: var(--fg-muted); line-height: 1.55;
+      padding: 0 10px 8px 32px; font-family: var(--font-sans);
+    }
+    .skm-card-body {
+      max-height: 0; overflow: hidden;
+      border-top: 0px solid var(--border-subtle);
+      transition: max-height 0.22s ease, border-top-width 0.01s 0.22s;
+    }
+    .skm-card.open .skm-card-body { max-height: 600px; border-top-width: 1px; transition: max-height 0.22s ease; }
+    .skm-diag { padding: 8px 10px; display: flex; flex-direction: column; gap: 5px; }
+    .skm-diag-row {
+      background: var(--bg-elevated); border: 1px solid var(--border-subtle);
+      border-radius: 7px; padding: 7px 9px; font-size: 10px; font-family: var(--font-sans); line-height: 1.6;
+    }
+    .skm-diag-prob { font-weight: 600; color: var(--fg); margin-bottom: 2px; }
+    .skm-diag-sign { color: var(--fg-muted); padding-left: 0; }
+    .skm-diag-fix  { color: var(--primary); }
+    .skm-diag-sign::before { content: '现象 '; font-weight: 500; opacity: 0.55; }
+    .skm-diag-fix::before  { content: '建议 '; font-weight: 500; opacity: 0.7; }
+    /* divider */
+    .skm-divider {
+      height: 1px; background: var(--border-subtle); margin: 2px 0;
+    }
+    /* upload section */
+    .skm-upload-title {
+      font-size: 10px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.6px; color: var(--fg-muted); padding: 2px 2px 6px;
+    }
+    .skm-upload-zone {
+      border: 1.5px dashed var(--border-strong); border-radius: 10px;
+      padding: 16px 12px; text-align: center; cursor: pointer;
+      background: var(--surface-1);
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .skm-upload-zone:hover, .skm-upload-zone.drag-over {
+      border-color: var(--primary); background: rgba(24,99,220,0.04);
+    }
+    .skm-upload-icon { font-size: 22px; margin-bottom: 5px; }
+    .skm-upload-text { font-size: 11px; color: var(--fg-muted); font-family: var(--font-sans); }
+    .skm-upload-hint { font-size: 10px; color: var(--fg-muted); opacity: 0.65; margin-top: 3px; }
+    #skmFileInput { display: none; }
+    .skm-custom-list { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+    .skm-custom-card {
+      background: rgba(24,99,220,0.05); border: 1px solid rgba(24,99,220,0.16);
+      border-radius: 9px; padding: 8px 10px;
+      display: flex; align-items: flex-start; gap: 8px;
+    }
+    .skm-custom-icon { font-size: 14px; line-height: 1; flex-shrink: 0; margin-top: 1px; }
+    .skm-custom-info { flex: 1; min-width: 0; }
+    .skm-custom-name { font-size: 12px; font-weight: 500; color: var(--fg); font-family: var(--font-sans); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .skm-custom-meta { font-size: 10px; color: var(--fg-muted); margin-top: 2px; }
+    .skm-custom-del {
+      flex-shrink: 0; padding: 2px 8px; border-radius: 5px;
+      border: 1px solid var(--border); background: none;
+      color: var(--fg-muted); font-size: 10px; cursor: pointer; font-family: var(--font-sans);
+      transition: background 0.12s, color 0.12s, border-color 0.12s;
+    }
+    .skm-custom-del:hover { background: rgba(180,35,24,0.09); color: var(--danger); border-color: rgba(180,35,24,0.28); }
+    .skm-empty-custom { font-size: 10px; color: var(--fg-muted); padding: 4px 2px; opacity: 0.75; }
   </style>
 <script>
 (function(){
@@ -4783,6 +4984,7 @@ class SwimlaneRenderer {
       </div>
       <div class="v2-topbar-r">
         <!-- Shown when right panel is closed -->
+        <button class="v2-ai-btn show" id="skmTopBtn" onclick="skmOpen()">Skill 管理</button>
         <button class="v2-ai-btn show" id="v2AiAssistantBtn" onclick="v2ShowChat()">
           ✦ AI Assistant
         </button>
@@ -4820,11 +5022,11 @@ class SwimlaneRenderer {
         <!-- Panel title row + tabs on same line -->
         <div class="v2-ph">
           <span class="v2-ph-icon">📊</span>
-          <span class="v2-ph-title">分析结果</span>
+          <span class="v2-ph-title">智能分析结果</span>
           <div class="v2-center-tabs">
             <button class="v2-center-tab tab active" data-tab="overview">总览</button>
             <button class="v2-center-tab tab" data-tab="taskinfo">任务信息</button>
-            <button class="v2-center-tab tab" data-tab="code" disabled data-disabled-tip="落盘文件中暂无此项数据输入，后续探索如何同步获取模型代码和资料文档">代码</button>
+            <button class="v2-center-tab tab" data-tab="code">代码</button>
             <button class="v2-center-tab tab" data-tab="report">报告原文</button>
             <button class="v2-center-tab tab" id="graphTabBtn" data-tab="graph" disabled data-disabled-tip="落盘数据中暂无计算图数据">计算图</button>
           </div>
@@ -4838,12 +5040,15 @@ class SwimlaneRenderer {
 
               <!-- ── 分析总结 ── -->
               <section class="ov3-section">
-                <h2 class="ov3-section-title">分析总结</h2>
+                <h2 class="ov3-section-title">总结</h2>
                 <div class="ov3-summary-grid">
-                  <!-- 左侧区域卡片：仪表盘 + 雷达图 -->
+                  <!-- 左侧区域卡片：标题行 + 仪表盘 + 雷达图 -->
                   <div class="overview-left ov3-charts-card">
-                    <div id="phsChartWrap" class="phs-chart-wrap"></div>
-                    <div id="subItemsChartWrap" class="sub-items-wrap"></div>
+                    <div id="phsChartHeader" class="phs-chart-header-full"></div>
+                    <div class="phs-charts-row">
+                      <div id="phsChartWrap" class="phs-chart-wrap"></div>
+                      <div id="subItemsChartWrap" class="sub-items-wrap"></div>
+                    </div>
                   </div>
                   <!-- 右侧区域卡片：核心结论 / 头号瓶颈 / 收益上限 -->
                   <div class="overview-right ov3-summary-right">
@@ -4944,7 +5149,12 @@ class SwimlaneRenderer {
 
           <!-- 代码 -->
           <div class="tab-pane" id="tab-code">
-            <div class="code-layout">
+            <div class="code-empty-state" id="codeEmptyState">
+              <div class="code-empty-icon">📁</div>
+              <div class="code-empty-msg">请选择代码路径</div>
+              <button class="code-select-btn" id="codeSelectBtn">立即选择</button>
+            </div>
+            <div class="code-layout" id="codeLayout" style="display:none">
               <div class="code-locations" id="codeLocations"></div>
               <div class="code-viewer" id="codeViewer"></div>
             </div>
@@ -5035,6 +5245,26 @@ class SwimlaneRenderer {
     </div><!-- .v2-workspace -->
 
   </div><!-- .app -->
+
+  <!-- ═══════════ SKILL 管理抽屉 ═══════════ -->
+  <div class="skm-overlay" id="skmOverlay" onclick="skmClose()"></div>
+  <div class="skm-drawer" id="skmDrawer" role="dialog" aria-label="Skill 管理">
+    <div class="skm-hd">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="flex-shrink:0;color:var(--primary)">
+        <rect x="1" y="1" width="5.2" height="5.2" rx="1.2" stroke="currentColor" stroke-width="1.3"/>
+        <rect x="7.8" y="1" width="5.2" height="5.2" rx="1.2" stroke="currentColor" stroke-width="1.3"/>
+        <rect x="1" y="7.8" width="5.2" height="5.2" rx="1.2" stroke="currentColor" stroke-width="1.3"/>
+        <rect x="7.8" y="7.8" width="5.2" height="5.2" rx="1.2" stroke="currentColor" stroke-width="1.3"/>
+      </svg>
+      <span class="skm-hd-title">Skill 管理</span>
+      <button class="skm-hd-close" onclick="skmClose()" title="关闭">
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+          <path d="M1.5 1.5L8.5 8.5M8.5 1.5L1.5 8.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+    <div class="skm-body" id="skmBody"></div>
+  </div>
 
   <!-- Hidden compat element: app.js's setupSidebarCollapse references sidebarToggleBtn
        and shows/hides it. We keep it off-screen so it doesn't disrupt the layout. -->
@@ -8550,11 +8780,15 @@ function renderMetricBoard(r) {
 }
 
 function renderOverview(r) {
-  // PHS 仪表盘
-  const wrap = $('phsChartWrap');
-  wrap.innerHTML = `
+  // PHS 标题行（独占一行，全宽）
+  const hdrEl = $('phsChartHeader');
+  hdrEl.innerHTML = `
     <div class="phs-header">
       <span class="phs-title">性能健康度（PHS）</span>
+      <span class="phs-vsep"></span>
+      <select class="phs-template-select" id="phsTemplateSelect">
+        <option>Qwen_预训练 定制评估模板v2.1</option>
+      </select>
       <span class="phs-info-icon" id="phsInfoIcon">ⓘ
         <div class="phs-tooltip" id="phsTooltip">
           <div class="ptt-title">PHS 评分说明</div>
@@ -8564,7 +8798,7 @@ function renderOverview(r) {
           <div class="ptt-formula">PHS = w<sub>计算</sub>×计算利用率 + w<sub>通信</sub>×通信效率 + w<sub>调度</sub>×调度效率 + w<sub>内存</sub>×内存带宽利用率 + w<sub>均衡</sub>×负载均衡度</div>
           <div class="ptt-sub">各子项归一化为 0–100；子项数据缺失时记 N/A，剩余权重按比例放大，不视为不健康。</div>
 
-          <div class="ptt-section">场景权重</div>
+          <div class="ptt-section"><span>场景权重</span><button class="ptt-set-btn" id="pttWeightSetBtn">设置</button></div>
           <table class="ptt-table">
             <tr><th>场景</th><th>计算</th><th>通信</th><th>调度</th><th>内存</th><th>均衡</th></tr>
             <tr><td>大模型多卡训练</td><td>0.35</td><td>0.25</td><td>0.20</td><td>0.10</td><td>0.10</td></tr>
@@ -8592,8 +8826,11 @@ function renderOverview(r) {
           <div class="ptt-sub" style="margin-top:6px">S：接近理论极限 · A：优秀 · B+：良好，有优化空间 · B：中等 · C：较差 · D：严重瓶颈</div>
         </div>
       </span>
-    </div>
-    <div id="phsChart" class="phs-gauge-box"></div>`;
+    </div>`;
+
+  // PHS 仪表盘
+  const wrap = $('phsChartWrap');
+  wrap.innerHTML = `<div id="phsChart" class="phs-gauge-box"></div>`;
   phsChartInst?.dispose();
   phsChartInst = null;
   renderPhsGauge($('phsChart'), r.phs);
@@ -9589,7 +9826,7 @@ function renderCode(r) {
   if (r.codeExamplesFabricated) {
     const b = document.createElement('div');
     b.className = 'fabricated-banner';
-    b.textContent = '⚠️ 此内容为虚拟构造内容，并非来自解析包';
+    b.textContent = '⚠️ 代码关联功能暂未调通';
     codePane.prepend(b);
   }
   const locEl = $('codeLocations');
@@ -11352,10 +11589,12 @@ init();
     function v2HideChat() {
       document.getElementById('v2PanelRight').classList.add('collapsed');
       document.getElementById('v2AiAssistantBtn').classList.add('show');
+      document.getElementById('skmTopBtn').classList.add('show');
     }
     function v2ShowChat() {
       document.getElementById('v2PanelRight').classList.remove('collapsed');
       document.getElementById('v2AiAssistantBtn').classList.remove('show');
+      document.getElementById('skmTopBtn').classList.remove('show');
     }
 
     // Left panel: toggle
@@ -11458,8 +11697,7 @@ init();
           </div>
           <div class="apc-steps">${stepsHtml}</div>
           <div class="apc-footer">
-            <span class="apc-tok-label">Tokens&nbsp;</span>
-            <span class="apc-tok-val" id="apcTokensVal">0</span>
+            <span class="apc-tok-wrap" data-tok-tip="在运行时，AI 供应商不向 agent 暴露精确的 token 计数接口，本数值由 AI 根据报告主观估算，具有参考意义，数量级大体正确，但不能作为完全客观事实"><span class="apc-tok-label">Tokens&nbsp;</span><span class="apc-tok-val" id="apcTokensVal">0</span></span>
             <span class="apc-tok-sep">&nbsp;·&nbsp;</span>
             <span class="apc-tok-label">耗时&nbsp;</span>
             <span class="apc-tok-time" id="apcTimeVal">0分00秒</span>
@@ -11534,8 +11772,7 @@ init();
 
         showToast();
 
-        // Show 完成 button — auto-select report, wait for user to dismiss card
-        if (window._msSelectReportById) window._msSelectReportById(DEMO_REPORT_ID);
+        // Show 完成 button — wait for user to dismiss card (do NOT auto-switch selection)
         const doneBtn = document.getElementById('apcDoneBtn');
         if (doneBtn) {
           doneBtn.style.display = 'block';
@@ -11588,6 +11825,28 @@ init();
         if (!tip) return;
         const el = e.target.closest('.history-item[data-tip]');
         if (el) { tip.remove(); tip = null; }
+      });
+    }());
+
+    // Token 估算值悬浮提示
+    (function () {
+      let tokTip = null;
+      document.addEventListener('mouseover', function (e) {
+        const el = e.target.closest('.apc-tok-wrap[data-tok-tip]');
+        if (!el || tokTip) return;
+        tokTip = document.createElement('div');
+        tokTip.className = 'apc-tok-tip';
+        tokTip.textContent = el.dataset.tokTip;
+        document.body.appendChild(tokTip);
+        const r = el.getBoundingClientRect();
+        tokTip.style.left = (r.left + r.width / 2) + 'px';
+        tokTip.style.top  = (r.top - 10) + 'px';
+        requestAnimationFrame(() => tokTip && tokTip.classList.add('show'));
+      });
+      document.addEventListener('mouseout', function (e) {
+        if (!tokTip) return;
+        const el = e.target.closest('.apc-tok-wrap[data-tok-tip]');
+        if (el) { tokTip.remove(); tokTip = null; }
       });
     }());
 
@@ -11958,6 +12217,253 @@ init();
           showTip(nm.textContent, infoEl ? infoEl.dataset.tip || '' : '', e.clientX, e.clientY);
         });
         nm.addEventListener('mouseleave', hideTip);
+      });
+    }());
+
+    /* ═══════════ Skill 管理抽屉 ═══════════ */
+    (function () {
+      // ── Skill 数据（AscendProfKit 15 个内置 Skill）──
+      var SKILLS = [
+        // ── Hermes: 性能调优 ──
+        { id:'profiling-workflow', name:'通用 Profiling 工作流', icon:'📋', agent:'Hermes',
+          desc:'通用报告输出规范（所有分析均适用）。定义 5 章报告骨架、输出约束与证据链规则，所有其他 Skill 的报告产出须符合本规范。',
+          diag:[] },
+        { id:'performance-health-score', name:'性能健康度（PHS）', icon:'📊', agent:'Hermes',
+          desc:'0–100 综合性能评分体系，报告结论速览首行。含 4 个场景权重表（大模型多卡/单卡/单算子/集群慢卡）及子项 N/A 归一化算法。',
+          diag:[] },
+        { id:'mindstudio_profiler_data_check', name:'Profiler 数据完整性校验', icon:'🔍', agent:'Hermes',
+          desc:'分析前置校验，识别 Profiler 采集未正常 Stop、数据未解析、关键交付件缺失三类阻断性问题。',
+          diag:[
+            { prob:'采集未正常 Stop', sign:'profiler_info.json 缺失 / end_info.* 缺失', fix:'检查 profiler.stop() 调用路径，修复后重新采集；不得对未正常 Stop 的数据继续分析' },
+            { prob:'数据未解析', sign:'ASCEND_PROFILER_OUTPUT / mindstudio_profiler_output 目录缺失', fix:'框架 profiler 执行 offline_parse_pytorch.py；msprof 执行 msprof --export=on' },
+            { prob:'关键交付件缺失', sign:'trace_view.json / kernel_details.csv / *.db 文件缺失', fix:'检查 export_type 配置，必要时重新采集并确认导出完整' }
+          ]},
+        { id:'dataset-source-identifier', name:'落盘数据来源识别', icon:'🏷️', agent:'Hermes',
+          desc:'按落盘内证据判定模型/用途/是否 LLM 训练，无确证依据的字段留空，禁止臆测。',
+          diag:[
+            { prob:'LLM 训练识别', sign:'tokenizer vocab=151936 → Qwen 系列；RMSNorm+SwiGlu+RoPE+FA → Transformer LLM；含 *Grad/ApplyAdamWV2 → 训练', fix:'有依据才写，PP/TP 切分导致无法反推的规模字段留空' },
+            { prob:'推荐/CTR 识别', sign:'多 Embedding 表 + 小 hidden dim', fix:'记录识别依据写入报告 §5「落盘文件信息」块' },
+            { prob:'单算子调优识别', sign:'单算子 simulator 输出特征', fix:'按 simulator 模式说明数据类型，不套 LLM 训练结论' }
+          ]},
+        { id:'ascend-profiler-db-explorer', name:'Profiling DB SQL 查询', icon:'🗄️', agent:'Hermes',
+          desc:'含 CTE 宏的 SQL 模板库（Compute / Communication / Dispatch），覆盖算子热点、集合通信、下发调度三类查询场景。',
+          diag:[
+            { prob:'算子计算热点', sign:'需查 TopK 算子耗时 / 计算瓶颈', fix:'Compute CTE → compute_view，按 SUM(duration_ns) DESC LIMIT 20 排序' },
+            { prob:'集合通信耗时', sign:'HCCL / AllReduce / AllGather 分析', fix:'Communication CTE → comm_view，按算子类型与耗时排序' },
+            { prob:'下发调度拥塞', sign:'PyTorch / CANN / device 三层耗时不匹配', fix:'Dispatch CTE → dispatch_view，对比 pytorch_duration_ns / cann_duration_ns / task_duration_ns 三列差值' }
+          ]},
+        { id:'cluster-fast-slow-rank-detector', name:'集群快慢卡诊断', icon:'🐢', agent:'Hermes',
+          desc:'含 compare_api_stats.py / compare_op_stats.py 分析脚本，识别 Host 下发型（伪快卡）、计算型、通信/慢链路三类慢卡根因。',
+          diag:[
+            { prob:'Host 下发型慢卡（伪快卡）', sign:'某卡 Free Time 极长，Compute/Communication 时间异常偏短，外观似快卡', fix:'compare_api_stats.py 重点看 launch / aclrtSynchronizeDevice 耗时；优化：绑核、减少 CPU 侧同步' },
+            { prob:'计算型慢卡', sign:'各卡 Free Time 均匀，某卡 Compute Time 显著大于均值', fix:'compare_op_stats.py 对比算子差异；检查切分策略或排查动态 Shape / 硬件劣化' },
+            { prob:'通信/慢链路', sign:'通信带宽远低于理论值（如 SDMA < 2 GB/s）', fix:'检查通信粒度与切分策略，确认 SDMA 地址对齐，排查硬件链路' }
+          ]},
+        { id:'timeline-swimlane-analyzer', name:'Timeline 泳道时序分析', icon:'🏊', agent:'Hermes',
+          desc:'关键路径 / 计算-通信重叠 / 空挡 / PP bubble / step 抖动几何分析。timeline_geometry.py 从 trace_view.json 直接计算几何指标。',
+          diag:[
+            { prob:'空泡多但单算子不慢', sign:'关键路径占比 < 80%，device 泳道空挡比例高', fix:'先做重叠优化，不要急着优化单算子；结构性空泡压算子无效' },
+            { prob:'通信未被掩盖', sign:'Communication(Not Overlapped) 占比高，重叠率 < 70%', fix:'开启通信-计算并发、放宽依赖、增大 micro-batch；检查通信是否独立 stream' },
+            { prob:'Host-bound 下发', sign:'device gap 与 host launch/同步 API 周期对齐，launch gap 占比 > 5%', fix:'绑核、算子融合/图模式减少下发条数、消除 host 同步点' },
+            { prob:'PP bubble 偏大', sign:'实测 bubble 率远大于 (p-1)/(p-1+m) 理论值', fix:'增大 num_microbatch、均衡 stage 切分、interleaved 1F1B' },
+            { prob:'step 抖动大', sign:'step 耗时 CV > 10% 或存在 > 1.5×median 的长尾 step', fix:'per-step 归一取典型 step 再分析；周期长尾排查 ckpt / eval / GC' }
+          ]},
+        { id:'op-mfu-calculator', name:'算子 MFU 计算', icon:'⚡', agent:'Hermes',
+          desc:'GEMM / FlashAttention MFU 计算，含低/中/高三档判断阈值，辅助定位算力利用率问题。',
+          diag:[
+            { prob:'MFU 极低', sign:'MFU < 20%', fix:'排查内存带宽瓶颈、launch overhead、Shape 不规则（过小或非对齐）' },
+            { prob:'MFU 中等', sign:'MFU 30%–60%', fix:'Roofline 分析确认 Compute/Memory Bound，针对性优化 Shape 或并行度' },
+            { prob:'MFU 高', sign:'MFU > 70%', fix:'接近设备上限；可尝试混合精度或算子融合进一步提升' }
+          ]},
+        { id:'msprof-analyze-cli', name:'集群综合分析（msprof-analyze）', icon:'🔬', agent:'Hermes',
+          desc:'集群慢卡/慢链路综合分析与 advisor 建议，含 cluster_time_summary / slow_rank / hccl_sum 等 10 种 mode 的选择决策流程。',
+          diag:[] },
+        { id:'msinsight-view-selector', name:'MindStudio Insight 视图推荐', icon:'🖥️', agent:'Hermes',
+          desc:'为每个诊断结果推荐对应的 MindStudio Insight 可视化视图，每个问题点必须附上视图入口，避免用户自行摸索。',
+          diag:[] },
+        { id:'github-raw-fetch', name:'GitHub 文档抓取', icon:'🌐', agent:'Hermes',
+          desc:'辅助从 GitHub Raw URL 抓取最新官方文档，补充知识库中可能缺失的 API 说明与版本信息。',
+          diag:[] },
+        // ── Icarus: 算子调优 ──
+        { id:'ascendc-operator-performance-optim', name:'AscendC 算子端到端调优', icon:'🔧', agent:'Icarus',
+          desc:'5 阶段闭环：编译 → 采集 → 诊断 → 改码 → 验证。覆盖 Scalar / Double Buffer / L2Cache / 流水均衡等常见调优项及参考实现。',
+          diag:[
+            { prob:'Scalar 指令占比过高', sign:'aiv_scalar_ratio > 50%', fix:'用向量化 API（Duplicate / Exp / Mul 等）替代标量循环；TPipe 移至 kernel 入口外' },
+            { prob:'冗余同步导致流水停顿', sign:'PipeBarrier / SetFlag/WaitFlag 数量过多，流水线频繁停顿', fix:'合并连续向量操作，减少中间同步；使用 TQueBind 消除冗余 DataCopy' },
+            { prob:'单缓冲无法流水', sign:'Vector 利用率约 33%，CopyIn/Compute/CopyOut 完全串行', fix:'InitBuffer buffer 个数改为 2，开启 Double Buffer；前提：循环次数 ≥ 2' },
+            { prob:'L2 Cache 命中率低', sign:'ai*_total_hit_rate < 80%', fix:'优化数据排布与访问模式；按 L2Cache 大小（约 192 MB）分块切片' },
+            { prob:'多核切分不足', sign:'blockDim 未设为硬件核数，部分核空闲', fix:'耦合架构用 GetCoreNumAiv()/GetCoreNumAic()；分离架构 Vector 用 AIV 核数（如40），Cube 用 AIC 核数（如20）' }
+          ]},
+        { id:'msot-msopprof-operator-profiler', name:'msOpProf 算子深度分析', icon:'🔭', agent:'Icarus',
+          desc:'msOpProf 采集、Roofline 分析、仿真器模式注意事项（--kernel-name / PMSampling / replay-mode 兼容性）。',
+          diag:[
+            { prob:'瓶颈类型未知', sign:'算子性能不达预期，不确定是计算还是内存限制', fix:'--aic-metrics=Roofline,Default 采集，Insight 查看 visualize_data.bin 中的 Roofline 图' },
+            { prob:'--kernel-name 不生效', sign:'指定算子名过滤无效，采集了全部算子', fix:'切换为 application 输入形态；config 场景改用 --launch-count 过滤' },
+            { prob:'simulator signal 6 / Bad address', sign:'msprof op simulator 运行时崩溃', fix:'检查构建脚本是否有 --simulator 开关；确认 LD_LIBRARY_PATH 指向正确仿真器目录' },
+            { prob:'replay-mode=range 与指标冲突', sign:'同时使用 range 与 TimelineDetail / Source / MemoryDetail 时报错', fix:'二选一：要用 range 则去掉上述三个指标；要用这三个指标则改用其他 replay 模式' }
+          ]},
+        // ── Accuracy: 精度分析 ──
+        { id:'rl-consistency-analysis', name:'训推一致性根因分析', icon:'⚖️', agent:'Accuracy',
+          desc:'含 run_root_cause_analysis.py 脚本，覆盖结构性假阳性、多余激活函数、权重不一致、上游传播四类根因，按 module_priority_rank 优先级排序。',
+          diag:[
+            { prob:'结构性假阳性', sign:'大量 mismatch 但怀疑为结构差异（fused/unfused 实现导致）', fix:'过滤 structural_false_positive；优先处理 module_priority_rank 1/2 的候选项' },
+            { prob:'多余激活函数', sign:'对齐边界之间 rollout 侧存在未匹配的中间激活模块', fix:'检查 train / rollout 在该模块的激活函数实现是否一致（典型：rollout swiglu vs train megatrongelu）' },
+            { prob:'参数/权重不一致', sign:'输入对齐但输出不一致，且两侧参数不同', fix:'对比 train 与 rollout 加载的 checkpoint 路径和权重值，确认权重来源一致' },
+            { prob:'上游传播', sign:'当前模块参数对齐但输入已发散', fix:'回溯上游找第一个发生 divergence 的位置；使用 output_5_root_cause_report.json 边界信息定位' }
+          ]},
+        { id:'nan-overflow-detection', name:'NaN/Inf 溢出检测与追溯', icon:'🚨', agent:'Accuracy',
+          desc:'多卡分布式训练 NaN/Inf 溢出检测，识别发散起始位置与算子，支持 loss/gnorm NaN 根因追溯。',
+          diag:[] }
+      ];
+
+      var overlay = document.getElementById('skmOverlay');
+      var drawer  = document.getElementById('skmDrawer');
+      var body    = document.getElementById('skmBody');
+
+      window.skmOpen = function () {
+        overlay.classList.add('open');
+        drawer.classList.add('open');
+      };
+      window.skmClose = function () {
+        overlay.classList.remove('open');
+        drawer.classList.remove('open');
+      };
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && drawer.classList.contains('open')) skmClose();
+      });
+
+      // toggle skill card expand
+      window.skmToggle = function (hd) {
+        var card = hd.closest('.skm-card');
+        if (card) card.classList.toggle('open');
+      };
+
+      // ── custom skills ──
+      var customSkills = [];
+      try { customSkills = JSON.parse(localStorage.getItem('skmCustom') || '[]'); } catch (e) {}
+
+      function fmtSize(b) {
+        if (b < 1024) return b + ' B';
+        if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
+        return (b / 1048576).toFixed(1) + ' MB';
+      }
+
+      function renderCustomList() {
+        var el = document.getElementById('skmCustomList');
+        if (!el) return;
+        if (!customSkills.length) {
+          el.innerHTML = '<div class="skm-empty-custom">暂无自定义 Skill — 上传 .md 文件后在 AI 对话中可引用</div>';
+          return;
+        }
+        el.innerHTML = customSkills.map(function (s) {
+          return '<div class="skm-custom-card">' +
+            '<span class="skm-custom-icon">📄</span>' +
+            '<div class="skm-custom-info">' +
+              '<div class="skm-custom-name">' + s.name + '</div>' +
+              '<div class="skm-custom-meta">' + s.size + ' · ' + s.date + '</div>' +
+            '</div>' +
+            '<button class="skm-custom-del" onclick="skmDelCustom(\'' + s.id + '\')">删除</button>' +
+          '</div>';
+        }).join('');
+      }
+
+      window.skmDelCustom = function (id) {
+        customSkills = customSkills.filter(function (s) { return s.id !== id; });
+        try { localStorage.setItem('skmCustom', JSON.stringify(customSkills)); } catch (e) {}
+        renderCustomList();
+      };
+
+      function handleUpload(files) {
+        Array.from(files).forEach(function (file) {
+          var ext = file.name.split('.').pop().toLowerCase();
+          if (ext !== 'md' && ext !== 'txt') return;
+          var reader = new FileReader();
+          reader.onload = function (ev) {
+            var skill = {
+              id: Date.now() + '_' + Math.random().toString(36).slice(2),
+              name: file.name.replace(/\.[^.]+$/, ''),
+              size: fmtSize(file.size),
+              date: new Date().toLocaleDateString('zh-CN'),
+              content: (ev.target.result || '').slice(0, 3000)
+            };
+            customSkills.unshift(skill);
+            try { localStorage.setItem('skmCustom', JSON.stringify(customSkills)); } catch (e) {}
+            renderCustomList();
+          };
+          reader.readAsText(file);
+        });
+      }
+
+      // ── build drawer HTML ──
+      var agents = [
+        { id:'Hermes',   cls:'hermes',   label:'Hermes',   sub:'性能调优' },
+        { id:'Icarus',   cls:'icarus',   label:'Icarus',   sub:'算子调优' },
+        { id:'Accuracy', cls:'accuracy', label:'Accuracy', sub:'精度分析' }
+      ];
+
+      var chevronSvg = '<svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 2L6.5 5L3.5 8"/></svg>';
+
+      // custom skills section first
+      var html = '<div>' +
+          '<div class="skm-upload-title">自定义 Skill</div>' +
+          '<div class="skm-upload-zone" id="skmUploadZone">' +
+            '<div class="skm-upload-icon">📁</div>' +
+            '<div class="skm-upload-text">点击上传或拖入 .md 文件</div>' +
+            '<div class="skm-upload-hint">上传的 Skill 可在 AI 对话中引用</div>' +
+          '</div>' +
+          '<input type="file" id="skmFileInput" accept=".md,.txt" multiple>' +
+          '<div class="skm-custom-list" id="skmCustomList"></div>' +
+        '</div>' +
+        '<div class="skm-divider"></div>';
+
+      agents.forEach(function (agent) {
+        var skills = SKILLS.filter(function (s) { return s.agent === agent.id; });
+        html += '<div class="skm-section">' +
+          '<div class="skm-section-hd">' +
+            '<span class="skm-agent-badge ' + agent.cls + '">' + agent.label + '</span>' +
+            '<span class="skm-agent-sub">' + agent.sub + '</span>' +
+          '</div>';
+        skills.forEach(function (s) {
+          var hasDiag = s.diag && s.diag.length > 0;
+          html += '<div class="skm-card' + (hasDiag ? ' skm-has-diag' : '') + '">' +
+            '<div class="skm-card-hd" onclick="skmToggle(this)">' +
+              '<span class="skm-card-icon">' + s.icon + '</span>' +
+              '<span class="skm-card-name">' + s.name + '</span>' +
+              '<span class="skm-card-chevron">' + chevronSvg + '</span>' +
+            '</div>' +
+            '<div class="skm-card-desc">' + s.desc + '</div>';
+          if (hasDiag) {
+            html += '<div class="skm-card-body"><div class="skm-diag">';
+            s.diag.forEach(function (d) {
+              html += '<div class="skm-diag-row">' +
+                '<div class="skm-diag-prob">' + d.prob + '</div>' +
+                '<div class="skm-diag-sign">' + d.sign + '</div>' +
+                '<div class="skm-diag-fix">' + d.fix + '</div>' +
+              '</div>';
+            });
+            html += '</div></div>';
+          }
+          html += '</div>';
+        });
+        html += '</div>';
+      });
+
+      body.innerHTML = html;
+      renderCustomList();
+
+      // bind upload events
+      var zone = document.getElementById('skmUploadZone');
+      var fi   = document.getElementById('skmFileInput');
+      zone.addEventListener('click', function () { fi.click(); });
+      zone.addEventListener('dragover', function (e) { e.preventDefault(); zone.classList.add('drag-over'); });
+      zone.addEventListener('dragleave', function () { zone.classList.remove('drag-over'); });
+      zone.addEventListener('drop', function (e) {
+        e.preventDefault(); zone.classList.remove('drag-over');
+        handleUpload(e.dataTransfer.files);
+      });
+      fi.addEventListener('change', function () {
+        handleUpload(fi.files);
+        fi.value = '';
       });
     }());
   </script>

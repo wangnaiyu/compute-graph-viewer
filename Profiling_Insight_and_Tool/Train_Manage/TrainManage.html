@@ -72,7 +72,7 @@
     box-shadow: 0 8px 18px rgba(24,99,220,.10); }
   .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
   .dot.blue { background: var(--blue); } .dot.green { background: var(--green); } .dot.red { background: var(--red); }
-  .dot.purple { background: var(--purple); }
+  .dot.purple { background: var(--purple); } .dot.orange { background: var(--orange); }
 
   /* Main */
   .main { flex: 1; min-width: 0; padding: 10px 8px; }
@@ -274,9 +274,7 @@
   .causal-badge { display:inline-block; font-size:10px; font-family:var(--font-mono);
     background:rgba(23,114,69,.12); color:var(--green); border:1px solid rgba(23,114,69,.25);
     border-radius:999px; padding:1px 9px; margin-top:5px; }
-  .diag-recommend { font-size:12px; color:var(--text-2); line-height:1.7;
-    background:rgba(24,99,220,.05); border:1px solid rgba(24,99,220,.12);
-    border-radius:12px; padding:9px 13px; margin-bottom:12px; }
+  .diag-recommend { font-size:12px; color:var(--text-2); line-height:1.7; margin-bottom:12px; }
 
   /* drill-down horizontal chain */
   .dd-spike-title { font-family:var(--font-display); font-size:13px; font-weight:600; color:var(--red);
@@ -305,6 +303,150 @@
   .dd-metric-k { color:var(--text-3); white-space:nowrap; flex-shrink:0; }
   .dd-metric-v { font-family:var(--font-mono); font-weight:600; color:var(--text); text-align:right; min-width:0; word-break:break-all; }
   .dd-metric-v.bad { color:var(--red); }
+
+  /* #12 智能诊断双层布局（上层 建议+曲线预估 / 下层 定位链+代码层） */
+  .diag-stack { display:block; }
+  .diag-sub-label { font-family:var(--font-mono); font-size:11px; letter-spacing:.04em; color:var(--text-3);
+    text-transform:uppercase; margin-bottom:9px; }
+  .diag-layer { min-width:0; }
+  .diag-upper { display:grid; grid-template-columns:1.4fr 1.3fr; gap:24px;
+    padding-bottom:18px; margin-bottom:18px; border-bottom:1px solid var(--border); }
+  .diag-upper-left, .diag-upper-right { min-width:0; display:flex; flex-direction:column; }
+  .diag-upper-right .diag-prev { flex:1; }
+  .diag-lower-head { display:flex; align-items:baseline; gap:10px; flex-wrap:wrap;
+    font-family:var(--font-display); font-size:15px; font-weight:600; letter-spacing:-.01em; margin-bottom:13px; }
+  .diag-lower-head span { font-size:11px; font-weight:400; color:var(--text-3); font-family:var(--font-mono); }
+  .diag-lower-grid { display:grid; grid-template-columns:1.55fr 1fr; gap:16px; align-items:stretch; }
+  .diag-chain-col { min-width:0; }
+  /* 代码层：深色代码面板 */
+  .dd-code { background:#0e1320; border:1px solid rgba(255,255,255,.10); border-radius:14px; overflow:hidden;
+    display:flex; flex-direction:column; box-shadow:0 14px 30px rgba(8,12,22,.30); }
+  .dd-code-head { display:flex; align-items:center; gap:8px; padding:9px 13px;
+    background:rgba(255,255,255,.04); border-bottom:1px solid rgba(255,255,255,.08); }
+  .dd-code-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+  .dd-code-fname { font-family:var(--font-mono); font-size:11px; color:#e7ecf3; font-weight:700; }
+  .dd-code-lang { font-family:var(--font-mono); font-size:10px; color:#7e8a9c; margin-left:auto; white-space:nowrap; }
+  .dd-code-body { padding:9px 0; overflow:auto; font-family:var(--font-mono); font-size:11.5px; line-height:1.7; flex:1; }
+  .dd-code-line { display:flex; align-items:baseline; padding:0 13px; white-space:pre; }
+  .dd-code-line.err { background:rgba(248,113,113,.14); box-shadow:inset 3px 0 0 #f87171; }
+  .dd-code-ln { color:#3f4a5a; width:24px; flex-shrink:0; text-align:right; margin-right:14px; user-select:none; }
+  .dd-code-line.err .dd-code-ln { color:#f87171; }
+  .dd-code-txt { color:#c9d3e0; }
+  .dd-code-flag { padding:7px 13px; font-family:var(--font-mono); font-size:10.5px; font-weight:700;
+    color:#ff9b8f; background:rgba(248,113,113,.12); border-top:1px solid rgba(248,113,113,.25); }
+  .dd-code-foot { padding:8px 13px; font-family:var(--font-mono); font-size:10.5px; color:#fbbf24;
+    background:rgba(251,191,36,.07); border-top:1px solid rgba(255,255,255,.08); line-height:1.55; }
+  .tk-kw{color:#c792ea;} .tk-fn{color:#82aaff;} .tk-num{color:#f78c6c;} .tk-str{color:#c3e88d;}
+  .tk-com{color:#5c6776;} .tk-ty{color:#ffcb6b;} .tk-dec{color:#82aaff;}
+
+  /* #13 诊断链路重构（组合34）：问题描述 → 诊断链路（透视层图标 + 流动红点 + 等宽等高节点）→ 智能层 */
+  .diag-flow { display:block; }
+  .dx-head { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; margin-bottom:16px; }
+  .dx-spike-title { font-family:var(--font-display); font-size:14px; font-weight:600; color:var(--red);
+    line-height:1.45; letter-spacing:-.01em; }
+  .dx-max { flex-shrink:0; display:inline-flex; align-items:center; gap:5px; font-family:var(--font-mono);
+    font-size:11px; color:var(--text-2); background:rgba(255,255,255,.9); border:1px solid var(--border);
+    border-radius:999px; padding:5px 12px; cursor:pointer; transition:all .15s; white-space:nowrap; }
+  .dx-max:hover { color:var(--text); border-color:var(--border-strong); background:#fff; }
+  .dx-chain-label { font-family:var(--font-display); font-size:15px; font-weight:700; letter-spacing:-.01em;
+    color:var(--text); margin-bottom:12px; }
+  .dx-chain { position:relative; margin-bottom:20px; padding-bottom:20px; }
+  /* 链路示意：SVG 曲线轨道 + 右侧箭头 + 节点红点 + 流动动画点 */
+  .dx-rail { position:absolute; left:0; right:0; top:0; height:52px; z-index:0; pointer-events:none; background:none; }
+  .dx-rail svg { width:100%; height:52px; display:block; }
+  .dx-node-dot { position:absolute; top:22px; width:8px; height:8px; margin-left:-4px; border-radius:50%;
+    z-index:3; pointer-events:none; background:var(--red);
+    box-shadow:0 0 0 3px rgba(180,35,24,.15), 0 0 8px rgba(180,35,24,.65); }
+  .dx-flow { position:absolute; top:22px; width:8px; height:8px; margin-left:-4px; border-radius:50%; z-index:1;
+    pointer-events:none; background:var(--red); box-shadow:0 0 7px rgba(180,35,24,.7);
+    animation:dxFlow 3s linear infinite; }
+  @keyframes dxFlow { from { left:12.5%; } to { left:87.5%; } }
+  @keyframes dxFlowPath { from { offset-distance:0%; } to { offset-distance:100%; } }
+  /* AI 分析装饰面板（复用左侧选中框渐变风格） */
+  .dx-ai-panel { background:linear-gradient(135deg, rgba(24,99,220,.08), rgba(155,96,170,.06));
+    border:1px solid rgba(24,99,220,.18); border-radius:16px; padding:16px;
+    box-shadow:0 6px 20px rgba(24,99,220,.08); }
+  .dx-ai-label { font-family:var(--font-display); font-size:13px; font-weight:700; letter-spacing:-.01em;
+    color:var(--blue); margin-bottom:12px;
+    display:flex; align-items:center; gap:6px; }
+  .dx-grid { position:relative; z-index:2; display:grid; grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:12px; align-items:stretch; }
+  .dx-node { display:flex; flex-direction:column; min-width:0; }
+  .dx-icon { width:52px; height:52px; margin:0 auto 5px; }
+  .dx-icon img { width:52px; height:52px; display:block; object-fit:contain; filter:drop-shadow(0 5px 9px rgba(22,23,28,.16)); }
+  .dx-icon svg { width:52px; height:52px; display:block; filter:drop-shadow(0 5px 9px rgba(22,23,28,.16)); }
+  .dx-node-name { text-align:center; font-size:12px; font-weight:600; color:var(--text-2); margin-bottom:10px; }
+  .dx-card { height:184px; display:flex; flex-direction:column; overflow:hidden;
+    border:1px solid var(--border); border-radius:12px; background:var(--card); }
+  .dx-card.warn { border-color:rgba(180,92,23,.30); }
+  .dx-card.crit { border-color:rgba(180,35,24,.24); }
+  .dx-card-head { padding:7px 11px 6px; flex-shrink:0; border-bottom:1px solid rgba(33,33,33,.05); }
+  .dx-card-head.warn { background:rgba(180,92,23,.07); }
+  .dx-card-head.crit { background:rgba(180,35,24,.05); }
+  .dx-head-row { display:flex; justify-content:space-between; align-items:center; gap:4px; }
+  .dx-layer { font-family:var(--font-mono); font-size:10px; letter-spacing:.04em; text-transform:uppercase; color:var(--text-3); }
+  .dx-node-link { font-family:var(--font-mono); font-size:10px; color:var(--blue); text-decoration:none; white-space:nowrap; flex-shrink:0; }
+  .dx-node-link:hover { text-decoration:underline; }
+  .dx-title { display:block; font-size:12px; font-weight:600; color:var(--text); line-height:1.3; margin-top:2px; }
+  .dx-title.warn { color:var(--orange); }
+  .dx-title.crit { color:var(--red); }
+  .dx-card-body { flex:1; overflow:auto; padding:5px 11px 8px; }
+  .dx-metric { display:flex; justify-content:space-between; align-items:baseline; gap:6px; padding:3px 0;
+    font-size:11px; border-bottom:1px solid rgba(33,33,33,.05); }
+  .dx-metric:last-child { border-bottom:none; }
+  .dx-metric-k { color:var(--text-3); white-space:nowrap; flex-shrink:0; }
+  .dx-metric-v { font-family:var(--font-mono); font-weight:600; color:var(--text); text-align:right; min-width:0; word-break:break-all; }
+  .dx-metric-v.bad { color:var(--red); }
+  /* 问题代码节点（深色，与其余节点等宽等高） */
+  .dx-card.code { border:1px solid rgba(255,255,255,.10); background:#0e1320; box-shadow:0 10px 24px rgba(8,12,22,.28); }
+  .dx-code-head2 { display:flex; align-items:center; gap:7px; padding:7px 11px; flex-shrink:0;
+    background:rgba(255,255,255,.04); border-bottom:1px solid rgba(255,255,255,.08); }
+  .dx-code-dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; background:#f87171; }
+  .dx-code-fname { font-family:var(--font-mono); font-size:10.5px; color:#e7ecf3; font-weight:700;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .dx-code-lang { font-family:var(--font-mono); font-size:9.5px; color:#7e8a9c; margin-left:auto; white-space:nowrap; flex-shrink:0; }
+  .dx-code-body2 { flex:1; overflow:auto; padding:7px 0; font-family:var(--font-mono); font-size:10.5px; line-height:1.65; }
+  .dx-code-line { display:flex; align-items:flex-start; padding:1px 10px; }
+  .dx-code-line.err { background:rgba(248,113,113,.14); box-shadow:inset 3px 0 0 #f87171; }
+  .dx-code-ln { color:#3f4a5a; width:20px; flex-shrink:0; text-align:right; margin-right:10px; user-select:none; }
+  .dx-code-line.err .dx-code-ln { color:#f87171; }
+  .dx-code-txt { color:#c9d3e0; flex:1; min-width:0; white-space:pre-wrap; word-break:break-word; }
+  .dx-code-flag { padding:6px 11px; font-family:var(--font-mono); font-size:10px; font-weight:700; flex-shrink:0;
+    color:#ff9b8f; background:rgba(248,113,113,.12); border-top:1px solid rgba(248,113,113,.25); line-height:1.4; }
+  /* 智能层：左=建议+操作，右=图表预测 */
+  .dx-smart { display:grid; grid-template-columns:1.4fr 1.3fr; gap:24px; align-items:start; }
+  .dx-smart-left, .dx-smart-right { min-width:0; display:flex; flex-direction:column; }
+  .dx-smart-right .diag-prev { flex:1; }
+  /* 最大化 */
+  .card.diag-max { position:fixed; inset:16px; z-index:9999; margin:0; overflow:auto; box-shadow:var(--shadow-soft); }
+  .card.diag-max .dx-card { height:300px; }
+
+  /* #12 副本重构布局：隐藏顶部小卡片，关键指标卡片置顶 */
+  #tab-overview.layout-keytop { display:flex; flex-direction:column; gap:12px; }
+  #tab-overview.layout-keytop .metric-bar { display:none; }
+  /* 副本总览去掉「关键指标 更多 ›」标题行 */
+  #tab-overview.layout-keytop #kmTitle { display:none; }
+  /* 空的「模型规模」区块不参与 flex 间距，避免出现多余空隙 */
+  #tab-overview.layout-keytop #scaleSection:empty { display:none; }
+  /* 行间距统一交给容器 gap:12px */
+  #tab-overview.layout-keytop .diag,
+  #tab-overview.layout-keytop .grid-3 { margin-bottom:0; }
+  #tab-overview.layout-keytop #keyMetrics { order:-1; grid-template-columns:repeat(3,minmax(0,1fr)); align-items:stretch; }
+  #tab-overview.layout-keytop #keyMetrics > .card { display:flex; flex-direction:column; height:220px; padding:14px 16px; overflow:hidden; position:relative; }
+  #tab-overview.layout-keytop #keyMetrics > .card .km-chart { flex:1 1 auto; min-height:0; }
+  #tab-overview.layout-keytop #keyMetrics > .card .km-chart svg { height:100%; }
+  #tab-overview.layout-keytop #keyMetrics > .card .km-axis,
+  #tab-overview.layout-keytop #keyMetrics > .card .km-axis-title { display:none; }
+  .km-hover-tip { position:absolute; top:8px; right:10px; pointer-events:none; display:none; z-index:50;
+    background:#ffffff; border:1px solid var(--border-strong); border-radius:10px;
+    padding:7px 10px; box-shadow:var(--shadow-soft); font-size:10.5px; min-width:150px; max-width:200px; }
+  .km-hover-tip .kmt-head { font-family:var(--font-mono); font-size:10px; color:var(--text-3);
+    margin-bottom:5px; padding-bottom:4px; border-bottom:1px solid var(--border); }
+  .km-hover-tip .kmt-row { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:1.5px 0; }
+  .km-hover-tip .kmt-row span { color:var(--text-2); display:inline-flex; align-items:center; gap:5px; }
+  .km-hover-tip .kmt-row span i { width:7px; height:7px; border-radius:2px; display:inline-block; flex-shrink:0; }
+  .km-hover-tip .kmt-row b { font-family:var(--font-mono); color:var(--text); font-weight:600; }
+  .km-hover-tip .kmt-sub { font-family:var(--font-mono); font-size:9.5px; color:var(--text-3); margin:5px 0 2px; }
 
   /* framework-layer checklist (#10) */
   .fw-check { border:1px solid var(--border); border-radius:12px; padding:11px 13px; margin-bottom:14px; background:rgba(33,33,33,.015); }
@@ -505,7 +647,11 @@
   @media (max-width: 980px) {
     .grid-3 { grid-template-columns: 1fr; }
     .diag { grid-template-columns: 1fr; }
+    .diag-upper, .diag-lower-grid { grid-template-columns: 1fr; }
+    .dx-grid { grid-template-columns: 1fr 1fr; }
+    .dx-smart { grid-template-columns: 1fr; }
     .km-grid { grid-template-columns: 1fr; }
+    #tab-overview.layout-keytop #keyMetrics { grid-template-columns: 1fr; }
     .cmp-grid { grid-template-columns: 1fr 1fr; }
   }
 
@@ -577,6 +723,39 @@
     font-weight: 600; color: var(--text-2); position: sticky; top: 0; }
   .md tbody tr:nth-child(even) td { background: rgba(248,248,253,.6); }
   .md td code { word-break: break-all; }
+
+  /* ===== 最佳任务排名卡片 ===== */
+  .best-rank-card { background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(252,252,255,.95));
+    border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow-card);
+    margin-bottom:14px; overflow:hidden; }
+  .best-rank-head { display:flex; align-items:center; gap:10px; padding:11px 16px;
+    font-family:var(--font-display); font-size:13px; font-weight:600; letter-spacing:-.01em;
+    cursor:pointer; user-select:none; transition:background .12s; border-bottom:1px solid var(--border); }
+  .best-rank-head:hover { background:rgba(236,238,245,.5); }
+  .best-rank-chevron { color:var(--text-3); font-size:14px; font-weight:400; transition:transform .2s;
+    flex-shrink:0; display:inline-flex; line-height:1; }
+  .best-rank-card.expanded .best-rank-chevron { transform:rotate(90deg); }
+  .best-rank-single { display:block; }
+  .best-rank-body { display:none; }
+  .best-rank-card.expanded .best-rank-single { display:none; }
+  .best-rank-card.expanded .best-rank-body { display:block; }
+  .best-rank-row { display:flex; align-items:center; gap:10px; padding:9px 16px;
+    border-bottom:1px solid rgba(33,33,33,.05); min-width:0; }
+  .best-rank-row:last-child { border-bottom:none; }
+  .best-rank-row.rank1 { background:linear-gradient(90deg,rgba(251,191,36,.07),transparent 60%); }
+  .best-rank-num { width:20px; text-align:center; font-family:var(--font-mono); font-size:12px;
+    font-weight:700; color:var(--text-3); flex-shrink:0; }
+  .best-rank-num.gold { color:#9a7300; }
+  .best-rank-name { font-size:13px; font-weight:500; flex:1; min-width:0;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .best-rank-metrics { display:flex; align-items:center; flex-shrink:0; margin-left:auto; }
+  .best-rank-metric { display:flex; align-items:center; gap:6px; padding:0 16px;
+    border-left:1px solid rgba(33,33,33,.08); }
+  .best-rank-metric:first-child { border-left:none; }
+  .best-rank-metric-label { font-size:11px; color:var(--text-3); font-family:var(--font-mono); white-space:nowrap; }
+  .best-rank-metric-val { font-family:var(--font-display); font-size:15px; font-weight:600;
+    letter-spacing:-.02em; white-space:nowrap; }
+  .best-rank-trophy { font-size:13px; flex-shrink:0; }
 </style>
 </head>
 <body>
@@ -685,6 +864,13 @@
         <div class="dropdown" id="dropdown"></div>
       </div>
 
+      <div class="card diag" id="diagCard"></div>
+
+      <div class="section-title" id="kmTitle">关键指标 <span class="more">更多 ›</span></div>
+      <div class="km-grid" id="keyMetrics"></div>
+
+      <div id="scaleSection"></div>
+
       <div class="grid-3">
         <div class="card" id="runtimeCard"></div>
         <div class="card">
@@ -696,13 +882,6 @@
           <div id="events"></div>
         </div>
       </div>
-
-      <div class="card diag" id="diagCard"></div>
-
-      <div class="section-title">关键指标 <span class="more">更多 ›</span></div>
-      <div class="km-grid" id="keyMetrics"></div>
-
-      <div id="scaleSection"></div>
     </div>
 
     <div id="tab-charts" style="display:none"></div>
@@ -1354,7 +1533,7 @@
 const TASKS = {
   deepseek32: {
     name: "DeepSeek-R1 3.2 _ infra 框架", dot: "red", status: "var(--red)",
-    title: "DeepSeek-R1 3.2 _ infra 框架 [loss spike 异常]", creator: "wzh",
+    title: "DeepSeek-R1 3.2 _ infra 框架", creator: "wzh",
     description: "infra 框架先导实验，AI 完成 loss spike 根因三级下钻定位：spike 现象 → Rank 5 硬件异常 → lightning_index_prolog_quant 算子 int32 越界",
     metrics: [
       { label: "loss",          value: "3.20",  key: "loss",      shown: true  },
@@ -1420,13 +1599,35 @@ const TASKS = {
               { k: "loss 贡献",   v: "0.03 → 82.4 (单层)", bad: true },
             ]
           }
-        ]
+        ],
+        code: {
+          file: "lightning_index_prolog_quant.py",
+          lang: "TileLang · 量化索引预计算核",
+          errLabel: "Rank 5 · L39–L42 int32 索引越界",
+          fix: "将 base / flat_idx 声明为 T.int64，并在入口加 CHECK_LE(L*B*S*H, INT64_MAX) 守卫",
+          lines: [
+            { n:30, h:'<span class="tk-com"># lightning_index_prolog_quant — 量化前 scale 索引预计算核</span>' },
+            { n:31, h:'<span class="tk-kw">import</span> tilelang.language <span class="tk-kw">as</span> T' },
+            { n:32, h:'' },
+            { n:33, h:'B, S, H, L = <span class="tk-num">32</span>, <span class="tk-num">4096</span>, <span class="tk-num">8192</span>, <span class="tk-num">17</span>   <span class="tk-com"># batch·seq·hidden·layer</span>' },
+            { n:34, h:'' },
+            { n:35, h:'<span class="tk-dec">@T.prim_func</span>' },
+            { n:36, h:'<span class="tk-kw">def</span> <span class="tk-fn">lightning_index_prolog_quant</span>(X, scale_table, out, layer_idx: T.<span class="tk-ty">int32</span>):' },
+            { n:37, h:'    <span class="tk-kw">for</span> b, s, h <span class="tk-kw">in</span> T.<span class="tk-fn">grid</span>(B, S, H):' },
+            { n:38, h:'        <span class="tk-com"># ✗ int32 累乘溢出：L*B*S*H ≈ 1.8e13 ≫ INT32_MAX(2.15e9)</span>', err:true },
+            { n:39, h:'        base: T.<span class="tk-ty">int32</span> = layer_idx * B * S * H', err:true },
+            { n:40, h:'        <span class="tk-com"># ✗ 溢出后回绕为负数，flat_idx 落到表外</span>', err:true },
+            { n:41, h:'        flat_idx: T.<span class="tk-ty">int32</span> = base + (b * S + s) * H + h', err:true },
+            { n:42, h:'        scale = scale_table[flat_idx]   <span class="tk-com"># ← 越界读取随机显存 → NaN 传播</span>', err:true },
+            { n:43, h:'        out[b, s, h] = T.<span class="tk-fn">cast</span>(X[b, s, h] / scale, <span class="tk-str">"int8"</span>)' },
+          ]
+        }
       },
-      recommend: `<b>修复方案：</b>将 <span class="hl">lightning_index_prolog_quant</span> 核函数内 3 处索引计算从 <span class="hl">int32 → int64</span>，并在算子入口添加 <code>CHECK_LE(batch * seq * layers, INT64_MAX)</code> 守卫；预计修复后约 <span class="hl">50 step</span> 内 loss 恢复至正常水位 ≈ 0.42，NPU 利用率回升至 ≥70%，AllReduce 延迟恢复 ~120ms。`,
+      recommend: `将 <span class="hl">lightning_index_prolog_quant</span> 核函数内 3 处索引计算从 <span class="hl">int32 → int64</span>，并在算子入口添加 <code>CHECK_LE(batch * seq * layers, INT64_MAX)</code> 守卫；预计修复后约 <span class="hl">50 step</span> 内 loss 恢复至正常水位 ≈ 0.42，NPU 利用率回升至 ≥70%，AllReduce 延迟恢复 ~120ms。`,
       before: { cap:"修复前（spike 中）", val:"loss 3.2 ↑", color:"var(--red)", key:"diagBefore" },
       after:  { cap:"修复后预估", val:"loss 0.42 ✓", color:"var(--green)", key:"diagAfter" } },
     key: [
-      { type:"mfu", label:"MFU（spike 前 54%）", value:"31%", key:"mfu", peak:0.65,
+      { type:"mfu", label:"MFU", value:"31%", key:"mfu", peak:0.65,
         breakdown:{compute:0.48, comm:0.40, other:0.12} },
       { type:"gpuutil", label:"NPU 利用率", value:"41%", key:"npu",
         stepBreakdown:{fwd:380, bwd:620, opt:160, comm:490, data:80} },
@@ -1437,12 +1638,12 @@ const TASKS = {
           {key:"nvlinkUtil",   label:"HCCS 带宽利用",   value:"45%", target:0.80, lte:false}
         ]},
       { label:"loss", value:"3.20", bad:true, band:"red", key:"loss",
-        anom:"⚠ step 580 loss spike 至 3.20 · Rank 5 lightning_index_prolog_quant int32 越界" }
+        anom:"step 580 loss 从 0.41 spike 至 3.20" }
     ],
     series: {
       loss:      [0.68,0.64,0.60,0.57,0.55,0.52,0.49,0.47,0.45,0.44,0.43,0.42,0.41,0.41,0.42,3.20,1.78,1.92,1.85,1.87],
       mfu:       [0.52,0.53,0.54,0.53,0.55,0.54,0.53,0.55,0.54,0.52,0.53,0.54,0.53,0.54,0.42,0.35,0.31,0.33,0.32,0.31],
-      npu:       [0.70,0.72,0.73,0.71,0.74,0.73,0.71,0.73,0.74,0.72,0.73,0.74,0.72,0.73,0.60,0.50,0.41,0.44,0.42,0.41],
+      npu:       [0.84,0.86,0.87,0.85,0.88,0.87,0.86,0.88,0.85,0.86,0.85,0.84,0.73,0.72,0.60,0.50,0.41,0.44,0.42,0.41],
       comm:      [118,122,120,125,119,123,121,124,120,122,118,121,123,125,195,295,380,365,372,378],
       grad_norm: [1.2,1.3,1.1,1.4,1.2,1.3,1.1,1.5,1.3,1.2,1.4,1.3,1.2,1.4,9.2,31.5,48.3,44.8,46.2,48.3],
       lr:        [1,2,4,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6],
@@ -1450,8 +1651,16 @@ const TASKS = {
       vram:      [0.78,0.80,0.82,0.83,0.84,0.85,0.86,0.86,0.87,0.88,0.88,0.89,0.89,0.90,0.91,0.91,0.91,0.91,0.91,0.91],
       temp:      [62,64,65,66,67,67,68,68,69,69,69,70,70,70,79,86,89,88,88,89],
       sstep:     [2.8,2.7,2.6,2.7,2.5,2.6,2.7,2.5,2.6,2.7,2.5,2.6,2.5,2.6,3.2,3.8,4.1,4.0,4.1,4.1],
-      diagBefore:[0.49,0.47,0.45,0.44,0.43,0.42,0.41,0.41,3.20,1.78,1.92,1.87],
-      diagAfter: [0.49,0.47,0.45,0.44,0.43,0.42,0.41,0.41,0.42,0.42,0.41,0.42],
+      diagBefore:[
+        0.493,0.481,0.487,0.473,0.478,0.464,0.469,0.456,0.461,0.448,
+        0.453,0.440,0.445,0.432,0.437,0.424,0.430,0.418,0.423,0.417,
+        0.435,0.718,1.385,2.290,2.968,3.210,3.075,2.842,2.558,2.198,
+        1.937,2.048,1.842,1.968,1.798,1.908,1.782,1.872,1.818,1.870],
+      diagAfter: [
+        0.493,0.481,0.487,0.473,0.478,0.464,0.469,0.456,0.461,0.448,
+        0.453,0.440,0.445,0.432,0.437,0.424,0.430,0.418,0.423,0.417,
+        0.413,0.407,0.411,0.398,0.403,0.391,0.395,0.383,0.388,0.377,
+        0.381,0.370,0.374,0.363,0.368,0.358,0.362,0.352,0.356,0.350],
       bubbleRate:[0.14,0.15,0.14,0.16,0.15,0.14,0.15,0.14,0.16,0.15,0.14,0.16,0.15,0.16,0.18,0.20,0.22,0.21,0.21,0.22],
       overlapRatio:[0.58,0.60,0.62,0.59,0.61,0.63,0.60,0.62,0.60,0.61,0.62,0.60,0.61,0.60,0.56,0.53,0.52,0.54,0.53,0.52],
       nvlinkUtil:[0.50,0.52,0.53,0.51,0.53,0.54,0.52,0.53,0.52,0.53,0.52,0.54,0.52,0.53,0.48,0.46,0.45,0.46,0.46,0.45] },
@@ -1544,8 +1753,16 @@ const TASKS = {
       vram:[0.62,0.66,0.70,0.74,0.78,0.80,0.82,0.84,0.86,0.87,0.88,0.89,0.90,0.91,0.92,0.93,0.93,0.94,0.94,0.95],
       temp:[55,58,60,62,63,64,65,66,66,67,67,68,68,68,69,68,68,68,68,68],
       sstep:[3.1,3.0,2.8,2.7,2.6,2.5,2.55,2.48,2.4,2.45,2.38,2.42,2.36,2.4,2.35,2.38,2.34,2.37,2.36,2.37],
-      diagBefore:[20,22,24,26,27,29,31,36,42,46,48,49],
-      diagAfter:[20,22,24,26,27,29,31,31,31,30,31,31],
+      diagBefore:[
+        20.0,20.8,21.6,22.2,22.9,23.6,24.3,24.9,25.6,26.2,
+        26.8,27.4,27.9,28.5,29.0,29.5,30.0,30.4,30.8,31.1,
+        31.7,32.6,34.0,35.6,37.4,39.3,41.2,43.0,44.5,45.8,
+        46.7,47.4,47.9,48.3,48.6,48.8,49.0,49.1,49.0,49.0],
+      diagAfter:[
+        20.0,20.8,21.6,22.2,22.9,23.6,24.3,24.9,25.6,26.2,
+        26.8,27.4,27.9,28.5,29.0,29.5,30.0,30.4,30.8,31.1,
+        31.3,30.8,31.4,30.7,31.3,30.6,31.2,30.7,31.2,30.8,
+        31.3,30.7,31.1,30.8,31.3,30.6,31.1,30.8,31.0,31.0],
       bubbleRate:[0.12,0.11,0.10,0.12,0.11,0.10,0.09,0.11,0.10,0.12,0.10,0.11,0.09,0.10,0.11,0.10,0.09,0.10,0.11,0.10],
       overlapRatio:[0.70,0.72,0.74,0.71,0.73,0.75,0.76,0.74,0.72,0.75,0.73,0.74,0.76,0.73,0.74,0.75,0.73,0.74,0.75,0.74],
       nvlinkUtil:[0.55,0.58,0.60,0.57,0.59,0.62,0.61,0.63,0.60,0.62,0.59,0.61,0.63,0.60,0.62,0.61,0.63,0.60,0.62,0.60] },
@@ -1623,8 +1840,16 @@ const TASKS = {
       tput:[2.6,2.7,2.85,2.9,3.0,3.05,2.95,3.0,3.1,3.0,3.05,2.95,3.0,3.08,2.98,3.05,3.0,3.08,3.05,3.1],
       grad_norm:[1.2,1.1,1.0,0.95,0.9,0.88,0.85,0.82,0.8,0.78,0.77,0.76,0.75,0.74,0.74,0.73,0.74,0.74,0.74,0.74],
       gpu:[0.50,0.54,0.57,0.59,0.61,0.62,0.60,0.62,0.63,0.61,0.63,0.62,0.64,0.63,0.62,0.64,0.63,0.63,0.64,0.63],
-      diagBefore:[0,5,10,15,19,22,24,40,60,75,83,85],
-      diagAfter:[0,5,10,15,19,22,24,25,26,27,27.5,28] },
+      diagBefore:[
+        0,  0.9, 2.2, 3.8, 5.5, 7.2, 8.9,10.5,12.1,13.5,
+        14.8,16.0,17.2,18.3,19.3,20.2,21.1,21.9,22.7,23.3,
+        24.5,27.2,31.8,38.5,47.2,56.8,65.0,71.8,76.8,80.5,
+        83.0,84.2,84.9,85.3,84.8,85.2,84.7,85.3,84.8,85.0],
+      diagAfter:[
+        0,  0.9, 2.2, 3.8, 5.5, 7.2, 8.9,10.5,12.1,13.5,
+        14.8,16.0,17.2,18.3,19.3,20.2,21.1,21.9,22.7,23.3,
+        24.2,24.8,25.4,25.9,26.4,26.8,27.1,27.4,27.7,27.9,
+        27.7,28.1,27.8,28.2,28.0,27.9,28.1,27.9,28.1,28.0] },
     source: `真实数据来源：W&B 公开项目 <a href="https://wandb.ai/openrlbenchmark/lm_human_preference_details" target="_blank">openrlbenchmark/lm_human_preference_details</a>，论文 <a href="https://arxiv.org/abs/2403.17031" target="_blank">arXiv:2403.17031《The N+ Implementation Details of RLHF with PPO: TL;DR Summarization》</a>，代码 <a href="https://github.com/vwxyzjn/summarize_from_feedback_details" target="_blank">vwxyzjn/summarize_from_feedback_details</a>。关键值：1,000,000 episodes(≈8.56 epoch)、batch 512、lr 3e-6、kl_coef 0.05、8×H100；6.9B 平均 RM 得分 4.783、胜率≈77%，超过 OpenAI 1.3B 基线。`,
     hparams: [
       { name: "lr",         value: "3e-6",  history: [{ step: null, from: null, to: "3e-6",  note: "初始配置" }]},
@@ -1659,8 +1884,8 @@ const TASKS = {
   },
 
   dpo: {
-    name: "Qwen2.5-14B _ infra RL", dot: "red", status: "var(--red)",
-    title: "Qwen2.5-14B _ infra RL [Qwen2.5-14B · 已中断]", creator: "wzh", description: "infra专家做RL训练看板，闭环deepseek问题：<a href=\"https://chat.deepseek.com/share/kiceh0k2whcrxgjdhw\" target=\"_blank\">DeepSeek 对话记录</a>",
+    name: "Qwen2.5-14B _ infra RL", dot: "orange", status: "var(--orange)",
+    title: "Qwen2.5-14B _ infra RL", creator: "wzh", description: "infra专家做RL训练看板，闭环deepseek问题：<a href=\"https://chat.deepseek.com/share/kiceh0k2whcrxgjdhw\" target=\"_blank\">DeepSeek 对话记录</a>",
     metrics: [
       { label: "logps/chosen", value: "-203", key: "logpsC", shown: true },
       { label: "rewards/acc", value: "0.32", key: "acc", shown: true },
@@ -1715,8 +1940,16 @@ const TASKS = {
       lr:[1,2,3,4,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5],
       vram:[0.66,0.68,0.70,0.71,0.72,0.73,0.73,0.74,0.74,0.75,0.75,0.75,0.76,0.76,0.76,0.76,0.76,0.76,0.76,0.76],
       kl:[0.5,1.2,2.5,4,6,9,13,18,25,34,45,58,72,88,105,120,135,148,160,172],
-      diagBefore:[0.55,0.6,0.7,0.85,1.0,1.15,1.3,1.7,2.1,2.5,2.8,2.95],
-      diagAfter:[0.55,0.6,0.7,0.85,1.0,1.15,1.3,1.1,0.85,0.6,0.5,0.45] },
+      diagBefore:[
+        0.550,0.572,0.580,0.608,0.620,0.656,0.672,0.718,0.742,0.792,
+        0.824,0.878,0.916,0.978,1.014,1.090,1.132,1.204,1.244,1.308,
+        1.388,1.488,1.612,1.758,1.918,2.082,2.228,2.362,2.478,2.580,
+        2.665,2.733,2.788,2.830,2.862,2.886,2.904,2.918,2.928,2.950],
+      diagAfter:[
+        0.550,0.572,0.580,0.608,0.620,0.656,0.672,0.718,0.742,0.792,
+        0.824,0.878,0.916,0.978,1.014,1.090,1.132,1.204,1.244,1.308,
+        1.278,1.162,1.098,0.972,0.916,0.802,0.762,0.676,0.648,0.570,
+        0.552,0.490,0.480,0.442,0.440,0.414,0.420,0.398,0.406,0.397] },
     source: `数据为符合 DPO 业务的构造数据（异常/中断场景）。`,
     hparams: [
       { name: "beta", value: "0.1", history: [
@@ -1788,8 +2021,16 @@ const TASKS = {
       gpu:[0.78,0.80,0.81,0.82,0.83,0.82,0.81,0.83,0.82,0.84,0.83,0.81,0.82,0.83,0.82,0.83,0.82,0.82,0.82,0.82],
       grad_norm:[0.8,0.75,0.7,0.68,0.65,0.63,0.6,0.58,0.57,0.55,0.54,0.53,0.52,0.52,0.51,0.51,0.5,0.5,0.5,0.5],
       tput:[33,34,35,36,35,36,37,36,35,36,37,36,35,36,37,36,36,35,36,36],
-      diagBefore:[-0.55,-0.40,-0.25,-0.10,0.00,0.10,0.20,0.22,0.23,0.24,0.25,0.25],
-      diagAfter:[-0.55,-0.40,-0.25,-0.10,0.00,0.10,0.20,0.50,0.90,1.30,1.55,1.69] },
+      diagBefore:[
+        -0.542,-0.519,-0.462,-0.439,-0.383,-0.361,-0.305,-0.281,-0.226,-0.204,
+        -0.148,-0.126,-0.069,-0.047, 0.009,-0.007, 0.089, 0.112, 0.168, 0.200,
+         0.208, 0.220, 0.216, 0.228, 0.224, 0.235, 0.231, 0.241, 0.237, 0.246,
+         0.242, 0.251, 0.246, 0.254, 0.249, 0.256, 0.249, 0.254, 0.250, 0.252],
+      diagAfter:[
+        -0.542,-0.519,-0.462,-0.439,-0.383,-0.361,-0.305,-0.281,-0.226,-0.204,
+        -0.148,-0.126,-0.069,-0.047, 0.009,-0.007, 0.089, 0.112, 0.168, 0.200,
+         0.268, 0.322, 0.442, 0.541, 0.708, 0.830, 1.004, 1.109, 1.262, 1.341,
+         1.462, 1.508, 1.594, 1.608, 1.664, 1.649, 1.683, 1.665, 1.690, 1.690] },
     hparams: [
       { name: "lr",            value: "1.41e-5", history: [{ step: null, from: null, to: "1.41e-5", note: "初始配置" }]},
       { name: "init_kl_coef",  value: "0.2",     history: [{ step: null, from: null, to: "0.2",     note: "初始配置" }]},
@@ -1942,6 +2183,30 @@ const COMPARE_PARAMS = {
 };
 Object.entries(COMPARE_PARAMS).forEach(([id,p])=>{ if(TASKS[id]) TASKS[id].compareParams = p; });
 
+// #12 基于 DeepSeek-R1 3.2 _ infra 框架复制一条任务记录（重构版总览：三卡置顶 / 执行时间·制品·事件置底 / 智能诊断双层 + 代码层）
+;(function cloneDeepseek32(){
+  const src = TASKS.deepseek32;
+  const copy = JSON.parse(JSON.stringify(src));
+  copy.name   = "DeepSeek-R1 3.2 _ infra 框架 · 副本";
+  copy.title  = "DeepSeek-R1 3.2 _ infra 框架 · 副本";
+  copy.dot    = "purple";
+  copy.status = "var(--purple)";
+  // 重构版总览：移除顶部指标小卡片，将「关键指标」中的 loss / MFU / NPU 三卡置顶；
+  // 同时移除「16×Ascend 910B 并行效率」卡片
+  copy.keyMetricsTop = true;
+  copy.key = copy.key.filter(k => k.type !== 'disteff');
+  // loss 卡片置于最前并改名 val_loss
+  const _li = copy.key.findIndex(k => k.key === 'loss' && !k.type);
+  if(_li > -1){ const [_loss] = copy.key.splice(_li, 1); _loss.label = 'val_loss'; copy.key.unshift(_loss); }
+  // 重建对象，使副本排在侧栏最顶部（并作为默认打开的记录）
+  const rebuilt = { deepseek32r: copy };
+  Object.entries(TASKS).forEach(([id,t]) => {
+    rebuilt[id] = t;
+  });
+  Object.keys(TASKS).forEach(k => delete TASKS[k]);
+  Object.assign(TASKS, rebuilt);
+})();
+
 // 智能帮比预置项：映射到某个参数 + 优劣方向，命中即取该参数最优的任务
 const SMART_PRESETS = [
   { label:"预测最准", group:"运行参数", key:"评估准确度", dir:"high" },
@@ -2003,6 +2268,62 @@ function bigChart(el, data, color, band){
     ${bandRect}<path d="${area}" fill="${color}" opacity="0.06"/>
     <path d="${line}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
   return bandY;
+}
+// 为 km-chart 内的 bigChart 添加鼠标悬浮气泡（step + 指标值），兼容 linkKmTopCards 三表联动
+function addKmHoverTip(el, data, label, color, stepMax){
+  const svg = el.querySelector('svg');
+  if(!svg) return;
+  const vb = svg.viewBox.baseVal;
+  const w = vb.width||460, h = vb.height||150, pad = 12;
+  const N = data.length, span = N > 1 ? N-1 : 1;
+  const stepX = (w - pad*2)/span;
+  const minV = Math.min(...data), maxV = Math.max(...data), rng = (maxV-minV)||1;
+  const Y = v => pad + (h-pad*2)*(1-(v-minV)/rng);
+
+  const vline = document.createElementNS('http://www.w3.org/2000/svg','line');
+  vline.setAttribute('x1','0'); vline.setAttribute('y1',String(pad));
+  vline.setAttribute('x2','0'); vline.setAttribute('y2',String(h-pad));
+  vline.setAttribute('stroke','rgba(33,33,33,.32)'); vline.setAttribute('stroke-width','1');
+  vline.setAttribute('stroke-dasharray','3 3'); vline.style.display = 'none';
+  svg.appendChild(vline);
+
+  const dotsG = document.createElementNS('http://www.w3.org/2000/svg','g');
+  svg.appendChild(dotsG);
+
+  const card = el.closest('.card');
+  let tip = card && card.querySelector('.km-hover-tip');
+  if(card && !tip){ tip = document.createElement('div'); tip.className = 'km-hover-tip'; card.appendChild(tip); }
+
+  el._chartW = w;
+  el._kmStep = (frac, e) => {
+    const i = Math.max(0, Math.min(N-1, Math.round(frac * span)));
+    const x = (pad + i*stepX).toFixed(1);
+    vline.setAttribute('x1', x); vline.setAttribute('x2', x); vline.style.display = '';
+    dotsG.innerHTML = `<circle cx="${x}" cy="${Y(data[i]).toFixed(1)}" r="3.5" fill="${color}" stroke="#fff" stroke-width="1.5"/>`;
+    const step = Math.round(stepMax * frac);
+    if(tip){
+      tip.innerHTML = `<div class="kmt-head">step ${step}</div>
+        <div class="kmt-row"><span><i style="background:${color}"></i>${label}</span><b>${fmtNum(data[i])}</b></div>`;
+      tip.style.display = 'block';
+      if(e){
+        const tw = tip.offsetWidth||140, th = tip.offsetHeight||60;
+        const vw = window.innerWidth, vh = window.innerHeight;
+        let tx = e.clientX + 14; if(tx + tw > vw - 4) tx = e.clientX - tw - 14;
+        tx = Math.max(4, Math.min(vw - tw - 4, tx));
+        let ty = e.clientY - th - 10; if(ty < 4) ty = e.clientY + 14;
+        ty = Math.min(vh - th - 4, ty);
+        tip.style.position='fixed'; tip.style.left=tx+'px'; tip.style.top=ty+'px'; tip.style.right='auto';
+      } else {
+        const cr = (card||el.closest('.card')).getBoundingClientRect();
+        tip.style.position='fixed'; tip.style.top=(cr.top+6)+'px';
+        tip.style.right=(window.innerWidth-cr.right+8)+'px'; tip.style.left='auto';
+      }
+    }
+  };
+  el._kmClear = () => {
+    vline.style.display = 'none'; dotsG.innerHTML = '';
+    if(tip) tip.style.display = 'none';
+  };
 }
 // 修改前/修改后共享同一段历史，在 splitIdx（修改点 step 500）处分叉：
 // 之前是同一条连续曲线，之后分裂为「不修改」与「修改后」两条分支，首尾相连但走势差异大。
@@ -2133,8 +2454,19 @@ function renderSidebar(){
     el.addEventListener('click',()=>{ current = el.dataset.id; renderAll(); }));
 }
 
+// 诊断卡「最大化」：切换全屏覆盖，并重绘图表以适配新宽度
+function toggleDiagMax(btn){
+  const card = btn.closest('.card');
+  if(!card) return;
+  const on = card.classList.toggle('diag-max');
+  btn.textContent = on ? '✕ 还原' : '↗ 最大化';
+  if (typeof drawCharts === 'function') drawCharts();
+}
+
 function renderAll(){
   const t = TASKS[current];
+  // #12 副本采用「关键指标置顶 / 隐藏顶部小卡片」重构布局
+  document.getElementById('tab-overview').classList.toggle('layout-keytop', !!t.keyMetricsTop);
   renderSidebar();
   document.getElementById('statusDot').style.cssText =
     `background:${t.status}; box-shadow:0 0 0 4px ${t.status.replace('var(--blue)','var(--blue-soft)').replace('var(--green)','var(--green-soft)').replace('var(--red)','var(--red-soft)').replace('var(--purple)','var(--purple-soft)')}`;
@@ -2203,64 +2535,151 @@ function renderAll(){
           </div>
         </div>`).join('')}
     </div>` : '';
-  const adviceBody = d.drilldown
-    ? `<div class="dd-spike-title">${d.drilldown.title}</div>
-       <div class="dd-chain">
-        ${d.drilldown.nodes.map((node, i) => `
-          ${i > 0 ? `<div class="dd-sep"><div class="dd-sep-arrow"><div class="dd-sep-line"></div><span class="dd-sep-head">→</span></div></div>` : ''}
-          <div class="dd-node ${node.tag}-node">
-            <div class="dd-node-head ${node.tag}">
-              <div class="dd-node-head-row">
-                <span class="dd-node-layer">${node.layer}</span>
-                ${node.link ? `<a href="${node.link}" target="_blank" rel="noopener" class="dd-node-link">查看 ↗</a>` : ''}
-              </div>
-              <span class="dd-node-title ${node.tag}">${node.title}</span>
-            </div>
-            <div class="dd-node-body">
-              ${node.metrics.map(m => `<div class="dd-metric">
-                <span class="dd-metric-k">${m.k}</span>
-                <span class="dd-metric-v${m.bad?' bad':''}">${m.v}</span>
-              </div>`).join('')}
-            </div>
-          </div>`).join('')}
-       </div>
-       ${d.recommend ? `<div class="diag-recommend">${d.recommend}</div>` : ''}
-       <div class="btns"><button class="btn primary">一键修改</button><button class="btn ghost">查看详情</button></div>`
-    : d.causal
-    ? `<div class="causal-wrap">${d.causal.map(c => `
-        <div class="causal-row">
-          <span class="causal-step-col">step ${c.step}</span>
-          <div class="causal-dot-col"><span class="causal-dot2 ${c.level}"></span></div>
-          <div class="causal-body">
-            <div class="causal-signal ${c.level}">${c.signal}</div>
-            <div class="causal-note">${c.note}</div>
-            ${c.intervene ? '<span class="causal-badge">← 最早可干预窗口</span>' : ''}
-          </div>
-        </div>`).join('')}
-      </div>
-      ${d.recommend ? `<div class="diag-recommend">${d.recommend}</div>` : ''}
-      <div class="btns"><button class="btn primary">一键修改</button><button class="btn ghost">查看详情</button></div>`
-    : `${d.paras.map(p => `<p>${p}</p>`).join('')}
-       <div class="btns"><button class="btn primary">一键修改</button><button class="btn ghost">查看详情</button></div>`;
-  const advice = hasBlocker
-    ? `<div class="fw-advice-wrap"><div class="fw-advice-dim">${adviceBody}</div>
-        <div class="fw-advice-mask"><span>⚠ 请先处理上方框架层问题</span></div></div>`
-    : adviceBody;
-  const diagBodyLeft = `${checklistHtml}${advice}`;
-  document.getElementById('diagCard').innerHTML = `
-    <div>
-      <div class="card-head" style="margin-bottom:8px;"><h3>智能诊断</h3></div>
-      ${diagBodyLeft}
-    </div>
+  const buttons = `<div class="btns"><button class="btn primary">一键修改</button><button class="btn ghost">查看详情</button></div>`;
+  const recommendHtml = d.recommend ? `<div class="diag-recommend">${d.recommend}</div>` : '';
+  // 诊断对比 / 曲线预估（上层右栏与非下钻任务右栏共用，含 #diagSplit 供 drawCharts 渲染）
+  const previewHtml = `
     <div class="diag-prev diag-split">
       <div class="diag-split-head">
-        <span class="cap">诊断对比 · 修改点 step 500</span>
         <div class="diag-legend">
           <span style="color:${d.before.color}"><i class="lg dash"></i>${d.before.cap} ${d.before.val}</span>
           <span style="color:${d.after.color}"><i class="lg"></i>${d.after.cap} ${d.after.val}</span>
         </div>
       </div>
       <div id="diagSplit" style="flex:1"></div></div>`;
+  const diagCardEl = document.getElementById('diagCard');
+
+  if (d.drilldown) {
+    // #13 诊断链路重构（组合34）：问题描述 → 诊断链路（透视层图标 + 流动红点 + 等宽等高节点）→ 智能层
+    const dd = d.drilldown;
+    // 透视层图标：使用 layer icon.png
+    const dxIcon = () => `<img src="layer icon.png" width="52" height="52" alt="" style="display:block;object-fit:contain;">`;
+    const iconNames = ['训练日志','训练环境','整图计算图'];
+    // 三个数据节点
+    const dataNodes = dd.nodes.map((node, i) => `
+      <div class="dx-node">
+        <div class="dx-icon">${dxIcon()}</div>
+        <div class="dx-node-name">${iconNames[i] || node.layer}</div>
+        <div class="dx-card ${node.tag}">
+          <div class="dx-card-head ${node.tag}">
+            <div class="dx-head-row">
+              <span class="dx-layer">${node.layer}</span>
+              ${node.link ? `<a href="${node.link}" target="_blank" rel="noopener" class="dx-node-link">查看 ↗</a>` : ''}
+            </div>
+            <span class="dx-title ${node.tag}">${node.title}</span>
+          </div>
+          <div class="dx-card-body">
+            ${node.metrics.map(m => `<div class="dx-metric">
+              <span class="dx-metric-k">${m.k}</span>
+              <span class="dx-metric-v${m.bad?' bad':''}">${m.v}</span>
+            </div>`).join('')}
+          </div>
+        </div>
+      </div>`).join('');
+    // 第四个节点：问题代码（与其余节点等宽等高，代码区不再占满整行）
+    const code = dd.code;
+    const codeNode = code ? `
+      <div class="dx-node">
+        <div class="dx-icon">${dxIcon()}</div>
+        <div class="dx-node-name">问题代码</div>
+        <div class="dx-card code">
+          <div class="dx-code-head2">
+            <span class="dx-code-dot"></span>
+            <span class="dx-code-fname">${code.file}</span>
+            <span class="dx-code-lang">${code.lang}</span>
+          </div>
+          <div class="dx-code-body2">
+            ${code.lines.map(l => `<div class="dx-code-line${l.err?' err':''}"><span class="dx-code-ln">${l.n}</span><span class="dx-code-txt">${l.h || ' '}</span></div>`).join('')}
+          </div>
+          ${code.errLabel ? `<div class="dx-code-flag">✗ ${code.errLabel}</div>` : ''}
+        </div>
+      </div>` : '';
+
+    diagCardEl.className = 'card diag-flow';
+    diagCardEl.innerHTML = `
+      <div class="dx-head">
+        <div class="dx-spike-title">${dd.title}</div>
+        <button class="dx-max" onclick="toggleDiagMax(this)">↗ 最大化</button>
+      </div>
+      <div class="dx-chain-label">诊断链路</div>
+      <div class="dx-chain">
+        <div class="dx-rail">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 52" preserveAspectRatio="none">
+            <path d="M125,26 C175,8 325,8 375,26 C425,44 575,44 625,26 C675,8 818,26 862,26"
+              fill="none" stroke="rgba(180,35,24,.60)" stroke-width="1" stroke-linecap="round" vector-effect="non-scaling-stroke"/>
+            <polygon points="846,17 865,26 846,35" fill="rgba(180,35,24,.75)"/>
+          </svg>
+        </div>
+        <div class="dx-node-dot" style="left:12.5%"></div>
+        <div class="dx-node-dot" style="left:37.5%"></div>
+        <div class="dx-node-dot" style="left:62.5%"></div>
+        <div class="dx-node-dot" style="left:87.5%"></div>
+        <div class="dx-flow"></div>
+        <div class="dx-grid">${dataNodes}${codeNode}</div>
+      </div>
+      <div class="dx-ai-panel">
+        <div class="dx-ai-label"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> AI 修复建议</div>
+        <div class="dx-smart">
+          <div class="dx-smart-left">
+            ${recommendHtml}
+            <div class="btns"><button class="btn primary">一键修改</button><button class="btn ghost">一键提单</button></div>
+          </div>
+          <div class="dx-smart-right">
+            ${previewHtml}
+          </div>
+        </div>
+      </div>`;
+    // 问题代码自动定位到首个错误行（居中显示）+ 红点沿曲线路径动画
+    requestAnimationFrame(() => {
+      const cb = diagCardEl.querySelector('.dx-code-body2');
+      const firstErr = cb && cb.querySelector('.dx-code-line.err');
+      if (cb && firstErr) {
+        const cbRect = cb.getBoundingClientRect(), erRect = firstErr.getBoundingClientRect();
+        cb.scrollTop += (erRect.top - cbRect.top) - cb.clientHeight / 2 + erRect.height / 2;
+      }
+      // 红点沿 SVG 曲线轨迹运动：将 viewBox 坐标转换为 CSS 像素后写入 offset-path
+      const chain = diagCardEl.querySelector('.dx-chain');
+      const flow = diagCardEl.querySelector('.dx-flow');
+      if (chain && flow) {
+        const W = chain.clientWidth;
+        const vx = n => (W * n / 1000).toFixed(1);
+        const pathD = `M${vx(125)},26 C${vx(175)},8 ${vx(325)},8 ${vx(375)},26 C${vx(425)},44 ${vx(575)},44 ${vx(625)},26 C${vx(675)},8 ${vx(818)},26 ${vx(862)},26`;
+        flow.style.top = '0';
+        flow.style.left = '0';
+        flow.style.margin = '0';
+        flow.style.offsetPath = `path("${pathD}")`;
+        flow.style.animation = 'dxFlowPath 6s linear infinite';
+      }
+    });
+  } else {
+    const adviceBody = d.causal
+      ? `<div class="causal-wrap">${d.causal.map(c => `
+          <div class="causal-row">
+            <span class="causal-step-col">step ${c.step}</span>
+            <div class="causal-dot-col"><span class="causal-dot2 ${c.level}"></span></div>
+            <div class="causal-body">
+              <div class="causal-signal ${c.level}">${c.signal}</div>
+              <div class="causal-note">${c.note}</div>
+              ${c.intervene ? '<span class="causal-badge">← 最早可干预窗口</span>' : ''}
+            </div>
+          </div>`).join('')}
+        </div>
+        ${recommendHtml}
+        ${buttons}`
+      : `${d.paras.map(p => `<p>${p}</p>`).join('')}
+         ${buttons}`;
+    const advice = hasBlocker
+      ? `<div class="fw-advice-wrap"><div class="fw-advice-dim">${adviceBody}</div>
+          <div class="fw-advice-mask"><span>⚠ 请先处理上方框架层问题</span></div></div>`
+      : adviceBody;
+    diagCardEl.className = 'card diag';
+    diagCardEl.innerHTML = `
+      <div>
+        <div class="card-head" style="margin-bottom:8px;"><h3>智能诊断</h3></div>
+        ${checklistHtml}${advice}
+      </div>
+      ${previewHtml}`;
+  }
 
   // key metrics
   document.getElementById('keyMetrics').innerHTML = t.key.map((k,i)=>{
@@ -2283,6 +2702,21 @@ function renderAll(){
       const gap = ((k.peak - cur)*100).toFixed(0);
       const fillPct = (cur/k.peak*100).toFixed(1);
       const bd = k.breakdown;
+      if(t.keyMetricsTop){
+        // 副本：去掉两个柱状图，峰值并入大数字旁，时间分配以「面积占比」融入下方曲线
+        const seg = [
+          {label:'计算', c:'var(--blue)',        f:bd.compute},
+          {label:'通信', c:'var(--red)',         f:bd.comm},
+          {label:'其他', c:'rgba(33,33,33,.40)', f:bd.other},
+        ];
+        top = `<div class="km-top" style="flex-direction:column;align-items:flex-start;gap:0;">
+          <div class="km-label">${k.label}</div>
+          <div style="display:flex;align-items:baseline;gap:8px;margin-top:4px;flex-wrap:wrap;">
+            <div class="km-val">${k.value}</div>
+            <span style="font-size:11px;color:var(--red);font-family:var(--font-mono)">↑ 还差 ${gap}pp（H800 BF16 峰值 ${(k.peak*100).toFixed(0)}%）</span>
+          </div>
+        </div>`;
+      } else {
       top = `<div class="km-top" style="flex-direction:column;align-items:flex-start;gap:0;">
         <div class="km-label">${k.label}</div>
         <div style="display:flex;align-items:baseline;gap:10px;margin-top:4px;margin-bottom:10px;">
@@ -2311,6 +2745,7 @@ function renderAll(){
           </div>
         </div>
       </div>`;
+      }
     } else if(k.type === 'disteff'){
       const gs = k.gauges.map(gi=>{
         const v=parseFloat(gi.value)/100;
@@ -2341,6 +2776,16 @@ function renderAll(){
     } else if(k.type === 'gpuutil'){
       const bd = k.stepBreakdown;
       const total = bd.fwd + bd.bwd + bd.opt + bd.comm + bd.data;
+      if(t.keyMetricsTop){
+        // 副本：去掉时间分解柱状图，时间分配详情改为悬浮曲线时在气泡中展示
+        top = `<div class="km-top" style="flex-direction:column;align-items:flex-start;gap:0;">
+          <div class="km-label">${k.label}</div>
+          <div style="display:flex;align-items:baseline;gap:8px;margin-top:4px;flex-wrap:wrap;">
+            <div class="km-val">${k.value}</div>
+            <span style="font-size:11px;color:var(--orange);font-family:var(--font-mono)">目标 &gt;80%</span>
+          </div>
+        </div>`;
+      } else {
       top = `<div class="km-top" style="flex-direction:column;align-items:flex-start;gap:0;">
         <div class="km-label">${k.label}</div>
         <div style="display:flex;align-items:baseline;gap:10px;margin-top:4px;margin-bottom:10px;">
@@ -2365,6 +2810,24 @@ function renderAll(){
           </div>
         </div>
       </div>`;
+      }
+    } else if(t.keyMetricsTop){
+      if(k.anom){
+        // val_loss：列式结构与 MFU/NPU 一致；数值与告警同行，告警底部对齐贴在数值右下角
+        top = `<div class="km-top" style="flex-direction:column;align-items:flex-start;gap:0;">
+          <div class="km-label">${k.label}</div>
+          <div style="display:flex;align-items:baseline;gap:6px;margin-top:5px;flex-wrap:nowrap;">
+            <div class="km-val${k.bad?' bad':''}">${k.value}</div>
+            <span style="color:var(--red);font-size:11px;font-family:var(--font-mono);white-space:nowrap;line-height:1.4;">${k.anom}</span>
+          </div>
+        </div>`;
+      } else {
+        // MFU / NPU 等无告警卡片：列式布局
+        top = `<div class="km-top" style="flex-direction:column;align-items:flex-start;gap:0;">
+          <div class="km-label">${k.label}</div>
+          <div class="km-val${k.bad?' bad':''}" style="margin-top:5px;">${k.value}</div>
+        </div>`;
+      }
     } else {
       top = `<div class="km-top"><div><div class="km-label">${k.label}</div>
           <div class="km-val${k.bad?' bad':''}">${k.value}</div></div>
@@ -2508,7 +2971,7 @@ function dualChart(el, dataA, dataB, labels){
   </svg>`;
 }
 
-function mfuChart(el, data, peak){
+function mfuChart(el, data, peak, stepMax){
   const w = el.clientWidth||460, h=150, pad=12;
   const maxV = peak * 1.08;
   const Y = v => pad + (h-pad*2)*(1 - v/maxV);
@@ -2521,10 +2984,183 @@ function mfuChart(el, data, peak){
     <text x="${w-pad-4}" y="${(+py-3).toFixed(1)}" font-size="9" fill="var(--green)" font-family="monospace" text-anchor="end">H800 BF16 峰值 ${(peak*100).toFixed(0)}%</text>
     <path d="${area}" fill="var(--blue)" opacity="0.06"/>
     <path d="${line}" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <line class="km-hover-guide" x1="0" y1="${pad}" x2="0" y2="${h-pad}" stroke="#1863dc" stroke-width="1" stroke-dasharray="3 2" opacity="0"/>
+    <circle class="km-hover-dot" r="3.5" fill="#1863dc" stroke="#fff" stroke-width="1.5" opacity="0"/>
   </svg>`;
+  if(!stepMax) return;
+  const guide = el.querySelector('.km-hover-guide');
+  const dot = el.querySelector('.km-hover-dot');
+  const card = el.closest('.card');
+  let tip = card && card.querySelector('.km-hover-tip');
+  if(card && !tip){ tip = document.createElement('div'); tip.className = 'km-hover-tip'; card.appendChild(tip); }
+  const N = data.length;
+  el._chartW = w;
+  el._kmStep = (frac, e) => {
+    const i = Math.max(0, Math.min(N-1, Math.round(frac*(N-1))));
+    const gx = (pad + i*stepX).toFixed(1);
+    guide.setAttribute('x1', gx); guide.setAttribute('x2', gx); guide.setAttribute('opacity','.55');
+    dot.setAttribute('cx', gx); dot.setAttribute('cy', Y(data[i]).toFixed(1)); dot.setAttribute('opacity','1');
+    const step = Math.round(stepMax * frac);
+    if(tip){
+      tip.innerHTML = `<div class="kmt-head">step ${step}</div>
+        <div class="kmt-row"><span><i style="background:#1863dc"></i>MFU</span><b>${(data[i]*100).toFixed(0)}%</b></div>`;
+      tip.style.display='block';
+      if(e){
+        const tw = tip.offsetWidth||140, th = tip.offsetHeight||60;
+        const vw = window.innerWidth, vh = window.innerHeight;
+        let tx = e.clientX + 14; if(tx + tw > vw - 4) tx = e.clientX - tw - 14;
+        tx = Math.max(4, Math.min(vw - tw - 4, tx));
+        let ty = e.clientY - th - 10; if(ty < 4) ty = e.clientY + 14;
+        ty = Math.min(vh - th - 4, ty);
+        tip.style.position='fixed'; tip.style.left=tx+'px'; tip.style.top=ty+'px'; tip.style.right='auto';
+      } else {
+        const cr = (card||el.closest('.card')).getBoundingClientRect();
+        tip.style.position='fixed'; tip.style.top=(cr.top+6)+'px';
+        tip.style.right=(window.innerWidth-cr.right+8)+'px'; tip.style.left='auto';
+      }
+    }
+  };
+  el._kmClear = () => {
+    guide.setAttribute('opacity','0'); dot.setAttribute('opacity','0');
+    if(tip) tip.style.display='none';
+  };
 }
 
-function gpuutilChart(el, data){
+// 副本 MFU 卡片：时间分配（计算/通信/其他）作为「面积占比」垂直堆叠融入 MFU 曲线下方，悬浮显示该时刻的分解占比
+function mfuAreaMixChart(el, data, peak, bd, stepMax){
+  const w = el.clientWidth||460, h=150, pad=12;
+  const maxV = peak * 1.08;
+  const Y = v => pad + (h-pad*2)*(1 - v/maxV);
+  const stepX = (w-pad*2)/(data.length-1);
+  const baseY = h-pad;
+  const pts = data.map((v,i)=>[+(pad+i*stepX).toFixed(1), +Y(v).toFixed(1)]);
+  const line = pts.map((p,i)=>(i?'L':'M')+p[0]+' '+p[1]).join(' ');
+  const segs = [
+    {c:'#1863dc',          f:bd.compute, op:0.55},
+    {c:'#555561',          f:bd.comm,    op:0.45},
+    {c:'rgba(33,33,33,1)', f:bd.other,   op:0.16},
+  ];
+  let acc = 0;
+  const bands = segs.map(s=>{ const lo=acc; acc+=s.f; return Object.assign({lo,hi:acc}, s); });
+  const bandPath = (lo,hi)=>{
+    const up = pts.map((p,i)=>(i?'L':'M')+p[0]+' '+(baseY+(p[1]-baseY)*hi).toFixed(1)).join(' ');
+    const dn = pts.slice().reverse().map(p=>'L'+p[0]+' '+(baseY+(p[1]-baseY)*lo).toFixed(1)).join(' ');
+    return up+' '+dn+' Z';
+  };
+  const py = Y(peak).toFixed(1);
+  el.innerHTML = `<svg width="100%" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+    ${bands.map(s=>`<path d="${bandPath(s.lo,s.hi)}" fill="${s.c}" opacity="${s.op}"/>`).join('')}
+    <line x1="${pad}" y1="${py}" x2="${w-pad}" y2="${py}" stroke="var(--green)" stroke-width="1" stroke-dasharray="4 3" opacity=".75"/>
+    <text x="${w-pad-4}" y="${(+py-3).toFixed(1)}" font-size="9" fill="var(--green)" font-family="monospace" text-anchor="end">H800 BF16 峰值 ${(peak*100).toFixed(0)}%</text>
+    <path d="${line}" fill="none" stroke="#1863dc" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <line class="km-hover-guide" x1="0" y1="${pad}" x2="0" y2="${h-pad}" stroke="#1863dc" stroke-width="1" stroke-dasharray="3 2" opacity="0"/>
+    <circle class="km-hover-dot" r="3.5" fill="#1863dc" stroke="#fff" stroke-width="1.5" opacity="0"/>
+  </svg>`;
+  const guide = el.querySelector('.km-hover-guide');
+  const dot = el.querySelector('.km-hover-dot');
+  const card = el.closest('.card');
+  let tip = card && card.querySelector('.km-hover-tip');
+  if(card && !tip){ tip = document.createElement('div'); tip.className = 'km-hover-tip'; card.appendChild(tip); }
+  const N = data.length;
+  const normalMfu = 0.54;
+  const _clearMfu = ()=>{ if(tip) tip.style.display='none'; guide.setAttribute('opacity','0'); dot.setAttribute('opacity','0'); };
+  const _stepMfu = (frac, e)=>{
+    const i = Math.max(0, Math.min(N-1, Math.round(frac*(N-1))));
+    const gx = (pad + i*stepX).toFixed(1);
+    guide.setAttribute('x1', gx); guide.setAttribute('x2', gx); guide.setAttribute('opacity','.55');
+    dot.setAttribute('cx', gx); dot.setAttribute('cy', Y(data[i]).toFixed(1)); dot.setAttribute('opacity','1');
+    const step = Math.round(stepMax * frac);
+    const r = Math.min(1, data[i] / normalMfu);
+    const compute_i = +(bd.compute * r).toFixed(2);
+    const other_i = +bd.other.toFixed(2);
+    const comm_i = +(1 - compute_i - other_i).toFixed(2);
+    if(tip){
+      tip.innerHTML = `<div class="kmt-head">step ${step} · MFU <b style="color:var(--text)">${(data[i]*100).toFixed(0)}%</b></div>
+        <div class="kmt-row"><span><i style="background:var(--blue)"></i>计算</span><b>${(compute_i*100).toFixed(0)}%</b></div>
+        <div class="kmt-row"><span><i style="background:#555561"></i>通信</span><b>${(comm_i*100).toFixed(0)}%</b></div>
+        <div class="kmt-row"><span><i style="background:rgba(33,33,33,.4)"></i>其他</span><b>${(other_i*100).toFixed(0)}%</b></div>`;
+      tip.style.display='block';
+      if(e){
+        const tw = tip.offsetWidth||170, th = tip.offsetHeight||80;
+        const vw = window.innerWidth, vh = window.innerHeight;
+        let tx = e.clientX + 14; if(tx + tw > vw - 4) tx = e.clientX - tw - 14;
+        tx = Math.max(4, Math.min(vw - tw - 4, tx));
+        let ty = e.clientY - th - 10; if(ty < 4) ty = e.clientY + 14;
+        ty = Math.min(vh - th - 4, ty);
+        tip.style.position='fixed'; tip.style.left=tx+'px'; tip.style.top=ty+'px'; tip.style.right='auto';
+      } else {
+        const cr = (card||el.closest('.card')).getBoundingClientRect();
+        tip.style.position='fixed'; tip.style.top=(cr.top+6)+'px';
+        tip.style.right=(window.innerWidth-cr.right+8)+'px'; tip.style.left='auto';
+      }
+    }
+  };
+  el._chartW = w; el._kmStep = _stepMfu; el._kmClear = _clearMfu;
+}
+
+// 副本 NPU 利用率卡片：无柱状占比图，悬浮曲线时气泡展示该时刻利用率 + 时间分配详情
+function gpuutilHoverChart(el, data, bd, stepMax){
+  const w = el.clientWidth||460, h=150, pad=12;
+  const Y = v => pad + (h-pad*2)*(1 - v/1.0);
+  const stepX = (w-pad*2)/(data.length-1);
+  const line = data.map((v,i)=>(i?'L':'M')+(pad+i*stepX).toFixed(1)+' '+Y(v).toFixed(1)).join(' ');
+  const area = line+` L ${w-pad} ${h-pad} L ${pad} ${h-pad} Z`;
+  const ty80 = Y(0.80);
+  const ty = ty80.toFixed(1);
+  // red fill between curve and 80% threshold where utilization is below target
+  const topPts = data.map((_,i)=>(pad+i*stepX).toFixed(1)+' '+ty);
+  const botPts = data.map((v,i)=>(pad+i*stepX).toFixed(1)+' '+Math.max(Y(v),ty80).toFixed(1));
+  const redArea = 'M '+topPts[0]+' '+topPts.slice(1).map(p=>'L '+p).join(' ')+' '+botPts.slice().reverse().map(p=>'L '+p).join(' ')+' Z';
+  el.innerHTML = `<svg width="100%" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+    <path d="${redArea}" fill="rgba(180,35,24,.10)"/>
+    <line x1="${pad}" y1="${ty}" x2="${w-pad}" y2="${ty}" stroke="var(--green)" stroke-width="1" stroke-dasharray="4 3" opacity=".75"/>
+    <text x="${w-pad-4}" y="${(+ty-3).toFixed(1)}" font-size="9" fill="var(--green)" font-family="monospace" text-anchor="end">目标 80%</text>
+    <path d="${area}" fill="var(--blue)" opacity="0.06"/>
+    <path d="${line}" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <line class="km-hover-guide" x1="0" y1="${pad}" x2="0" y2="${h-pad}" stroke="var(--blue)" stroke-width="1" stroke-dasharray="3 2" opacity="0"/>
+    <circle class="km-hover-dot" r="3.5" fill="var(--blue)" stroke="#fff" stroke-width="1.5" opacity="0"/>
+  </svg>`;
+  const guide = el.querySelector('.km-hover-guide');
+  const dot = el.querySelector('.km-hover-dot');
+  // 气泡挂到卡片上（top-right 锚定，固定在 220px 卡片内不被裁剪）
+  const card = el.closest('.card');
+  let tip = card && card.querySelector('.km-hover-tip');
+  if(card && !tip){ tip = document.createElement('div'); tip.className = 'km-hover-tip'; card.appendChild(tip); }
+  const total = bd.fwd + bd.bwd + bd.opt + bd.comm + bd.data;
+  const segDefs = [['forward',bd.fwd,'var(--blue)'],['backward',bd.bwd,'#7c3aed'],
+    ['optimizer',bd.opt,'var(--orange)'],['comm',bd.comm,'var(--red)'],['data',bd.data,'var(--text-3)']];
+  const N = data.length;
+  const _clearGpu = ()=>{ if(tip) tip.style.display='none'; guide.setAttribute('opacity','0'); dot.setAttribute('opacity','0'); };
+  const _stepGpu = (frac, e)=>{
+    const i = Math.max(0, Math.min(N-1, Math.round(frac*(N-1))));
+    const gx = (pad + i*stepX).toFixed(1);
+    guide.setAttribute('x1', gx); guide.setAttribute('x2', gx); guide.setAttribute('opacity','.55');
+    dot.setAttribute('cx', gx); dot.setAttribute('cy', Y(data[i]).toFixed(1)); dot.setAttribute('opacity','1');
+    const step = Math.round(stepMax * frac);
+    if(tip){
+      tip.innerHTML = `<div class="kmt-head">step ${step} · NPU 利用率 <b style="color:var(--text)">${(data[i]*100).toFixed(0)}%</b></div>
+        <div class="kmt-sub">时间分配 · 共 ${total}ms/step</div>
+        ${segDefs.map(([n,v,c])=>`<div class="kmt-row"><span><i style="background:${c}"></i>${n}</span><b>${v}ms · ${(v/total*100).toFixed(0)}%</b></div>`).join('')}`;
+      tip.style.display='block';
+      if(e){
+        const tw = tip.offsetWidth||170, th = tip.offsetHeight||100;
+        const vw = window.innerWidth, vh = window.innerHeight;
+        let tx = e.clientX + 14; if(tx + tw > vw - 4) tx = e.clientX - tw - 14;
+        tx = Math.max(4, Math.min(vw - tw - 4, tx));
+        let ty = e.clientY - th - 10; if(ty < 4) ty = e.clientY + 14;
+        ty = Math.min(vh - th - 4, ty);
+        tip.style.position='fixed'; tip.style.left=tx+'px'; tip.style.top=ty+'px'; tip.style.right='auto';
+      } else {
+        const cr = (card||el.closest('.card')).getBoundingClientRect();
+        tip.style.position='fixed'; tip.style.top=(cr.top+6)+'px';
+        tip.style.right=(window.innerWidth-cr.right+8)+'px'; tip.style.left='auto';
+      }
+    }
+  };
+  el._chartW = w; el._kmStep = _stepGpu; el._kmClear = _clearGpu;
+}
+
+function gpuutilChart(el, data, stepMax){
   const w = el.clientWidth||460, h=150, pad=12;
   const maxV = 1.0;
   const Y = v => pad + (h-pad*2)*(1 - v/maxV);
@@ -2533,11 +3169,50 @@ function gpuutilChart(el, data){
   const area = line+` L ${w-pad} ${h-pad} L ${pad} ${h-pad} Z`;
   const ty = Y(0.80).toFixed(1);
   el.innerHTML = `<svg width="100%" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
-    <line x1="${pad}" y1="${ty}" x2="${w-pad}" y2="${ty}" stroke="var(--orange)" stroke-width="1" stroke-dasharray="4 3" opacity=".75"/>
-    <text x="${w-pad-4}" y="${(+ty-3).toFixed(1)}" font-size="9" fill="var(--orange)" font-family="monospace" text-anchor="end">目标 80%</text>
+    <line x1="${pad}" y1="${ty}" x2="${w-pad}" y2="${ty}" stroke="var(--green)" stroke-width="1" stroke-dasharray="4 3" opacity=".75"/>
+    <text x="${w-pad-4}" y="${(+ty-3).toFixed(1)}" font-size="9" fill="var(--green)" font-family="monospace" text-anchor="end">目标 80%</text>
     <path d="${area}" fill="var(--blue)" opacity="0.06"/>
     <path d="${line}" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <line class="km-hover-guide" x1="0" y1="${pad}" x2="0" y2="${h-pad}" stroke="var(--blue)" stroke-width="1" stroke-dasharray="3 2" opacity="0"/>
+    <circle class="km-hover-dot" r="3.5" fill="var(--blue)" stroke="#fff" stroke-width="1.5" opacity="0"/>
   </svg>`;
+  if(!stepMax) return;
+  const guide = el.querySelector('.km-hover-guide');
+  const dot = el.querySelector('.km-hover-dot');
+  const card = el.closest('.card');
+  let tip = card && card.querySelector('.km-hover-tip');
+  if(card && !tip){ tip = document.createElement('div'); tip.className = 'km-hover-tip'; card.appendChild(tip); }
+  const N = data.length;
+  el._chartW = w;
+  el._kmStep = (frac, e) => {
+    const i = Math.max(0, Math.min(N-1, Math.round(frac*(N-1))));
+    const gx = (pad + i*stepX).toFixed(1);
+    guide.setAttribute('x1', gx); guide.setAttribute('x2', gx); guide.setAttribute('opacity','.55');
+    dot.setAttribute('cx', gx); dot.setAttribute('cy', Y(data[i]).toFixed(1)); dot.setAttribute('opacity','1');
+    const step = Math.round(stepMax * frac);
+    if(tip){
+      tip.innerHTML = `<div class="kmt-head">step ${step}</div>
+        <div class="kmt-row"><span><i style="background:var(--blue)"></i>GPU 利用率</span><b>${(data[i]*100).toFixed(0)}%</b></div>`;
+      tip.style.display='block';
+      if(e){
+        const tw = tip.offsetWidth||140, th = tip.offsetHeight||60;
+        const vw = window.innerWidth, vh = window.innerHeight;
+        let tx = e.clientX + 14; if(tx + tw > vw - 4) tx = e.clientX - tw - 14;
+        tx = Math.max(4, Math.min(vw - tw - 4, tx));
+        let ty = e.clientY - th - 10; if(ty < 4) ty = e.clientY + 14;
+        ty = Math.min(vh - th - 4, ty);
+        tip.style.position='fixed'; tip.style.left=tx+'px'; tip.style.top=ty+'px'; tip.style.right='auto';
+      } else {
+        const cr = (card||el.closest('.card')).getBoundingClientRect();
+        tip.style.position='fixed'; tip.style.top=(cr.top+6)+'px';
+        tip.style.right=(window.innerWidth-cr.right+8)+'px'; tip.style.left='auto';
+      }
+    }
+  };
+  el._kmClear = () => {
+    guide.setAttribute('opacity','0'); dot.setAttribute('opacity','0');
+    if(tip) tip.style.display='none';
+  };
 }
 
 function disteffChart(el, gauges, series){
@@ -2572,10 +3247,92 @@ function disteffChart(el, gauges, series){
   });
 }
 
+// 为 keyMetricsTop 模式下的 val_loss 卡片设置联动式悬浮气泡（兼容 linkKmTopCards）
+function setupKmLinkedLossTip(el, data, label, color, stepMax){
+  const svg = el.querySelector('svg');
+  if(!svg) return;
+  const vb = svg.viewBox.baseVal;
+  const w = vb.width||460, h = vb.height||150, pad = 12;
+  const N = data.length, span = N > 1 ? N-1 : 1;
+  const stepX = (w - pad*2)/span;
+  const minV = Math.min(...data), maxV = Math.max(...data), rng = (maxV-minV)||1;
+  const Y = v => pad + (h-pad*2)*(1-(v-minV)/rng);
+
+  const vline = document.createElementNS('http://www.w3.org/2000/svg','line');
+  vline.setAttribute('x1','0'); vline.setAttribute('y1',String(pad));
+  vline.setAttribute('x2','0'); vline.setAttribute('y2',String(h-pad));
+  vline.setAttribute('stroke','rgba(33,33,33,.32)'); vline.setAttribute('stroke-width','1');
+  vline.setAttribute('stroke-dasharray','3 3'); vline.style.display = 'none';
+  svg.appendChild(vline);
+
+  const dotsG = document.createElementNS('http://www.w3.org/2000/svg','g');
+  svg.appendChild(dotsG);
+
+  const card = el.closest('.card');
+  let tip = card && card.querySelector('.km-hover-tip');
+  if(card && !tip){ tip = document.createElement('div'); tip.className = 'km-hover-tip'; card.appendChild(tip); }
+
+  el._chartW = w;
+  el._kmStep = (frac, e) => {
+    const i = Math.max(0, Math.min(N-1, Math.round(frac * span)));
+    const x = (pad + i*stepX).toFixed(1);
+    vline.setAttribute('x1', x); vline.setAttribute('x2', x); vline.style.display = '';
+    dotsG.innerHTML = `<circle cx="${x}" cy="${Y(data[i]).toFixed(1)}" r="3.5" fill="${color}" stroke="#fff" stroke-width="1.5"/>`;
+    const step = Math.round(stepMax * frac);
+    if(tip){
+      tip.innerHTML = `<div class="kmt-head">step ${step}</div>
+        <div class="kmt-row"><span><i style="background:${color}"></i>${label}</span><b>${fmtNum(data[i])}</b></div>`;
+      tip.style.display = 'block';
+      if(e){
+        const tw = tip.offsetWidth||140, th = tip.offsetHeight||60;
+        const vw = window.innerWidth, vh = window.innerHeight;
+        let tx = e.clientX + 14; if(tx + tw > vw - 4) tx = e.clientX - tw - 14;
+        tx = Math.max(4, Math.min(vw - tw - 4, tx));
+        let ty = e.clientY - th - 10; if(ty < 4) ty = e.clientY + 14;
+        ty = Math.min(vh - th - 4, ty);
+        tip.style.position='fixed'; tip.style.left=tx+'px'; tip.style.top=ty+'px'; tip.style.right='auto';
+      } else {
+        const cr = (card||el.closest('.card')).getBoundingClientRect();
+        tip.style.position='fixed'; tip.style.top=(cr.top+6)+'px';
+        tip.style.right=(window.innerWidth-cr.right+8)+'px'; tip.style.left='auto';
+      }
+    }
+  };
+  el._kmClear = () => {
+    vline.style.display = 'none'; dotsG.innerHTML = '';
+    if(tip) tip.style.display = 'none';
+  };
+}
+
+// 联动顶部三张 km 卡片：任一卡片悬浮时同步 step 到其余卡片，触发各自气泡
+function linkKmTopCards(kmEls){
+  kmEls.forEach(srcEl => {
+    srcEl.addEventListener('mousemove', e => {
+      const w = srcEl._chartW || 460, pad = 12;
+      const rect = srcEl.getBoundingClientRect();
+      const vx = (e.clientX - rect.left) * (w / rect.width);
+      const frac = Math.max(0, Math.min(1, (vx - pad) / (w - pad*2)));
+      kmEls.forEach(el => {
+        if(!el._kmStep) return;
+        if(el === srcEl){ el._kmStep(frac, e); return; }
+        // 为非源卡片构造合成事件：X 映射到该卡片内虚线的屏幕坐标，Y 跟随鼠标高度
+        const elRect = el.getBoundingClientRect();
+        const elW = el._chartW || 460;
+        const screenX = elRect.left + (pad + frac * (elW - pad*2)) / elW * elRect.width;
+        el._kmStep(frac, { clientX: screenX, clientY: e.clientY });
+      });
+    });
+    srcEl.addEventListener('mouseleave', () => {
+      kmEls.forEach(el => { if(el._kmClear) el._kmClear(); });
+    });
+    srcEl.style.cursor = 'crosshair';
+  });
+}
+
 function drawCharts(){
   const t = TASKS[current];
   splitChart(document.getElementById('diagSplit'),
-    t.series[t.diag.before.key], t.series[t.diag.after.key], 6,
+    t.series[t.diag.before.key], t.series[t.diag.after.key], Math.floor(t.series[t.diag.before.key].length/2),
     t.diag.before.color.includes('red')?'#b42318':'#177245',
     t.diag.after.color.includes('red')?'#b42318':'#177245');
   const firstKeyed = t.key.find(k=>k.key);
@@ -2585,9 +3342,11 @@ function drawCharts(){
     if(k.type === 'dual'){
       dualChart(el, t.series[k.keys[0]], t.series[k.keys[1]], k.labels);
     } else if(k.type === 'mfu'){
-      mfuChart(el, t.series[k.key], k.peak);
+      if(t.keyMetricsTop) mfuAreaMixChart(el, t.series[k.key], k.peak, k.breakdown, stepMax);
+      else mfuChart(el, t.series[k.key], k.peak, stepMax);
     } else if(k.type === 'gpuutil'){
-      gpuutilChart(el, t.series[k.key]);
+      if(t.keyMetricsTop) gpuutilHoverChart(el, t.series[k.key], k.stepBreakdown, stepMax);
+      else gpuutilChart(el, t.series[k.key], stepMax);
     } else if(k.type === 'disteff'){
       disteffChart(el, k.gauges, t.series);
       return;
@@ -2596,6 +3355,12 @@ function drawCharts(){
       if(!k.anom && bandY!=null)
         el.insertAdjacentHTML('beforeend',
           `<span class="km-band-label" style="top:${bandY.toFixed(1)}px">最佳收敛区间</span>`);
+      if(t.keyMetricsTop){
+        setupKmLinkedLossTip(el, t.series[k.key], k.label, k.bad?'#b42318':'#1863dc', stepMax);
+      } else {
+        addKmHoverTip(el, t.series[k.key], k.label, k.bad?'#b42318':'#1863dc', stepMax);
+      }
+      el.style.cursor = 'crosshair';
     }
     overlayEventLines(el, t.events, stepMax);
     const ax = document.getElementById('kmAxis'+i);
@@ -2605,6 +3370,8 @@ function drawCharts(){
         `<span>${Math.round(stepMax*j/ticks)}</span>`).join('');
     }
   });
+  const _kmEls = t.key.map((_,i) => document.getElementById('km'+i)).filter(el => el && el._kmStep);
+  if(_kmEls.length >= 2) linkKmTopCards(_kmEls);
 }
 
 // ---------- 模型规模 → 胜率（仅 Pythia，真实数据，复现论文 Figure 1） ----------
@@ -3071,6 +3838,79 @@ function bestChartTask(m, tasksWith){
   const best = m.dir==='up' ? Math.max(...entries.map(e=>e.n)) : Math.min(...entries.map(e=>e.n));
   return entries.find(e=> e.n===best).id;
 }
+// 稳态均值：取序列末尾 n 个点的平均（n 默认 5）
+function stableMean(series, n){
+  n = n || 5;
+  if(!series || !series.length) return null;
+  const t = series.slice(-Math.min(n, series.length));
+  return t.reduce(function(a,b){ return a+b; }, 0) / t.length;
+}
+// Borda 计数综合排名（仅取有方向的指标 up/down）
+// 返回排好序数组 [{ id, rankSum, metricRanks:{metricId→rank}, metricVals:{metricId→val} }, ...]
+// rankSum 越小越好（即排名越靠前）
+function computeRankings(sel){
+  const dm = CMP_METRICS.filter(function(m){ return m.dir==='up'||m.dir==='down'; });
+  const vals = {};
+  sel.forEach(function(id){
+    vals[id] = {};
+    dm.forEach(function(m){ const s=cmpSeries(id,m); vals[id][m.id] = s ? stableMean(s) : null; });
+  });
+  const metricRanks = {};
+  sel.forEach(function(id){ metricRanks[id]={}; });
+  dm.forEach(function(m){
+    const entries = sel.map(function(id){ return {id:id,v:vals[id][m.id]}; }).filter(function(e){ return e.v!=null; });
+    entries.sort(function(a,b){ return m.dir==='down' ? a.v-b.v : b.v-a.v; });
+    entries.forEach(function(e,i){ metricRanks[e.id][m.id]=i+1; });
+    sel.forEach(function(id){ if(metricRanks[id][m.id]==null) metricRanks[id][m.id]=entries.length+1; });
+  });
+  const result = sel.map(function(id){
+    const rankSum = dm.reduce(function(s,m){ return s+(metricRanks[id][m.id]||sel.length+1); }, 0);
+    return { id:id, rankSum:rankSum, metricRanks:metricRanks[id], metricVals:vals[id] };
+  });
+  result.sort(function(a,b){ return a.rankSum-b.rankSum; });
+  return result;
+}
+let bestRankExpanded = false;
+// 生成最佳任务排名卡片 HTML
+function renderBestRankCard(rankings, sel){
+  if(!rankings||!rankings.length) return '';
+  const dm = CMP_METRICS.filter(function(m){ return m.dir==='up'||m.dir==='down'; })
+                        .filter(function(m){ return sel.some(function(id){ return !!cmpSeries(id,m); }); });
+  function rowHtml(entry, rank){
+    const t = TASKS[entry.id];
+    const isGold = rank===1;
+    const metricsHtml = dm.map(function(m){
+      const v = entry.metricVals[m.id];
+      const r = entry.metricRanks[m.id];
+      const dataCount = sel.filter(function(id){ return !!cmpSeries(id,m); }).length;
+      const isFirst = dataCount>1 && r===1;
+      const valStr = v!=null ? fmtNum(v) : '—';
+      return '<div class="best-rank-metric">'
+        +'<span class="best-rank-metric-label">稳态 '+m.label+' 均值</span>'
+        +(isFirst?'<span class="best-rank-trophy">🥇</span>':'<span style="display:inline-block;width:19px"></span>')
+        +'<span class="best-rank-metric-val">'+valStr+'</span>'
+        +'</div>';
+    }).join('');
+    return '<div class="best-rank-row'+(isGold?' rank1':'')+'">'
+      +'<span class="best-rank-num'+(isGold?' gold':'')+'">'+rank+'</span>'
+      +'<span class="dot '+t.dot+'"></span>'
+      +'<span class="best-rank-name">'+t.name+'</span>'
+      +'<div class="best-rank-metrics">'+metricsHtml+'</div>'
+      +'</div>';
+  }
+  const top1Html = rowHtml(rankings[0], 1);
+  const allHtml  = rankings.map(function(e,i){ return rowHtml(e,i+1); }).join('');
+  return '<div class="best-rank-card'+(bestRankExpanded?' expanded':'')+'" id="bestRankCard">'
+    +'<div class="best-rank-head" id="bestRankToggle">'
+    +'<span class="best-rank-chevron">›</span>'
+    +'<span>最佳任务</span>'
+    +'<span style="margin-left:auto;font-size:11px;color:var(--text-3);font-family:var(--font-mono);font-weight:400;">'
+    +rankings.length+' 个任务参与排名</span>'
+    +'</div>'
+    +'<div class="best-rank-single">'+top1Html+'</div>'
+    +'<div class="best-rank-body">'+allHtml+'</div>'
+    +'</div>';
+}
 // 相对基线偏差：abs 绝对差、pct 相对差；bad 表示朝"坏"方向偏离超阈值
 function deviation(cur, base, dir){
   const abs = cur - base;
@@ -3218,30 +4058,9 @@ function renderCompareChart(){
   }
   const hasBase = baselineKey && compareSel.has(baselineKey);
 
-  const legend = sel.map(id=>{
-    const isBase = id===baselineKey;
-    return `<div class="cmp-legend-item">
-      <span style="display:inline-block;width:16px;height:0;
-        border-top:${isBase?'3px solid #888':'2px solid '+dotColor(id)};"></span>
-      ${TASKS[id].name}${isBase?' <b class="cmp-baseline-pill">· 基线</b>':''}</div>`;
-  }).join('');
-
   const grid = CMP_METRICS.map((m, mi)=>{
     const tasksWith = sel.filter(id=> cmpSeries(id, m));
     if(tasksWith.length === 0) return '';
-    let devs = '';
-    if(hasBase && cmpSeries(baselineKey, m)){
-      const base = cmpSeries(baselineKey, m);
-      devs = tasksWith.filter(id=> id!==baselineKey).map(id=>{
-        const dv = deviation(last(cmpSeries(id, m)), last(base), m.dir);
-        const sign = dv.pct>=0 ? '+' : '';
-        let style;
-        if(dv.bad) style = 'color:var(--red);border-color:rgba(180,35,24,.35);background:var(--red-soft)';
-        else { const c = dotColor(id); style = `color:${c};border-color:${c}33;background:${c}14`; }
-        return `<span class="cmp-dev" style="${style}"
-          title="${shortName(id)} 末值 ${fmtNum(last(cmpSeries(id,m)))} vs 基线 ${fmtNum(last(base))}">${shortName(id)} ${sign}${(dv.pct*100).toFixed(0)}% vs 基线</span>`;
-      }).join('');
-    }
     let bestTag = '';
     if(markBest){
       const bestId = bestChartTask(m, tasksWith);
@@ -3255,15 +4074,21 @@ function renderCompareChart(){
     return `<div class="card" style="padding:14px;min-width:0;">
       <div class="cmp-chart-head">
         <span class="cmp-chart-head-left"><span class="cmp-chart-title">${m.label}</span>${bestTag}</span>
-        <span class="cmp-dev-wrap">${devs}</span>
       </div>
       <div class="cmp-chart-area" data-mi="${mi}"></div>
+      <div class="km-axis"></div>
+      <div class="km-axis-title">step</div>
     </div>`;
   }).join('');
 
-  body.innerHTML = `
-    <div class="cmp-legend">${legend}${hasBase?'':'<div class="cmp-legend-item" style="color:var(--text-3)">未指定基线 · 点击左侧「基线」标签设定参照系</div>'}</div>
-    <div class="cmp-grid">${grid}</div>`;
+  const rankings = computeRankings(sel);
+  body.innerHTML = renderBestRankCard(rankings, sel) + '<div class="cmp-grid">' + grid + '</div>';
+  const _brt = document.getElementById('bestRankToggle');
+  if(_brt) _brt.addEventListener('click', function(){
+    bestRankExpanded = !bestRankExpanded;
+    const card = document.getElementById('bestRankCard');
+    if(card) card.classList.toggle('expanded', bestRankExpanded);
+  });
 
   cmpDrawAll();
 }
@@ -3562,10 +4387,18 @@ function cmpChart(area, m){
     <g class="cmp-dots"></g>
   </svg><div class="cmp-chart-tip"></div>`;
   const svg = area.querySelector('svg');
-  const obj = { area, m, datas, n, w, X, Y,
+  const chartStepMax = Math.max(...datas.map(d => parseInt(TASKS[d.id].runtime && TASKS[d.id].runtime.stepCur) || d.vals.length));
+  const obj = { area, m, datas, n, w, X, Y, stepMax: chartStepMax,
     vline: svg.querySelector('.cmp-vline'), dots: svg.querySelector('.cmp-dots'),
     tip: area.querySelector('.cmp-chart-tip') };
   cmpCharts.push(obj);
+  // 填充 step 横坐标刻度
+  const axEl = area.nextElementSibling;
+  if(axEl && axEl.classList.contains('km-axis')){
+    const ticks = 4;
+    axEl.innerHTML = Array.from({length:ticks+1},(_,j)=>
+      `<span>${Math.round(chartStepMax*j/ticks)}</span>`).join('');
+  }
   // 在任意一张图上移动，都联动刷新所有图（竖线 + 数据点 + 各自气泡）
   area.addEventListener('mousemove', e=>{
     const rect = area.getBoundingClientRect();
@@ -3595,7 +4428,7 @@ function cmpHideAll(){
 // 单张图的信息气泡：列出各任务在 idx 处取值及相对基线偏差，定位在竖线一侧
 function cmpFillTip(c, idx){
   const base = c.datas.find(d=> d.base);
-  c.tip.innerHTML = `<div class="cmp-tip-head">进度 ${Math.round(idx/(c.n-1)*100)}%</div>` +
+  c.tip.innerHTML = `<div class="cmp-tip-head">step ${Math.round(idx/(c.n-1)*c.stepMax)}</div>` +
     c.datas.map(d=>{
       const v = d.vals[idx];
       let dev = '';
