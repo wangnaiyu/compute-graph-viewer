@@ -69,6 +69,9 @@
 
   /* ── Header: transparent top chrome (no filled background) ── */
   header{padding:var(--space-2) var(--space-4);border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;gap:var(--space-3)}
+  .home-link{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:var(--radius-sm);color:var(--foreground-secondary);text-decoration:none;flex-shrink:0;transition:background var(--duration-base),color var(--duration-base)}
+  .home-link:hover{background:var(--state-hover);color:var(--foreground)}
+  .home-link svg{display:block}
   header h1{font-size:var(--font-size-body-md);margin:0;font-weight:var(--font-weight-semibold)}
   header .sub{font-size:var(--font-size-body-sm);color:var(--foreground-muted)}
 
@@ -130,6 +133,7 @@
   .wdiag-pp-arr{text-align:center;color:var(--warning);font-size:var(--font-size-body-sm);margin:4px 0;opacity:.75}
   .wdiag-dp-bar{text-align:center;color:var(--success);font-size:var(--font-size-label-xs);margin-top:var(--space-2);padding-top:5px;border-top:1px dashed rgba(4,215,147,.35);opacity:.85}
   .wdiag-cp-label{font-size:var(--font-size-label-xs);color:var(--dv-purple);margin-bottom:3px}
+  .wdiag-ep-label{font-size:9px;color:var(--danger);font-weight:700;margin-bottom:3px;opacity:.75;letter-spacing:.02em}
 
   /* ── Layer column ── */
   .wdiag-layer-col{display:flex;flex-direction:column;gap:2px;justify-content:space-around;flex-shrink:0;width:74px;padding:2px 0}
@@ -309,19 +313,25 @@
 </head>
 <body>
 <header>
+  <a href="https://yinyucheng0601.github.io/compute-graph-viewer/launch.html" class="home-link" title="Back to Launcher">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M1.5 8L8 2L14.5 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M3.5 6.5V14H12.5V6.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </a>
   <h1>🧩 并行训练可视化 Demo</h1>
   <select id="libSelect">
     <option value="picotron">picotron</option>
     <option value="torchtitan">torchtitan</option>
   </select>
-  <span class="sub" id="headerSub">基于 huggingface/picotron 真实逻辑　·　左:配置　中:训练拓扑及计算流动可视化　右:真实源码(随配置高亮)</span>
+  <span class="sub" id="headerSub">基于 huggingface/picotron 真实逻辑</span>
 </header>
 <div class="app">
   <!-- ============ LEFT: CONTROLLER ============ -->
   <div class="col" id="ctrl">
     <div class="h2row"><h2>控制器</h2><button class="reset" id="resetBtn">↺ 复原</button></div>
     <div class="group">
-      <div class="gh">并行模式</div>
+      <div class="gh">并行模式 <span class="pill">(picotron 网格 dp×pp×cp×tp)</span></div>
       <div class="row"><label><input type="checkbox" id="enDP" data-tab="launch" checked> 数据并行 DP</label><input class="deg" type="number" id="dp" data-tab="launch" min="1" max="8" value="1"></div>
       <input type="range" class="par-slider" id="dpSlider" min="1" max="8" value="1">
       <div class="para-hint" id="hintDP"></div>
@@ -337,7 +347,7 @@
       <div class="row"><label><input type="checkbox" id="enMoE" data-tab="launch"> MoE / 专家并行 EP</label><input class="deg" type="number" id="ep" data-tab="launch" min="1" max="8" value="2" disabled></div>
       <input type="range" class="par-slider" id="epSlider" min="1" max="8" value="2" disabled>
       <div class="para-hint" id="hintEP"></div>
-      <div class="slabel" id="expRow" style="display:none;margin-top:4px"><span>专家数 (每 MoE 层)</span><b id="vExperts">8</b></div>
+      <div class="slabel" id="expRow" style="display:none"><span>专家数 (每 MoE 层)</span><b id="vExperts">8</b></div>
       <input type="range" id="experts" min="2" max="16" step="2" value="8" style="display:none">
       <div class="para-hint" id="hintExperts"></div>
       <div class="conclusion-box" id="parallelConclusion"></div>
@@ -536,6 +546,7 @@ function renderWorldDiagram(){
       if(pp>1) h+=`<div class="wdiag-stage-label"><span class="wdiag-stage-icon"></span>Stage ${p}</div>`;
       for(let c=0;c<cp;c++){
         if(cp>1) h+=`<div class="wdiag-cp"><div class="wdiag-cp-label">CP ${c}</div>`;
+        if(state.enMoE && state.ep>1 && dp*pp*cp>1) h+=`<div class="wdiag-ep-label">EP组${p*dp*cp+d*cp+c}</div>`;
         h+=`<div class="wdiag-tp-row">`;
         for(let t=0;t<tp;t++){
           if(t>0) h+=`<span class="wdiag-tp-arr">↔</span>`;
@@ -1311,18 +1322,19 @@ function renderHints(){
   if(s.enMoE){
     if(s.ep>1){
       const perCard=Math.ceil(s.experts/s.tp);
-      const epGroups=s.dp*s.pp*s.cp;
-      // 每张卡持有的专家列表（专家沿 TP 维度切分，共 tp 张卡）
+      const minPerCard=Math.floor(s.experts/s.tp);
+      const perCardDesc=minPerCard===perCard?`${perCard}`:`${minPerCard}~${perCard}`;
       const cardTags=Array.from({length:s.tp},(_,t)=>{
         const lo=t*perCard, hi=Math.min(s.experts-1,lo+perCard-1);
         const label=lo===hi?`E${lo}`:`E${lo}~E${hi}`;
         return `<span style="display:inline-block;margin:1px 2px;padding:0 5px;border-radius:3px;background:rgba(255,75,123,.13);color:var(--danger);font-size:10px;white-space:nowrap">卡${t}:${label}</span>`;
       }).join('');
+      const epGroups=s.dp*s.pp*s.cp;
       const groupsDesc=epGroups>1
         ?`<br>DP×PP×CP = ${s.dp}×${s.pp}×${s.cp} = <b>${epGroups}</b>，这三个维度彼此隔离、不能共享专家，因此产生 <b>${epGroups}</b> 个独立 EP 组，每组专家分布相同。`
         :``;
       epEl.className='para-hint on';
-      epEl.innerHTML=`<b>切分专家到不同卡。</b>EP 启用，TP=<b>${s.tp}</b>：每组 <b>${s.tp}</b> 张卡（TP 维度）协同持有全部 <b>${s.experts}</b> 个专家，每卡 <b>${perCard}</b> 个专家：`+
+      epEl.innerHTML=`<b>切分专家到不同卡。</b>EP 启用，TP=<b>${s.tp}</b>：即每组 <b>${s.tp}</b> 张卡（TP 维度）协同持有全部 <b>${s.experts}</b> 个专家，每卡 <b>${perCardDesc}</b> 个专家：`+
         cardTags+groupsDesc+
         `<br>每个 token 被 router 选出 top-k 专家，通过 all-to-all 路由到持有对应专家的卡上计算`;
     } else {
@@ -1367,7 +1379,7 @@ function renderHints(){
     expertsEl.className='para-hint on';
     const activeRatio=Math.round(2/s.experts*100);
     const epDesc=s.ep>1
-      ?`EP 启用（TP=${s.tp}），每卡持有 <b>${Math.ceil(s.experts/s.tp)}</b> 个专家，token 经 all-to-all 路由`
+      ?`EP 启用（TP=${s.tp}），每卡持有 <b>${(()=>{const mx=Math.ceil(s.experts/s.tp),mn=Math.floor(s.experts/s.tp);return mn===mx?mx:mn+'~'+mx;})()} 个专家</b>，token 经 all-to-all 路由`
       :`专家完整复制在每张卡，无需 all-to-all`;
     expertsEl.innerHTML=`<b>${s.experts}</b> 个专家，每个专家为独立 FFN（${H}→${H*4}→${H}）；`+
       `router 为每个 token 选 top-2，每次激活 ≈ <b>${activeRatio}%</b> 的参数；${epDesc}`;
@@ -1819,8 +1831,8 @@ $('resetBtn').onclick=()=>{
 function updateLibUI(){
   const isPico=currentLib==='picotron';
   if($('headerSub')) $('headerSub').textContent=isPico
-    ?'基于 huggingface/picotron 真实逻辑　·　左:配置　中:训练拓扑及计算流动可视化　右:真实源码(随配置高亮)'
-    :'基于 pytorch/torchtitan 真实逻辑　·　左:配置　中:训练拓扑及计算流动可视化　右:真实源码(随配置高亮)';
+    ?'基于 huggingface/picotron 真实逻辑'
+    :'基于 pytorch/torchtitan 真实逻辑';
   if($('codePanelTitle')) $('codePanelTitle').textContent=isPico
     ?'真实源码（picotron · 随配置高亮）'
     :'真实源码（torchtitan · 随配置高亮）';
