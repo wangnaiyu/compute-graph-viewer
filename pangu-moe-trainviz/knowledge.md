@@ -31,6 +31,8 @@
 - [10. 为什么 ParallelDemo 的逻辑对，但示意图不能直接当真实盘古拓扑](#10-为什么-paralleldemo-的逻辑对但示意图不能直接当真实盘古拓扑)
 - [10.4 如何把 ParallelDemo 落实成确定的盘古训练配置](#104-如何把-paralleldemo-落实成确定的盘古训练配置)
 - [10.5 整网模型架构、训练步骤、单卡任务的关系](#105-整网模型架构训练步骤单卡任务的关系)
+- [10.5.4 一张卡的时间轴是不是乱序任务](#1054-一张卡的时间轴是不是乱序任务)
+- [10.5.5 block、layer、隐藏层、hidden state 的关系](#1055-blocklayer隐藏层hidden-state-的关系)
 - [11. 对 TrainScope 的产品表达建议](#11-对-trainscope-的产品表达建议)
 - [11.4 推荐的单卡详情结构](#114-推荐的单卡详情结构)
 - [12. 给页面文案直接可用的几种模板](#12-给页面文案直接可用的几种模板)
@@ -961,7 +963,138 @@ EP19 表示 MoE 层的 expert bucket E152-E159 会投影到该 rank/device
 在当前 step 中，它处理 DP2 的训练样本 shard，并参与对应通信组。
 ```
 
-#### 10.5.4 对产品图表的落地要求
+#### 10.5.4 一张卡的时间轴是不是乱序任务
+
+不是乱序。按照时间维度看，一张卡上的 profiler timeline 可能会出现很多交错事件，但这些事件由训练 step、pipeline schedule、autograd 依赖和通信依赖共同决定，不是随机排列。
+
+一个 `rank_299 / PP5 / TP3 / DP2 / CP0 / EP19` 的中间 stage，典型时间轴可以理解为：
+
+```text
+从 PP4 接收 activation
+        |
+        v
+forward：执行 PP5 覆盖的 Blocks 20-23
+  - Attention QKV / Out 的 TP3 张量分片
+  - MoE router / gate
+  - all-to-all dispatch
+  - 本 rank 的 expert bucket E152-E159
+  - all-to-all combine
+        |
+        v
+向 PP6 发送 activation
+        |
+        v
+稍后从 PP6 接收 gradient
+        |
+        v
+backward：反向穿过 Blocks 20-23
+        |
+        v
+TP / EP / DP 等通信同步
+        |
+        v
+optimizer update 或等待全局优化器阶段
+```
+
+如果采用 pipeline 1F1B 之类调度，同一张卡上会看到类似下面的交错：
+
+```text
+forward micro-batch 7
+backward micro-batch 3
+forward micro-batch 8
+backward micro-batch 4
+...
+```
+
+这看起来像“乱序”，但它是流水线调度为了填满设备而做的有序交错，不是任务随便打乱。
+
+更重要的是，PP/TP/DP/CP/EP 这些“切片标签”不是时间序列，而是每个 runtime event 的 placement metadata。例如：
+
+| 时间线上看到的 event | 这个 event 应挂的切片标签 |
+|---|---|
+| `QKV Linear forward` | `PP5 / TP3 / DP2 / CP0` |
+| `MoE all-to-all dispatch` | `PP5 / EP19 / DP2 / CP0` |
+| `Expert FFN forward` | `PP5 / TP3 / EP19` |
+| `gradient all-reduce` | `DP group` |
+| `P2P send activation` | `PP5 -> PP6` |
+
+所以产品上不要把切片标签画成“这张卡按时间依次跑 PP、TP、DP、CP、EP”。更准确的表达是：时间轴上有 forward、backward、通信、更新等事件；每个事件都带有一个或多个并行切片标签。
+
+这类内容可以直接借用 `/Users/yin/pto/Profiling_Insight_and_Tool` 里的 swimlane 表达方式，而不是再画一张静态卡片图。推荐图表结构：
+
+```text
+横轴：同一个 training step 内的相对时间
+纵轴：rank lanes，例如 rank_296、rank_297、rank_298、rank_299
+条形任务：recv activation、forward block、MoE all-to-all、send activation、backward、DP all-reduce
+行标签：rank/device + PP/TP/DP/CP/EP placement metadata
+```
+
+示例读法：
+
+| swimlane 元素 | 在本报告里的含义 |
+|---|---|
+| `rank_299 · 910B_299` 这一行 | 一张卡 / 一个 rank 的 runtime 事件序列。 |
+| `PP5 / TP3 / DP2 / CP0 / EP19` 行标签 | 这个 rank 的静态 placement 坐标，不是时间顺序。 |
+| `Fwd mb7 · Blocks 20-23` 条形任务 | 当前时刻正在执行 PP5 覆盖的 decoder blocks。 |
+| `MoE all-to-all + expert bucket` 条形任务 | EP（Expert Parallel，专家并行）相关的 token dispatch / combine 与专家计算。 |
+| `DP all-reduce` 条形任务 | backward 后的梯度同步；同步的是梯度 / 参数更新，不是把样本数据拼回去。 |
+| 多个 rank 行错开 | Pipeline schedule、通信等待和计算依赖造成的有序交错，不是随机乱序。 |
+
+实现上应复用 PTO 已沉淀的 `swimlane-task` pattern：
+
+- 共享 renderer：`/Users/yin/pto/vendor/pto-design-system/patterns/swimlane-task/pattern.js`
+- 关键 API：`PtoSwimlaneTaskPattern.drawTaskBar`
+- 原产品来源：`/Users/yin/pto/Profiling_Insight_and_Tool/AI_Profiling_Tool/js/graph-evidence/swimlane-stage.js`
+- 数据来源契约：真实产品应从 `trace_view.json` parser 生成 lane model；白皮书里的图是说明型样例，不应反过来当真实 profiling 数据。
+
+这能补足前面 placement 图的不足：placement 图说明“rank 属于哪些并行坐标”，swimlane 图说明“这些坐标下，rank 在时间轴上实际跑了哪些 runtime events”。
+
+可靠依据：
+
+- PyTorch Pipeline Parallelism 文档把 `PipelineStage` 定义为模型的一段，并提供 `Schedule1F1B` 等微批调度；这说明 pipeline stage 上的 forward/backward 可以按 micro-batch 交错执行。
+- PyTorch Profiler 文档把 profiler 结果作为 operator/runtime event timeline 来观察；这说明时间轴记录的是实际执行事件，而不是静态 placement 标签。
+- PyTorch 训练循环示例说明一个训练 step 包含 forward、loss、backward、optimizer update；forward 只是 step 的一部分。
+- PTO / Profiling_Insight_and_Tool 的 graph-evidence swimlane 已采用 `swimlane-task` renderer，把 Step / Stream / Communication / Overlap / Coverage lane 作为 runtime evidence 表达；白皮书可借用同一视觉与语义，但必须说明它是示意图。
+
+#### 10.5.5 block、layer、隐藏层、hidden state 的关系
+
+这里需要纠正一个中文术语歧义：**“隐藏层”不是一个稳定的单一概念**。
+
+| 词 | 更准确的含义 | 在本报告里的建议用法 |
+|---|---|---|
+| `block` / `Transformer block` / `decoder block` | Transformer 里重复堆叠的完整计算单元，通常包含 Attention、FFN/MoE、Norm、Residual 等子结构。 | 描述 PP（Pipeline Parallel，流水线并行）切分层段时优先使用，例如 `Blocks 20-23`。 |
+| `layer` | 语境依赖很强。它可以指一个完整 Transformer block，也可以指更小的 `Linear layer`、`Attention layer`、`LayerNorm layer`。 | 不单独裸写“layer”，必须说明是 `decoder layer`、`linear layer` 还是 `attention sublayer`。 |
+| `num_hidden_layers` | Hugging Face 配置字段，官方文档说明它是模型里的 block 数量。 | 解释配置时可以说 `num_hidden_layers=61` 表示 61 个 decoder/Transformer blocks。 |
+| `hidden layer` / 隐藏层 | 中文里容易混用。传统神经网络里可泛指输入层和输出层之间的中间层；在大模型讨论中，经常被误用来指 `hidden state` 或 `num_hidden_layers`。 | 避免直接用“隐藏层”做产品标签。需要时写成“隐藏状态 hidden state”或“隐藏层数量字段 num_hidden_layers”。 |
+| `hidden state` | 每个 token 在模型内部的中间向量表示，形状通常是 `[batch_size, seq_len, hidden_size]`。它是 runtime tensor，不是一个模块。 | 描述激活、attention 输入输出、层间传递数据时使用。 |
+| `hidden_size` | hidden state 每个 token 向量的宽度，也就是最后一维大小。 | 解释张量形状或模型宽度时使用，例如 Pangu 配置中 `hidden_size=7680`。 |
+
+因此，下面两句话分别在不同语境下成立：
+
+```text
+配置语境：
+num_hidden_layers=61 表示模型有 61 个 Transformer/decoder blocks。
+
+运行时语境：
+hidden state 是每个 token 在某一层输出的中间表示张量，
+例如 [batch_size, seq_len, hidden_size]。
+```
+
+这也解释了为什么 `Blocks 20-23` 不能翻译成“隐藏状态 20-23”。`Blocks 20-23` 指 PP5 这个 stage 覆盖的第 20 到第 23 个 Transformer/decoder block；这些 block 会接收上一层输出的 hidden state，执行 Attention 和 FFN/MoE，再输出新的 hidden state 给下一层。
+
+官方依据：
+
+- Hugging Face Transformers 配置文档说明 `hidden_size`、`num_attention_heads`、`num_hidden_layers` 是通用配置字段，并明确 `num_hidden_layers` 是模型里的 block 数量。
+- Hugging Face Transformers Model Outputs 文档说明 `hidden_states` 是 embedding 输出加每一层输出组成的张量元组，形状为 `(batch_size, sequence_length, hidden_size)`。
+- openPangu-Ultra-MoE-718B `config.json` 给出 `num_hidden_layers=61` 与 `hidden_size=7680`，这两个字段一个描述 block 数量，一个描述 hidden state 向量宽度。
+
+产品文案建议：
+
+- 用 `Blocks 20-23` 或 `Decoder blocks 20-23` 表达 PP stage 覆盖范围。
+- 用 `hidden state [batch, seq, hidden]` 表达卡上正在传递或保存的中间激活。
+- 不要把“隐藏层”同时拿来表示 block 数量和 hidden state，否则会把模型结构和运行时 tensor 混在一起。
+
+#### 10.5.6 对产品图表的落地要求
 
 TrainScope 页面建议把“整网模型架构”和“单卡任务”做成可追溯的父子关系：
 
@@ -1112,7 +1245,13 @@ stageLayers / tensorShards / sequenceShard / batchShard / expertIds / routeStats
 
 - openPangu-Ultra-MoE-718B model card: https://huggingface.co/FreedomIntelligence/openPangu-Ultra-MoE-718B
 
+- Hugging Face Transformers Configuration: https://huggingface.co/docs/transformers/main_classes/configuration
+
+- Hugging Face Transformers Model Outputs: https://huggingface.co/docs/transformers/main_classes/output
+
 - PyTorch training loop example: https://docs.pytorch.org/tutorials/recipes/recipes/zeroing_out_gradients.html
+
+- PyTorch Profiler Recipe: https://docs.pytorch.org/tutorials/recipes/recipes/profiler_recipe.html
 
 - PyTorch DistributedDataParallel: https://docs.pytorch.org/docs/2.12/generated/torch.nn.parallel.DistributedDataParallel.html
 

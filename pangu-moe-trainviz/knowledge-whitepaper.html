@@ -163,6 +163,101 @@
       pointer-events: none;
     }
 
+    .rank-swimlane-card {
+      margin: 1.2rem 0 1.35rem;
+      padding: 18px;
+      border-radius: 22px;
+      border: 1px solid rgba(15, 23, 42, 0.12);
+      background:
+        radial-gradient(circle at 12% 0%, rgba(59, 130, 246, 0.18), transparent 28%),
+        linear-gradient(180deg, #111827 0%, #0f172a 100%);
+      color: #e5e7eb;
+      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.16);
+    }
+
+    .rank-swimlane-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+
+    .rank-swimlane-title {
+      font-weight: 850;
+      font-size: 1.05rem;
+      color: #f8fafc;
+    }
+
+    .rank-swimlane-sub {
+      margin-top: 4px;
+      color: rgba(226, 232, 240, 0.72);
+      font-size: 0.92rem;
+      line-height: 1.55;
+    }
+
+    .rank-swimlane-source {
+      flex-shrink: 0;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: rgba(226, 232, 240, 0.78);
+      font-size: 0.82rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      white-space: nowrap;
+    }
+
+    .rank-swimlane-canvas-wrap {
+      position: relative;
+      overflow-x: auto;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.11);
+      background: rgba(2, 6, 23, 0.55);
+    }
+
+    .rank-swimlane-canvas {
+      display: block;
+      width: 100%;
+      min-width: 1040px;
+      height: 380px;
+    }
+
+    .rank-swimlane-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .rank-swimlane-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 9px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      background: rgba(255, 255, 255, 0.07);
+      color: rgba(248, 250, 252, 0.88);
+      font-size: 0.86rem;
+      font-weight: 700;
+    }
+
+    .rank-swimlane-chip::before {
+      content: "";
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: var(--chip-color, #60a5fa);
+    }
+
+    .rank-swimlane-footnote {
+      margin-top: 10px;
+      color: rgba(226, 232, 240, 0.66);
+      font-size: 0.9rem;
+      line-height: 1.65;
+    }
+
     @media (max-width: 960px) {
       .scope-grid,
       .caption-grid {
@@ -1199,7 +1294,7 @@
           <text x="680" y="758" text-anchor="middle" font-size="15" font-weight="850" fill="#0f172a">结论：ParallelDemo 的网格公式可落成盘古训练诊断样例；每个 rank/card 都要携带自己的切片标签。</text>
         </svg>
       </div>
-      <div class="evidence-caption">证据边界：模型结构来自公开 <a href="https://huggingface.co/FreedomIntelligence/openPangu-Ultra-MoE-718B/blob/main/config.json">openPangu-Ultra-MoE-718B config</a> 与 <a href="https://huggingface.co/FreedomIntelligence/openPangu-Ultra-MoE-718B/blob/main/inference/model.py">inference/model.py</a>；<code>DP=32 / PP=16 / CP=1 / TP=8 / EP=32</code> 是用于把 ParallelDemo 公式落实到大规模训练的派生 placement，不是官方公开的真实训练切分。模型架构只定义 forward 主干；训练 step 还包含 loss、backward、通信同步与 optimizer update，可参考 <a href="https://docs.pytorch.org/tutorials/recipes/recipes/zeroing_out_gradients.html">PyTorch 训练循环示例</a>。MindSpore Transformers 配置说明提供 <code>data_parallel</code>、<code>model_parallel</code>、<code>context_parallel</code>、<code>pipeline_stage</code>、<code>expert_num</code>、<code>num_experts_chosen</code> 等字段依据，通信 API 提供通信组与 rank 映射依据。与 ParallelDemo 的差异边界：截图中的 H100_0 是 <code>Stage 0</code>，所以显示 Embedding；本图的 <code>rank_299 / PP5</code> 不应显示 Embedding，只显示该 stage 覆盖的 blocks。<code>E152-E159</code> 是盘古产品场景中的 EP bucket，不是直接照搬 ParallelDemo 当前 demo 里按 TP shard 展示专家片的简化逻辑。</div>
+      <div class="evidence-caption">证据边界：模型结构来自公开 <a href="https://huggingface.co/FreedomIntelligence/openPangu-Ultra-MoE-718B/blob/main/config.json">openPangu-Ultra-MoE-718B config</a> 与 <a href="https://huggingface.co/FreedomIntelligence/openPangu-Ultra-MoE-718B/blob/main/inference/model.py">inference/model.py</a>；<code>DP=32 / PP=16 / CP=1 / TP=8 / EP=32</code> 是用于把 ParallelDemo 公式落实到大规模训练的派生 placement，不是官方公开的真实训练切分。模型架构只定义 forward 主干；训练 step 还包含 loss、backward、通信同步与 optimizer update，可参考 <a href="https://docs.pytorch.org/tutorials/recipes/recipes/zeroing_out_gradients.html">PyTorch 训练循环示例</a>。Hugging Face Transformers 配置文档说明 <code>num_hidden_layers</code> 是模型的 block 数量，Model Outputs 文档说明 <code>hidden_states</code> 是 embedding 输出加每层输出的张量序列，形状为 <code>(batch_size, sequence_length, hidden_size)</code>。PyTorch Pipeline 文档说明 stage 是模型分段，Profiler 文档说明时间轴记录的是 operator/runtime event。MindSpore Transformers 配置说明提供 <code>data_parallel</code>、<code>model_parallel</code>、<code>context_parallel</code>、<code>pipeline_stage</code>、<code>expert_num</code>、<code>num_experts_chosen</code> 等字段依据，通信 API 提供通信组与 rank 映射依据。与 ParallelDemo 的差异边界：截图中的 H100_0 是 <code>Stage 0</code>，所以显示 Embedding；本图的 <code>rank_299 / PP5</code> 不应显示 Embedding，只显示该 stage 覆盖的 decoder blocks。<code>E152-E159</code> 是盘古产品场景中的 EP bucket，不是直接照搬 ParallelDemo 当前 demo 里按 TP shard 展示专家片的简化逻辑。</div>
     </div>
     <table class="section-table detail-table">
       <thead><tr><th>概念</th><th>在训练中的含义</th><th>在图表中的表达边界</th></tr></thead>
@@ -1228,6 +1323,76 @@
           <td><code>step</code></td>
           <td>一次训练迭代，通常包含 forward、loss、backward、通信同步、optimizer update。</td>
           <td>模型架构图只覆盖 forward 主干；step runtime card 才表达 backward、通信和参数更新。</td>
+        </tr>
+      </tbody>
+    </table>
+    <table class="section-table detail-table">
+      <thead><tr><th>问题</th><th>准确解释</th><th>图表表达建议</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>一张卡按时间看，是不是在跑乱序任务</td>
+          <td>不是乱序。Profiler timeline 里 forward、backward、send/recv、all-reduce、all-to-all 等事件可能交错出现，但它们受训练 step、pipeline schedule、autograd 依赖和通信依赖约束。</td>
+          <td>时间轴画 runtime event；PP / TP / DP / CP / EP 画成 event 上的标签，不要画成“先跑 PP 再跑 TP 再跑 EP”的时间顺序。</td>
+        </tr>
+        <tr>
+          <td>1F1B 这类流水线为什么看起来交错</td>
+          <td>同一张卡可能先执行某个 micro-batch 的 forward，再执行另一个 micro-batch 的 backward。交错是流水线调度为了提高设备利用率，不是任务随机打乱。</td>
+          <td>可在时间轴中标 <code>Fwd mb7</code>、<code>Bwd mb3</code>、<code>Fwd mb8</code>、<code>Bwd mb4</code>，旁边附同一组 placement 标签。</td>
+        </tr>
+        <tr>
+          <td><code>rank_299 / PP5</code> 为什么不应显示 Embedding</td>
+          <td>Embedding 只属于模型入口 stage。<code>rank_299 / PP5</code> 是中间流水线 stage，只覆盖该 stage 的 decoder blocks，例如 <code>Blocks 20-23</code>。</td>
+          <td>卡内显示 <code>Decoder blocks 20-23</code>、Attention shard、MoE FFN、expert bucket、通信事件；不要照搬 ParallelDemo 中 <code>H100_0 / Stage 0</code> 的 Embedding。</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="rank-swimlane-card" aria-label="rank runtime swimlane">
+      <div class="rank-swimlane-head">
+        <div>
+          <div class="rank-swimlane-title">借用 PTO swimlane：用时间轴表达 rank 上实际发生的任务</div>
+          <div class="rank-swimlane-sub">横轴是同一训练 step 的时间；每一行是同一 PP stage / DP shard 下的一个 rank。条形任务才是 runtime event，PP / TP / DP / CP / EP 是挂在 rank 或 event 上的语义标签。</div>
+        </div>
+        <div class="rank-swimlane-source">PtoSwimlaneTaskPattern.drawTaskBar</div>
+      </div>
+      <div class="rank-swimlane-canvas-wrap">
+        <canvas class="rank-swimlane-canvas" data-rank-swimlane="pangu-pp5"></canvas>
+      </div>
+      <div class="rank-swimlane-legend">
+        <span class="rank-swimlane-chip" style="--chip-color:#3b82f6">PP P2P recv/send</span>
+        <span class="rank-swimlane-chip" style="--chip-color:#22c55e">Forward / backward compute</span>
+        <span class="rank-swimlane-chip" style="--chip-color:#f43f5e">MoE all-to-all / experts</span>
+        <span class="rank-swimlane-chip" style="--chip-color:#a855f7">Pipeline 1F1B interleave</span>
+        <span class="rank-swimlane-chip" style="--chip-color:#06b6d4">DP gradient sync</span>
+      </div>
+      <div class="rank-swimlane-footnote">图形契约来自 <code>vendor/pto-design-system/patterns/swimlane-task/pattern.js</code>；`Profiling_Insight_and_Tool` 的 graph-evidence swimlane 使用同一 renderer 从 <code>trace_view.json</code> 生成 Step / Stream / Communication / Overlap / Coverage lanes。这里用它说明：<code>rank_299 / PP5</code> 的时间轴应显示收发 activation、执行 Decoder blocks 20-23、MoE all-to-all、反向传播与 DP 梯度同步，而不是显示 Embedding。</div>
+    </div>
+    <table class="section-table detail-table">
+      <thead><tr><th>术语</th><th>准确含义</th><th>产品口径</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>block</code> / <code>decoder block</code></td>
+          <td>Transformer 里重复堆叠的完整计算单元，通常包含 Attention、FFN/MoE、Norm、Residual 等子结构。</td>
+          <td>用于 PP（Pipeline Parallel，流水线并行）层段范围：<code>Decoder blocks 20-23</code>。</td>
+        </tr>
+        <tr>
+          <td><code>layer</code></td>
+          <td>语境依赖词。它可以指完整 decoder block，也可以指 Linear、Attention、LayerNorm 等更小子层。</td>
+          <td>图里可兼容写 <code>layers 20-23</code>，但正文和 tooltip 要解释为 <code>decoder blocks 20-23</code>。</td>
+        </tr>
+        <tr>
+          <td><code>num_hidden_layers</code></td>
+          <td>配置字段。Hugging Face 官方口径中它表示模型的 block 数量。</td>
+          <td>Pangu 配置中的 <code>num_hidden_layers=61</code> 应解释为 61 个 decoder/Transformer blocks。</td>
+        </tr>
+        <tr>
+          <td><code>hidden state</code></td>
+          <td>每个 token 在模型内部的中间向量表示，典型形状是 <code>[batch_size, seq_len, hidden_size]</code>。它是 runtime tensor，不是模块。</td>
+          <td>用于激活、层间传递、profiler tensor 说明，例如 <code>hidden state [batch, seq, 7680]</code>。</td>
+        </tr>
+        <tr>
+          <td><code>hidden_size</code></td>
+          <td>hidden state 每个 token 向量的宽度，也就是最后一维大小。</td>
+          <td>Pangu 配置中的 <code>hidden_size=7680</code> 表示向量宽度，不表示层数。</td>
         </tr>
       </tbody>
     </table>
@@ -1396,6 +1561,11 @@
         <tr><td>DP</td><td>Data Parallel（数据并行）</td><td><code>DP7 replica</code></td><td>完整模型副本所属数据并行组</td><td>“负责第 12-24 层”</td></tr>
         <tr><td>FSDP</td><td>Fully Sharded Data Parallel（全分片数据并行）</td><td><code>state shard 3/8</code></td><td>参数、梯度、优化器状态分片</td><td>“卡 12 负责 MLP 层”</td></tr>
         <tr><td>PP</td><td>Pipeline Parallel（流水线并行）</td><td><code>PP5 · layers 36-42</code></td><td>该 stage 承担的层段</td><td>省略层段范围</td></tr>
+        <tr><td>block</td><td>Transformer block / decoder block（Transformer / 解码器块）</td><td><code>Decoder blocks 20-23</code></td><td>Attention、FFN/MoE、Norm、Residual 组成的重复计算单元</td><td>把 block 说成样本块或数据块</td></tr>
+        <tr><td>layer</td><td>layer（层，需标明粒度）</td><td><code>decoder layer</code> / <code>linear layer</code></td><td>语境依赖词，可指完整 block，也可指子层</td><td>裸写“隐藏层”但不说明指什么</td></tr>
+        <tr><td>num_hidden_layers</td><td>number of hidden layers（隐藏层数量配置字段）</td><td><code>num_hidden_layers=61 → 61 blocks</code></td><td>Hugging Face 配置中表示模型 block 数量</td><td>解释成 hidden state 形状</td></tr>
+        <tr><td>hidden state</td><td>hidden state（隐藏状态 / 中间表示）</td><td><code>[batch, seq, hidden_size]</code></td><td>每个 token 在模型内部的中间向量表示</td><td>当成 Attention 或 MLP 这类模块</td></tr>
+        <tr><td>hidden_size</td><td>hidden size（隐藏状态向量宽度）</td><td><code>hidden_size=7680</code></td><td>hidden state 最后一维宽度</td><td>当成层数</td></tr>
         <tr><td>TP</td><td>Tensor Parallel（张量并行）</td><td><code>Attention QKV shard 2/8</code></td><td>同一层内部的张量分片</td><td>“负责 Attention 层”</td></tr>
         <tr><td>SP</td><td>Sequence Parallel（序列并行）</td><td><code>sequence shard 1/4</code></td><td>当前处理的序列片段</td><td>“承载第 20 层”</td></tr>
         <tr><td>CP</td><td>Context Parallel（上下文并行）</td><td><code>context shard 1/4</code></td><td>当前处理的上下文窗口分片</td><td>“承载第 20 层”</td></tr>
@@ -1415,6 +1585,21 @@
       </thead>
       <tbody>
         <tr>
+          <td>openPangu-Ultra-MoE-718B config</td>
+          <td>盘古公开结构参数：<code>num_hidden_layers=61</code>、<code>hidden_size=7680</code>、<code>n_routed_experts=256</code>、<code>num_experts_per_tok=8</code></td>
+          <td><a href="https://huggingface.co/FreedomIntelligence/openPangu-Ultra-MoE-718B/blob/main/config.json">https://huggingface.co/FreedomIntelligence/openPangu-Ultra-MoE-718B/blob/main/config.json</a></td>
+        </tr>
+        <tr>
+          <td>Hugging Face Transformers Configuration</td>
+          <td><code>num_hidden_layers</code> 是模型的 block 数量，<code>hidden_size</code> 是模型隐藏状态向量宽度</td>
+          <td><a href="https://huggingface.co/docs/transformers/main_classes/configuration">https://huggingface.co/docs/transformers/main_classes/configuration</a></td>
+        </tr>
+        <tr>
+          <td>Hugging Face Transformers Model Outputs</td>
+          <td><code>hidden_states</code> 是 embedding 输出和每层输出组成的 runtime tensor 序列，形状为 <code>(batch_size, sequence_length, hidden_size)</code></td>
+          <td><a href="https://huggingface.co/docs/transformers/main_classes/output">https://huggingface.co/docs/transformers/main_classes/output</a></td>
+        </tr>
+        <tr>
           <td>PyTorch DistributedDataParallel</td>
           <td>DP（Data Parallel，数据并行）：梯度同步、模型副本、输入切分由用户控制</td>
           <td><a href="https://docs.pytorch.org/docs/2.12/generated/torch.nn.parallel.DistributedDataParallel.html">https://docs.pytorch.org/docs/2.12/generated/torch.nn.parallel.DistributedDataParallel.html</a></td>
@@ -1428,6 +1613,11 @@
           <td>PyTorch Pipeline Parallelism</td>
           <td>PP（Pipeline Parallel，流水线并行）：stage 包装模型的一部分</td>
           <td><a href="https://docs.pytorch.org/docs/2.12/distributed.pipelining.html">https://docs.pytorch.org/docs/2.12/distributed.pipelining.html</a></td>
+        </tr>
+        <tr>
+          <td>PyTorch Profiler Recipe</td>
+          <td>时间轴口径：profiler 记录 operator/runtime event，用于解释一张卡上 forward、backward、通信事件的交错，而不是静态 placement 标签</td>
+          <td><a href="https://docs.pytorch.org/tutorials/recipes/recipes/profiler_recipe.html">https://docs.pytorch.org/tutorials/recipes/recipes/profiler_recipe.html</a></td>
         </tr>
         <tr>
           <td>PyTorch Tensor Parallelism</td>
@@ -1463,5 +1653,156 @@
     </table>
     <div class="callout"><b>使用方式：</b>前面的 SVG 图不是在替代官方定义，而是在把这些定义转成产品界面可落地的心智模型和字段设计。</div>
   </section>
+  <script src="../vendor/pto-design-system/patterns/swimlane-task/pattern.js"></script>
+  <script>
+    (() => {
+      const canvas = document.querySelector('[data-rank-swimlane="pangu-pp5"]');
+      const helper = window.PtoSwimlaneTaskPattern;
+      if (!canvas || !helper || !helper.drawTaskBar) return;
+
+      const rows = [
+        { rank: 'rank_296', device: '910B_296', meta: 'PP5 / TP0 / DP2 / CP0 / EP16', offset: 0 },
+        { rank: 'rank_297', device: '910B_297', meta: 'PP5 / TP1 / DP2 / CP0 / EP17', offset: 5 },
+        { rank: 'rank_298', device: '910B_298', meta: 'PP5 / TP2 / DP2 / CP0 / EP18', offset: 10 },
+        { rank: 'rank_299', device: '910B_299', meta: 'PP5 / TP3 / DP2 / CP0 / EP19', offset: 15, focus: true },
+      ];
+
+      const eventsForRow = (row) => [
+        { start: 4 + row.offset, dur: 9, label: 'recv act', color: '#3b82f6', laneKind: 'PP P2P', status: 'ok' },
+        { start: 15 + row.offset, dur: 21, label: 'Fwd mb7 · B20-23', color: '#22c55e', laneKind: 'compute', status: 'ok', in: 2, out: 1 },
+        { start: 38 + row.offset, dur: 14, label: 'MoE a2a + E-bucket', color: '#f43f5e', laneKind: 'EP', status: 'overlap', in: 4, out: 4 },
+        { start: 55 + row.offset, dur: 8, label: 'send act', color: '#3b82f6', laneKind: 'PP P2P', status: 'ok' },
+        { start: 63 + row.offset, dur: 19, label: 'Bwd mb3 · B20-23', color: '#a855f7', laneKind: 'backward', status: 'overlap', in: 1, out: 2 },
+        { start: 84 + row.offset, dur: 12, label: 'DP all-reduce', color: '#06b6d4', laneKind: 'DP sync', status: 'wait', in: 2, out: 0 },
+      ];
+
+      const fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      const monoFamily = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
+
+      function roundedRect(ctx, x, y, w, h, r) {
+        const radius = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + radius, y);
+        ctx.arcTo(x + w, y, x + w, y + h, radius);
+        ctx.arcTo(x + w, y + h, x, y + h, radius);
+        ctx.arcTo(x, y + h, x, y, radius);
+        ctx.arcTo(x, y, x + w, y, radius);
+        ctx.closePath();
+      }
+
+      function draw() {
+        const cssWidth = Math.max(1040, Math.round(canvas.getBoundingClientRect().width || 1040));
+        const cssHeight = 380;
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = cssWidth * dpr;
+        canvas.height = cssHeight * dpr;
+        canvas.style.height = `${cssHeight}px`;
+
+        const ctx = canvas.getContext('2d');
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, cssWidth, cssHeight);
+
+        const labelW = 196;
+        const padR = 28;
+        const axisY = 46;
+        const plotX = labelW;
+        const plotW = cssWidth - labelW - padR;
+        const rowTop = 78;
+        const rowH = 58;
+        const rowGap = 16;
+        const timeEnd = 112;
+        const xFor = (value) => plotX + (value / timeEnd) * plotW;
+
+        const bg = ctx.createLinearGradient(0, 0, 0, cssHeight);
+        bg.addColorStop(0, '#111827');
+        bg.addColorStop(1, '#0f172a');
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, cssWidth, cssHeight);
+
+        ctx.font = `700 12px ${fontFamily}`;
+        ctx.fillStyle = 'rgba(226, 232, 240, 0.80)';
+        ctx.fillText('one training step · relative time', plotX, 26);
+        ctx.font = `600 11px ${monoFamily}`;
+        ctx.fillStyle = 'rgba(148, 163, 184, 0.78)';
+        ctx.fillText('events are ordered by schedule/dependencies; labels are placement metadata', plotX, 43);
+
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.18)';
+        ctx.lineWidth = 1;
+        for (let i = 0; i <= 7; i += 1) {
+          const x = plotX + (plotW * i) / 7;
+          ctx.beginPath();
+          ctx.moveTo(x, axisY);
+          ctx.lineTo(x, cssHeight - 30);
+          ctx.stroke();
+          ctx.fillStyle = 'rgba(148, 163, 184, 0.72)';
+          ctx.font = `600 10px ${monoFamily}`;
+          ctx.textAlign = i === 7 ? 'right' : 'left';
+          ctx.fillText(`t+${Math.round((timeEnd * i) / 7)}µs`, x + (i === 7 ? -2 : 3), axisY - 9);
+          ctx.textAlign = 'left';
+        }
+
+        rows.forEach((row, index) => {
+          const y = rowTop + index * (rowH + rowGap);
+          roundedRect(ctx, 12, y - 7, cssWidth - 28, rowH + 14, 14);
+          ctx.fillStyle = row.focus ? 'rgba(59, 130, 246, 0.10)' : 'rgba(255, 255, 255, 0.035)';
+          ctx.fill();
+          ctx.strokeStyle = row.focus ? 'rgba(96, 165, 250, 0.40)' : 'rgba(255, 255, 255, 0.07)';
+          ctx.stroke();
+
+          ctx.font = `800 13px ${monoFamily}`;
+          ctx.fillStyle = row.focus ? '#bfdbfe' : '#e2e8f0';
+          ctx.fillText(row.rank, 24, y + 17);
+          ctx.font = `600 10px ${fontFamily}`;
+          ctx.fillStyle = 'rgba(203, 213, 225, 0.72)';
+          ctx.fillText(row.device, 24, y + 34);
+          ctx.font = `700 10px ${monoFamily}`;
+          ctx.fillStyle = row.focus ? '#93c5fd' : 'rgba(148, 163, 184, 0.82)';
+          ctx.fillText(row.meta, 24, y + 50);
+
+          eventsForRow(row).forEach((event) => {
+            const x = xFor(event.start);
+            const width = Math.max(28, (event.dur / timeEnd) * plotW);
+            helper.drawTaskBar(ctx, {
+              task: {
+                label: event.label,
+                opName: event.label,
+                laneKind: event.laneKind,
+                laneId: row.rank,
+                totalCycle: event.dur,
+                clcCycle: Math.max(0, event.dur - (event.status === 'wait' ? 4 : 0)),
+                gap: event.status === 'wait' ? 4 : 0,
+                gapRatio: event.status === 'wait' ? 0.33 : 0,
+                status: event.status,
+                inputRawMagic: new Array(event.in || 0).fill(0),
+                outputRawMagic: new Array(event.out || 0).fill(0),
+              },
+              x,
+              y: y + 12,
+              width,
+              height: 26,
+              baseColor: event.color,
+              fontFamily,
+              radius: 4,
+              isSelected: row.focus && event.label.includes('Fwd'),
+              isRelated: row.focus,
+              isEmphasized: row.focus && !event.label.includes('Fwd'),
+            });
+          });
+        });
+
+        const noteY = cssHeight - 22;
+        ctx.font = `700 11px ${fontFamily}`;
+        ctx.fillStyle = 'rgba(226, 232, 240, 0.78)';
+        ctx.fillText('读图：同一 rank 上 forward/backward/communication 可以交错；但 PP/TP/DP/CP/EP 不是横轴阶段，而是每个事件背后的放置标签。', 24, noteY);
+      }
+
+      draw();
+      if ('ResizeObserver' in window) {
+        new ResizeObserver(draw).observe(canvas.parentElement || canvas);
+      } else {
+        window.addEventListener('resize', draw);
+      }
+    })();
+  </script>
 </body>
 </html>
