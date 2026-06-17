@@ -419,7 +419,7 @@
 
           <rect x="818" y="40" width="324" height="500" rx="14" fill="#fff7ed" stroke="#fdba74" stroke-width="2"/>
           <text x="980" y="80" text-anchor="middle" font-size="22" font-weight="800" fill="#c2410c">并行坐标层</text>
-          <text x="980" y="104" text-anchor="middle" font-size="12" font-weight="700" fill="#9a3412">同一 rank/device 上叠加五层语义标签</text>
+          <text x="980" y="104" text-anchor="middle" font-size="12" font-weight="700" fill="#9a3412">混合并行下的多维语义标签（示意）</text>
           <path d="M858 116 L858 496" stroke="#fdba74" stroke-width="1.5" stroke-dasharray="6 8"/>
           <g font-size="12" font-weight="700">
             <g opacity="0.98">
@@ -459,37 +459,20 @@
             </g>
           </g>
           <rect x="848" y="552" width="264" height="38" rx="10" fill="#fff" stroke="#fdba74"/>
-          <text x="980" y="576" text-anchor="middle" font-size="13" font-weight="700" fill="#9a3412">同一个 rank 会同时落在多个并行维度中</text>
+          <text x="980" y="576" text-anchor="middle" font-size="13" font-weight="700" fill="#9a3412">同一个 rank 可落入多个并行维度</text>
 
           <path d="M388 166 L432 166" stroke="#3b82f6" stroke-width="3" fill="none" marker-end="url(#scopeArrow)"/>
           <path d="M784 166 L818 166" stroke="#16a34a" stroke-width="3" fill="none" marker-end="url(#scopeArrow)"/>
 
           <rect x="84" y="310" width="688" height="132" rx="14" fill="#ffffff" stroke="#dbe5f0"/>
           <text x="428" y="344" text-anchor="middle" font-size="18" font-weight="800" fill="#0f172a">推荐的产品表达</text>
-          <text x="428" y="376" text-anchor="middle" font-size="15" fill="#243244">rank_237 运行在 host_03 / device_5 上，属于 PP5 / TP2 / DP7 / CP1 / EP19 这五个并行坐标</text>
+          <text x="428" y="376" text-anchor="middle" font-size="15" fill="#243244">rank_237 运行在 host_03 / device_5 上，并被映射到示例中的 PP5 / TP2 / DP7 / CP1 / EP19</text>
           <text x="428" y="406" text-anchor="middle" font-size="14" fill="#526070">先定义物理位置，再定义运行时身份，最后展示并行坐标。不应将三层关系压缩为“卡 237 负责哪几层”。</text>
         </svg>
       </div>
-      <div class="evidence-caption">读图顺序：左侧表示物理设备，中间表示运行时身份，右侧表示并行坐标；TrainScope 需要展示的是三层关系叠加后的 placement。</div>
+      <div class="evidence-caption">读图顺序：左侧表示物理设备，中间表示运行时身份，右侧表示混合并行配置下的多维放置标签；这些标签是否全部出现，取决于实际训练配置。</div>
     </div>
-    <div class="grid scope-grid">
-      <div class="card">
-        <h3>实现目标</h3>
-        <p>在页面上同时表达物理位置与运行时身份，避免将 <code>device</code> 和 <code>rank</code> 混为同义词。</p>
-      </div>
-      <div class="card">
-        <h3>设计理由</h3>
-        <p><code>card</code> 是硬件对象，<code>rank</code> 是分布式通信成员。两者在演示场景中可能一一对应，但语义层级并不相同。</p>
-      </div>
-      <div class="card">
-        <h3>代码或配置落点</h3>
-        <p><code>placementMap</code> 至少需要包含 <code>host</code>、<code>device</code>、<code>globalRank</code>、<code>localRank</code>、<code>pp</code>、<code>tp</code>、<code>dp</code>、<code>cp</code>、<code>ep</code> 等字段，不能仅保留 <code>cardId</code>。</p>
-      </div>
-      <div class="card">
-        <h3>验证方法</h3>
-        <p>检查任意 rank 的 tooltip 是否能够同时回答“运行在哪个 device 上”和“属于哪些并行组”。</p>
-      </div>
-    </div>
+    <div class="callout"><b>Ascend / MindSpore 官方依据与边界：</b>MindSpore Transformers 文档明确说明并行模式包括数据并行、模型并行、流水线并行、序列并行等，且这些模式“可以单独使用，也可以结合在一起，形成复杂的混合并行策略”；配置项中也分别给出 <code>data_parallel</code>、<code>model_parallel</code>、<code>context_parallel</code>、<code>pipeline_stage</code> / <code>layers_per_stage</code> 等维度。MoE 配置还单独定义专家数量、token 选择专家数、专家计算通信并行，并提到“专家并行数”与节点 NPU 数的约束。因此，右侧“并行坐标层”是 TrainScope 为混合并行 placement 做的产品抽象，不是 Ascend 官方术语；图中的 PP / TP / DP / CP / EP 五层表示盘古 MoE 训练可能关心的五类标签，实际页面应按配置有则展示、无则隐藏。参考：<a href="https://www.mindspore.cn/mindformers/docs/zh-CN/master/feature/parallel_training.html">MindSpore Transformers 分布式并行训练</a>、<a href="https://www.mindspore.cn/mindformers/docs/zh-CN/master/feature/configuration.html">MindSpore Transformers 配置文件说明</a>。</div>
     <div class="quote-box"><b>命名原则：</b>产品总标题建议使用 <code>Runtime Placement</code>、<code>Rank / Device Placement</code> 或“rank/device 并行放置关系”，避免使用“每张卡承载哪些层/算子”作为总括表达。后文涉及缩写时，统一按“缩写（英文全称，中文全称）”理解。</div>
   </section>
 
