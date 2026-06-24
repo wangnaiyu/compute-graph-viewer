@@ -581,68 +581,53 @@
       gap: 12px;
     }
 
-    .fusion-panel {
-      padding: 14px;
+    .multi-dim-board,
+    .parallel-demo-board {
+      max-width: 1420px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(340px, 0.9fr);
+      gap: 12px;
+      align-items: start;
+    }
+
+    .multi-dim-surface,
+    .parallel-demo-surface,
+    .multi-dim-note,
+    .parallel-demo-note {
       border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-xl);
-      background: var(--surface-1);
+      border-radius: var(--panel-radius);
+      background: var(--viz-panel);
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .multi-dim-surface,
+    .parallel-demo-surface {
+      padding: 14px;
+    }
+
+    .multi-dim-surface .surface-title,
+    .parallel-demo-surface .surface-title {
+      padding: 0 0 10px;
+    }
+
+    .multi-dim-svg,
+    .parallel-demo-svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .multi-dim-note,
+    .parallel-demo-note {
+      padding: 14px;
       display: grid;
       gap: 12px;
-    }
-
-    .fusion-head {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: baseline;
-      justify-content: space-between;
-      gap: 8px 12px;
-    }
-
-    .fusion-head strong {
-      color: var(--foreground);
-      font: var(--text-title-2);
-    }
-
-    .fusion-head span {
-      color: var(--foreground-secondary);
-      font: var(--text-label);
-    }
-
-    .fusion-grid {
-      display: grid;
-      grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
-      gap: 10px;
-    }
-
-    .fusion-stack {
-      display: grid;
-      gap: 10px;
-    }
-
-    .fusion-card {
-      min-width: 0;
-      padding: 12px;
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-lg);
-      background: color-mix(in srgb, var(--surface-2) 78%, var(--surface-1));
-      display: grid;
-      gap: 10px;
       align-content: start;
     }
 
-    .fusion-card strong {
-      color: var(--foreground);
-      font: var(--text-label);
-    }
-
-    .fusion-card p {
-      margin: 0;
-      color: var(--foreground-secondary);
-      font: var(--text-body-sm);
-      line-height: 1.55;
-    }
-
-    .fusion-card ul {
+    .mini-list {
       margin: 0;
       padding-left: 1.1rem;
       color: var(--foreground-secondary);
@@ -650,41 +635,31 @@
       line-height: 1.55;
     }
 
-    .fusion-svg {
-      width: 100%;
-      height: auto;
-      display: block;
+    .mini-list li + li {
+      margin-top: 0.45rem;
     }
 
-    .fusion-mini-svg {
-      min-height: 168px;
-    }
-
-    .fusion-table {
+    .mini-table {
       width: 100%;
       border-collapse: collapse;
       font: var(--text-body-sm);
       color: var(--foreground-secondary);
     }
 
-    .fusion-table th,
-    .fusion-table td {
+    .mini-table th,
+    .mini-table td {
       padding: 8px 0;
       border-top: 1px solid var(--border-subtle);
       vertical-align: top;
       text-align: left;
     }
 
-    .fusion-table th {
+    .mini-table th {
       width: 5.2rem;
       color: var(--foreground);
       font: var(--text-label);
       white-space: nowrap;
       padding-right: 10px;
-    }
-
-    .fusion-matrix {
-      grid-column: 1 / -1;
     }
 
     .pressure-surface {
@@ -782,7 +757,8 @@
         grid-template-columns: 1fr;
       }
 
-      .fusion-grid {
+      .multi-dim-board,
+      .parallel-demo-board {
         grid-template-columns: 1fr;
       }
     }
@@ -918,85 +894,123 @@
 
     <main id="strategy-root" aria-label="并行策略章节"></main>
 
+    <section class="section" id="multi-dim" aria-labelledby="multi-dim-title">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">Multi-dimensional placement</div>
+          <h2 id="multi-dim-title">多维放置：先分清对象层级，再谈并行坐标</h2>
+          <div class="one-line">这层补的是 placement 的语义底座。device、rank、stage、expert 不是同一个东西，不能塞进同一个“卡片归属”口径里。</div>
+        </div>
+        <div class="metric-chip-row" aria-label="多维摘要">
+          <span class="chip"><b>device</b> physical</span>
+          <span class="chip"><b>rank</b> runtime id</span>
+          <span class="chip"><b>stage</b> PP slice</span>
+          <span class="chip"><b>expert</b> MoE owner</span>
+        </div>
+      </div>
+      <div class="multi-dim-board">
+        <div class="multi-dim-surface">
+          <div class="surface-title"><strong>对象层级图</strong><span>从物理设备到并行坐标，再到专家放置</span></div>
+          <svg class="multi-dim-svg" viewBox="0 0 980 360" role="img" aria-label="对象层级图">
+            <defs>
+              <marker id="mdArrow" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+                <path d="M0,0 L9,4.5 L0,9 z" fill="currentColor"></path>
+              </marker>
+            </defs>
+            <rect x="36" y="112" width="120" height="72" rx="14" fill="color-mix(in srgb, var(--viz-dp) 10%, var(--surface-1))" stroke="var(--viz-dp)"/>
+            <rect x="190" y="92" width="170" height="112" rx="16" fill="color-mix(in srgb, var(--viz-pp) 10%, var(--surface-1))" stroke="var(--viz-pp)"/>
+            <rect x="398" y="92" width="170" height="112" rx="16" fill="color-mix(in srgb, var(--viz-tp) 10%, var(--surface-1))" stroke="var(--viz-tp)"/>
+            <rect x="606" y="112" width="156" height="72" rx="14" fill="color-mix(in srgb, var(--viz-ep) 10%, var(--surface-1))" stroke="var(--viz-ep)"/>
+            <rect x="800" y="112" width="126" height="72" rx="14" fill="color-mix(in srgb, var(--viz-zero) 10%, var(--surface-1))" stroke="var(--viz-zero)"/>
+            <text x="96" y="143" text-anchor="middle" fill="var(--foreground)" font-size="14" font-weight="800">device</text>
+            <text x="275" y="134" text-anchor="middle" fill="var(--foreground)" font-size="14" font-weight="800">rank / stage</text>
+            <text x="483" y="134" text-anchor="middle" fill="var(--foreground)" font-size="14" font-weight="800">tp / dp / cp</text>
+            <text x="684" y="143" text-anchor="middle" fill="var(--foreground)" font-size="14" font-weight="800">expert</text>
+            <text x="863" y="143" text-anchor="middle" fill="var(--foreground)" font-size="14" font-weight="800">state</text>
+            <path d="M158 148 L186 148" stroke="var(--foreground-secondary)" stroke-width="2" marker-end="url(#mdArrow)"/>
+            <path d="M360 148 L394 148" stroke="var(--foreground-secondary)" stroke-width="2" marker-end="url(#mdArrow)"/>
+            <path d="M568 148 L602 148" stroke="var(--foreground-secondary)" stroke-width="2" marker-end="url(#mdArrow)"/>
+            <path d="M762 148 L796 148" stroke="var(--foreground-secondary)" stroke-width="2" marker-end="url(#mdArrow)"/>
+            <text x="490" y="268" text-anchor="middle" fill="var(--foreground-secondary)" font-size="12">物理设备 → 运行时身份 → 并行坐标 → 专家放置 → 训练状态</text>
+            <text x="490" y="298" text-anchor="middle" fill="var(--foreground-secondary)" font-size="12">这条链说明“同一张卡”只是映射结果，不是唯一语义</text>
+          </svg>
+        </div>
+        <div class="multi-dim-note">
+          <div class="surface-title"><strong>先看什么</strong><span>把能放进 placementMap 的字段先定清楚</span></div>
+          <ul class="mini-list">
+            <li><code>device</code> 表示物理承载，<code>rank</code> 表示运行时身份，<code>stage</code> 表示 PP 切分位置，<code>expert</code> 表示 MoE 放置目标。</li>
+            <li><code>TP / DP / CP / EP / ZeRO</code> 是并行坐标，不是“卡上拥有的单一标签”。</li>
+            <li>右侧的通信解释应落到 All-Reduce、All-to-All、P2P、All-Gather / Reduce-Scatter、KV exchange 这些事件上。</li>
+            <li>如果缺字段，就隐藏；不要把不同语义硬塞成一个统一容器。</li>
+          </ul>
+          <table class="mini-table" aria-label="多维字段建议">
+            <tbody>
+              <tr><th>字段</th><td><code>{host, device, rank, pp, tp, dp, cp, ep}</code></td></tr>
+              <tr><th>用途</th><td>作为 placementMap 的最小可解释集合。</td></tr>
+              <tr><th>边界</th><td>不把 layer ownership 误写成 DP / TP / EP 的统一概念。</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="paralleldemo" aria-labelledby="paralleldemo-title">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">ParallelDemo mapping</div>
+          <h2 id="paralleldemo-title">ParallelDemo：网格公式负责坐标，不负责 UI 归类</h2>
+          <div class="one-line">world = dp × pp × cp × tp 先生成 rank mesh，再把同一个 rank 投影到不同并行坐标与通信组。</div>
+        </div>
+        <div class="metric-chip-row" aria-label="ParallelDemo 摘要">
+          <span class="chip"><b>world</b> mesh</span>
+          <span class="chip"><b>rank_299</b> sample</span>
+          <span class="chip"><b>group</b> derived</span>
+          <span class="chip"><b>events</b> runtime</span>
+        </div>
+      </div>
+      <div class="parallel-demo-board">
+        <div class="parallel-demo-surface">
+          <div class="surface-title"><strong>网格映射图</strong><span>把 dp / pp / cp / tp 映射成 rank 坐标</span></div>
+          <svg class="parallel-demo-svg" viewBox="0 0 980 380" role="img" aria-label="ParallelDemo 网格映射图">
+            <rect x="48" y="56" width="884" height="256" rx="18" fill="var(--surface-1)" stroke="var(--border-subtle)"/>
+            <rect x="92" y="104" width="240" height="152" rx="16" fill="color-mix(in srgb, var(--viz-tp) 10%, var(--surface-1))" stroke="var(--viz-tp)"/>
+            <rect x="372" y="80" width="240" height="200" rx="16" fill="color-mix(in srgb, var(--viz-pp) 10%, var(--surface-1))" stroke="var(--viz-pp)"/>
+            <rect x="652" y="104" width="240" height="152" rx="16" fill="color-mix(in srgb, var(--viz-dp) 10%, var(--surface-1))" stroke="var(--viz-dp)"/>
+            <text x="212" y="136" text-anchor="middle" fill="var(--foreground)" font-size="16" font-weight="800">tp shard</text>
+            <text x="492" y="128" text-anchor="middle" fill="var(--foreground)" font-size="16" font-weight="800">pp stage</text>
+            <text x="772" y="136" text-anchor="middle" fill="var(--foreground)" font-size="16" font-weight="800">dp replica</text>
+            <text x="492" y="168" text-anchor="middle" fill="var(--foreground-secondary)" font-size="12">rank mesh 先算坐标，再决定通信组</text>
+            <text x="492" y="192" text-anchor="middle" fill="var(--foreground-secondary)" font-size="12">EP / MoE 作为附加语义叠加，而不是替代坐标</text>
+            <rect x="410" y="210" width="164" height="44" rx="12" fill="color-mix(in srgb, var(--viz-zero) 10%, var(--surface-1))" stroke="var(--viz-zero)"/>
+            <text x="492" y="237" text-anchor="middle" fill="var(--foreground)" font-size="14" font-weight="800">rank_299</text>
+            <path d="M332 180 L408 180" stroke="var(--viz-tp)" stroke-width="2" marker-end="url(#mdArrow)"/>
+            <path d="M612 180 L648 180" stroke="var(--viz-pp)" stroke-width="2" marker-end="url(#mdArrow)"/>
+            <path d="M772 256 L574 256" stroke="var(--viz-dp)" stroke-width="2" marker-end="url(#mdArrow)"/>
+            <text x="492" y="312" text-anchor="middle" fill="var(--foreground-secondary)" font-size="12">同一个 rank 在一次 step 里会先后承接 PP、TP、EP、DP 的 runtime event</text>
+          </svg>
+        </div>
+        <div class="parallel-demo-note">
+          <div class="surface-title"><strong>怎么复用</strong><span>复用的是坐标推导，不是卡片排版</span></div>
+          <ul class="mini-list">
+            <li>保留 `world = dp × pp × cp × tp` 的网格计算逻辑，用它生成 rank / group 的来源。</li>
+            <li>把 `rank_299 / PP5 / TP3 / DP2 / CP0 / EP19` 这种样例当作 derived placement，而不是官方固定切分。</li>
+            <li>真正的通信顺序放到 runtime timeline 里解释，不要混进静态网格图。</li>
+            <li>ParallelDemo 的价值是 placement engine，不是右侧那种少量卡片布局。</li>
+          </ul>
+          <table class="mini-table" aria-label="ParallelDemo 映射说明">
+            <tbody>
+              <tr><th>输入</th><td><code>dp, pp, cp, tp</code> 维度与模型约束。</td></tr>
+              <tr><th>输出</th><td><code>rank</code>、<code>group</code>、<code>stage</code>、<code>expert bucket</code>。</td></tr>
+              <tr><th>解释</th><td>图上看到的是多维投影，runtime 里看到的是通信事件。</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
     <section class="footer-space" aria-labelledby="source-title">
       <div class="source-panel">
         <h2 id="source-title">来源与边界</h2>
-        <div class="fusion-panel" aria-label="从 knowledge-whitepaper 融合的补充内容">
-          <div class="fusion-head">
-            <strong>知识白皮书补充图</strong>
-            <span>把对象层级、策略层次、通信落点和术语边界合到一处</span>
-          </div>
-          <div class="fusion-grid">
-            <div class="fusion-card">
-              <strong>对象层级图</strong>
-              <svg class="fusion-svg" viewBox="0 0 520 168" role="img" aria-label="对象层级简图">
-                <defs>
-                  <marker id="fusionArrow" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
-                    <path d="M0,0 L9,4.5 L0,9 z" fill="currentColor"></path>
-                  </marker>
-                </defs>
-                <rect x="18" y="42" width="104" height="54" rx="12" fill="color-mix(in srgb, var(--viz-dp) 10%, var(--surface-1))" stroke="var(--viz-dp)"/>
-                <rect x="140" y="24" width="106" height="90" rx="12" fill="color-mix(in srgb, var(--viz-pp) 10%, var(--surface-1))" stroke="var(--viz-pp)"/>
-                <rect x="266" y="24" width="104" height="90" rx="12" fill="color-mix(in srgb, var(--viz-tp) 10%, var(--surface-1))" stroke="var(--viz-tp)"/>
-                <rect x="388" y="42" width="114" height="54" rx="12" fill="color-mix(in srgb, var(--viz-ep) 10%, var(--surface-1))" stroke="var(--viz-ep)"/>
-                <text x="70" y="65" text-anchor="middle" fill="var(--foreground)" font-size="13" font-weight="700">device</text>
-                <text x="193" y="60" text-anchor="middle" fill="var(--foreground)" font-size="13" font-weight="700">rank / stage</text>
-                <text x="318" y="60" text-anchor="middle" fill="var(--foreground)" font-size="13" font-weight="700">tp / dp / cp</text>
-                <text x="445" y="65" text-anchor="middle" fill="var(--foreground)" font-size="13" font-weight="700">expert</text>
-                <path d="M122 69 L138 69" stroke="var(--foreground-secondary)" stroke-width="2" marker-end="url(#fusionArrow)"/>
-                <path d="M246 69 L264 69" stroke="var(--foreground-secondary)" stroke-width="2" marker-end="url(#fusionArrow)"/>
-                <path d="M370 69 L386 69" stroke="var(--foreground-secondary)" stroke-width="2" marker-end="url(#fusionArrow)"/>
-                <text x="260" y="146" text-anchor="middle" fill="var(--foreground-secondary)" font-size="12">物理设备 → 运行时身份 → 并行坐标 → 专家放置</text>
-              </svg>
-              <p>这张简图来自知识白皮书的对象层级部分，重点是先分清 <code>device</code>、<code>rank</code>、<code>stage</code> 和并行坐标，再谈某个算子属于哪种策略。</p>
-            </div>
-            <div class="fusion-stack">
-              <div class="fusion-card">
-                <strong>策略层次图</strong>
-                <svg class="fusion-svg fusion-mini-svg" viewBox="0 0 520 184" role="img" aria-label="策略层次简图">
-                  <rect x="20" y="16" width="480" height="28" rx="10" fill="color-mix(in srgb, var(--viz-pp) 12%, var(--surface-1))" stroke="var(--viz-pp)"/>
-                  <rect x="20" y="52" width="480" height="28" rx="10" fill="color-mix(in srgb, var(--viz-tp) 12%, var(--surface-1))" stroke="var(--viz-tp)"/>
-                  <rect x="20" y="88" width="480" height="28" rx="10" fill="color-mix(in srgb, var(--viz-dp) 12%, var(--surface-1))" stroke="var(--viz-dp)"/>
-                  <rect x="20" y="124" width="480" height="28" rx="10" fill="color-mix(in srgb, var(--viz-ep) 12%, var(--surface-1))" stroke="var(--viz-ep)"/>
-                  <rect x="20" y="160" width="480" height="28" rx="10" fill="color-mix(in srgb, var(--viz-zero) 12%, var(--surface-1))" stroke="var(--viz-zero)"/>
-                  <text x="44" y="34" fill="var(--foreground)" font-size="12" font-weight="700">PP / VPP</text>
-                  <text x="120" y="34" fill="var(--foreground-secondary)" font-size="11">stage 边界、micro-batch、bubble</text>
-                  <text x="44" y="70" fill="var(--foreground)" font-size="12" font-weight="700">TP</text>
-                  <text x="120" y="70" fill="var(--foreground-secondary)" font-size="11">同层 tensor shard、collective、tiling 边界</text>
-                  <text x="44" y="106" fill="var(--foreground)" font-size="12" font-weight="700">DP</text>
-                  <text x="120" y="106" fill="var(--foreground-secondary)" font-size="11">模型副本、batch shard、grad sync</text>
-                  <text x="44" y="142" fill="var(--foreground)" font-size="12" font-weight="700">EP / MoE</text>
-                  <text x="120" y="142" fill="var(--foreground-secondary)" font-size="11">expert 放置、token route、dispatch / combine</text>
-                  <text x="44" y="178" fill="var(--foreground)" font-size="12" font-weight="700">ZeRO</text>
-                  <text x="120" y="178" fill="var(--foreground-secondary)" font-size="11">参数 / 梯度 / 优化器状态分片</text>
-                </svg>
-              </div>
-              <div class="fusion-card">
-                <strong>通信落点</strong>
-                <ul>
-                  <li>PP 关注 stage 间 Send / Recv，和 activation / dActivation 的交接。</li>
-                  <li>TP 关注 All-Reduce、All-Gather、ReduceScatter 这类层内集合通信。</li>
-                  <li>DP / ZeRO 更关心梯度同步与训练状态生命周期，不是层归属。</li>
-                  <li>EP 关注 dispatch / combine All-to-All，SP / CP 关注 KV / attention state 交换。</li>
-                </ul>
-              </div>
-            </div>
-            <div class="fusion-card fusion-matrix">
-              <strong>术语边界</strong>
-              <table class="fusion-table" aria-label="术语边界说明">
-                <tbody>
-                  <tr><th>PP</th><td>层间 stage 划分；适合表达“哪段层在哪个 stage”。</td></tr>
-                  <tr><th>TP</th><td>同层张量切分；适合表达 shard、collective、关键路径。</td></tr>
-                  <tr><th>DP</th><td>模型副本与 batch shard；适合表达梯度同步，不是层归属。</td></tr>
-                  <tr><th>EP</th><td>expert 放置与 token 路由；适合表达 dispatch / combine。</td></tr>
-                  <tr><th>SP / CP</th><td>序列 / 上下文切分；适合表达 KV 和 attention state 交换。</td></tr>
-                  <tr><th>ZeRO</th><td>训练状态分片；适合表达参数 / 梯度 / 优化器状态生命周期。</td></tr>
-                  <tr><th>Network</th><td>Scale-Up 承载 TP / EP / 高频 P2P，Scale-Out 承载 DP / 分层归约。</td></tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
         <div class="source-grid">
           <div class="source-item"><strong>知识白皮书源</strong><code>pangu-moe-trainviz/knowledge-whitepaper.html</code></div>
           <div class="source-item"><strong>本地文章</strong><code>/Users/yin/Downloads/超节点技术深度篇三：大模型并行通信拆解：DP、TP、PP、EP、CP 到底在网络里发生了什么.html</code></div>
