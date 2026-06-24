@@ -635,6 +635,54 @@
       line-height: 1.55;
     }
 
+    .mini-list li + li {
+      margin-top: 0.45rem;
+    }
+
+    .mini-table {
+      width: 100%;
+      border-collapse: collapse;
+      font: var(--text-body-sm);
+      color: var(--foreground-secondary);
+    }
+
+    .fusion-svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .fusion-mini-svg {
+      min-height: 168px;
+    }
+
+    .mini-table,
+    .fusion-table {
+      width: 100%;
+      border-collapse: collapse;
+      font: var(--text-body-sm);
+      color: var(--foreground-secondary);
+    }
+
+    .mini-table th,
+    .mini-table td,
+    .fusion-table th,
+    .fusion-table td {
+      padding: 8px 0;
+      border-top: 1px solid var(--border-subtle);
+      vertical-align: top;
+      text-align: left;
+    }
+
+    .mini-table th,
+    .fusion-table th {
+      width: 5.2rem;
+      color: var(--foreground);
+      font: var(--text-label);
+      white-space: nowrap;
+      padding-right: 10px;
+    }
+
     .fusion-panel {
       padding: 14px;
       border: 1px solid var(--border-subtle);
@@ -689,7 +737,8 @@
       font: var(--text-label);
     }
 
-    .fusion-card p {
+    .fusion-card p,
+    .fusion-card ul {
       margin: 0;
       color: var(--foreground-secondary);
       font: var(--text-body-sm);
@@ -697,58 +746,7 @@
     }
 
     .fusion-card ul {
-      margin: 0;
       padding-left: 1.1rem;
-      color: var(--foreground-secondary);
-      font: var(--text-body-sm);
-      line-height: 1.55;
-    }
-
-    .mini-list li + li {
-      margin-top: 0.45rem;
-    }
-
-    .mini-table {
-      width: 100%;
-      border-collapse: collapse;
-      font: var(--text-body-sm);
-      color: var(--foreground-secondary);
-    }
-
-    .fusion-svg {
-      width: 100%;
-      height: auto;
-      display: block;
-    }
-
-    .fusion-mini-svg {
-      min-height: 168px;
-    }
-
-    .fusion-table {
-      width: 100%;
-      border-collapse: collapse;
-      font: var(--text-body-sm);
-      color: var(--foreground-secondary);
-    }
-
-    .mini-table th,
-    .mini-table td,
-    .fusion-table th,
-    .fusion-table td {
-      padding: 8px 0;
-      border-top: 1px solid var(--border-subtle);
-      vertical-align: top;
-      text-align: left;
-    }
-
-    .mini-table th,
-    .fusion-table th {
-      width: 5.2rem;
-      color: var(--foreground);
-      font: var(--text-label);
-      white-space: nowrap;
-      padding-right: 10px;
     }
 
     .fusion-matrix {
@@ -1105,82 +1103,6 @@
     <section class="footer-space" aria-labelledby="source-title">
       <div class="source-panel">
         <h2 id="source-title">来源与边界</h2>
-        <div class="fusion-panel" aria-label="从 knowledge-whitepaper 融合的补充内容">
-          <div class="fusion-head">
-            <strong>知识白皮书补充图</strong>
-            <span>把对象层级、策略层次、通信落点和术语边界合到一处</span>
-          </div>
-          <div class="fusion-grid">
-            <div class="fusion-card">
-              <strong>对象层级图</strong>
-              <svg class="fusion-svg" viewBox="0 0 520 168" role="img" aria-label="对象层级简图">
-                <defs>
-                  <marker id="fusionArrow" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
-                    <path d="M0,0 L9,4.5 L0,9 z" fill="currentColor"></path>
-                  </marker>
-                </defs>
-                <rect x="18" y="42" width="104" height="54" rx="12" fill="color-mix(in srgb, var(--viz-dp) 10%, var(--surface-1))" stroke="var(--viz-dp)"/>
-                <rect x="140" y="24" width="106" height="90" rx="12" fill="color-mix(in srgb, var(--viz-pp) 10%, var(--surface-1))" stroke="var(--viz-pp)"/>
-                <rect x="266" y="24" width="104" height="90" rx="12" fill="color-mix(in srgb, var(--viz-tp) 10%, var(--surface-1))" stroke="var(--viz-tp)"/>
-                <rect x="388" y="42" width="114" height="54" rx="12" fill="color-mix(in srgb, var(--viz-ep) 10%, var(--surface-1))" stroke="var(--viz-ep)"/>
-                <text x="70" y="65" text-anchor="middle" fill="var(--foreground)" font-size="13" font-weight="700">device</text>
-                <text x="193" y="60" text-anchor="middle" fill="var(--foreground)" font-size="13" font-weight="700">rank / stage</text>
-                <text x="318" y="60" text-anchor="middle" fill="var(--foreground)" font-size="13" font-weight="700">tp / dp / cp</text>
-                <text x="445" y="65" text-anchor="middle" fill="var(--foreground)" font-size="13" font-weight="700">expert</text>
-                <path d="M122 69 L138 69" stroke="var(--foreground-secondary)" stroke-width="2" marker-end="url(#fusionArrow)"/>
-                <path d="M246 69 L264 69" stroke="var(--foreground-secondary)" stroke-width="2" marker-end="url(#fusionArrow)"/>
-                <path d="M370 69 L386 69" stroke="var(--foreground-secondary)" stroke-width="2" marker-end="url(#fusionArrow)"/>
-                <text x="260" y="146" text-anchor="middle" fill="var(--foreground-secondary)" font-size="12">物理设备 → 运行时身份 → 并行坐标 → 专家放置</text>
-              </svg>
-              <p>这张简图来自知识白皮书的对象层级部分，重点是先分清 <code>device</code>、<code>rank</code>、<code>stage</code> 和并行坐标，再谈某个算子属于哪种策略。</p>
-            </div>
-            <div class="fusion-stack">
-              <div class="fusion-card">
-                <strong>策略层次图</strong>
-                <svg class="fusion-svg fusion-mini-svg" viewBox="0 0 520 184" role="img" aria-label="策略层次简图">
-                  <rect x="20" y="16" width="480" height="28" rx="10" fill="color-mix(in srgb, var(--viz-pp) 12%, var(--surface-1))" stroke="var(--viz-pp)"/>
-                  <rect x="20" y="52" width="480" height="28" rx="10" fill="color-mix(in srgb, var(--viz-tp) 12%, var(--surface-1))" stroke="var(--viz-tp)"/>
-                  <rect x="20" y="88" width="480" height="28" rx="10" fill="color-mix(in srgb, var(--viz-dp) 12%, var(--surface-1))" stroke="var(--viz-dp)"/>
-                  <rect x="20" y="124" width="480" height="28" rx="10" fill="color-mix(in srgb, var(--viz-ep) 12%, var(--surface-1))" stroke="var(--viz-ep)"/>
-                  <rect x="20" y="160" width="480" height="28" rx="10" fill="color-mix(in srgb, var(--viz-zero) 12%, var(--surface-1))" stroke="var(--viz-zero)"/>
-                  <text x="44" y="34" fill="var(--foreground)" font-size="12" font-weight="700">PP / VPP</text>
-                  <text x="120" y="34" fill="var(--foreground-secondary)" font-size="11">stage 边界、micro-batch、bubble</text>
-                  <text x="44" y="70" fill="var(--foreground)" font-size="12" font-weight="700">TP</text>
-                  <text x="120" y="70" fill="var(--foreground-secondary)" font-size="11">同层 tensor shard、collective、tiling 边界</text>
-                  <text x="44" y="106" fill="var(--foreground)" font-size="12" font-weight="700">DP</text>
-                  <text x="120" y="106" fill="var(--foreground-secondary)" font-size="11">模型副本、batch shard、grad sync</text>
-                  <text x="44" y="142" fill="var(--foreground)" font-size="12" font-weight="700">EP / MoE</text>
-                  <text x="120" y="142" fill="var(--foreground-secondary)" font-size="11">expert 放置、token route、dispatch / combine</text>
-                  <text x="44" y="178" fill="var(--foreground)" font-size="12" font-weight="700">ZeRO</text>
-                  <text x="120" y="178" fill="var(--foreground-secondary)" font-size="11">参数 / 梯度 / 优化器状态分片</text>
-                </svg>
-              </div>
-              <div class="fusion-card">
-                <strong>通信落点</strong>
-                <ul>
-                  <li>PP 关注 stage 间 Send / Recv，和 activation / dActivation 的交接。</li>
-                  <li>TP 关注 All-Reduce、All-Gather、ReduceScatter 这类层内集合通信。</li>
-                  <li>DP / ZeRO 更关心梯度同步与训练状态生命周期，不是层归属。</li>
-                  <li>EP 关注 dispatch / combine All-to-All，SP / CP 关注 KV / attention state 交换。</li>
-                </ul>
-              </div>
-            </div>
-            <div class="fusion-card fusion-matrix">
-              <strong>术语边界</strong>
-              <table class="fusion-table" aria-label="术语边界说明">
-                <tbody>
-                  <tr><th>PP</th><td>层间 stage 划分；适合表达“哪段层在哪个 stage”。</td></tr>
-                  <tr><th>TP</th><td>同层张量切分；适合表达 shard、collective、关键路径。</td></tr>
-                  <tr><th>DP</th><td>模型副本与 batch shard；适合表达梯度同步，不是层归属。</td></tr>
-                  <tr><th>EP</th><td>expert 放置与 token 路由；适合表达 dispatch / combine。</td></tr>
-                  <tr><th>SP / CP</th><td>序列 / 上下文切分；适合表达 KV 和 attention state 交换。</td></tr>
-                  <tr><th>ZeRO</th><td>训练状态分片；适合表达参数 / 梯度 / 优化器状态生命周期。</td></tr>
-                  <tr><th>Network</th><td>Scale-Up 承载 TP / EP / 高频 P2P，Scale-Out 承载 DP / 分层归约。</td></tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
         <div class="source-grid">
           <div class="source-item"><strong>知识白皮书源</strong><code>pangu-moe-trainviz/knowledge-whitepaper.html</code></div>
           <div class="source-item"><strong>本地文章</strong><code>/Users/yin/Downloads/超节点技术深度篇三：大模型并行通信拆解：DP、TP、PP、EP、CP 到底在网络里发生了什么.html</code></div>
