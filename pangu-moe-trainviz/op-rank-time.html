@@ -95,6 +95,20 @@
   :root[data-theme='light'] .opv-focus .maptag{color:#0f0f10}
   .opv-stage{position:relative;overflow:hidden;padding:0}
   #app{position:absolute;inset:0}
+  .opv-zoom-control{position:absolute;top:12px;right:12px;z-index:40;display:flex;align-items:center;gap:6px;
+    padding:6px;border:1px solid color-mix(in srgb,var(--foreground) 13%,transparent);border-radius:999px;
+    background:color-mix(in srgb,var(--ide-frame-pane-bg) 82%,transparent);box-shadow:0 10px 34px rgba(0,0,0,.18);
+    backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+  .opv-zoom-btn{width:28px;height:28px;display:inline-grid;place-items:center;border:1px solid transparent;border-radius:999px;
+    background:color-mix(in srgb,var(--foreground) 6%,transparent);color:var(--foreground);font:700 16px/1 var(--font-sans);
+    cursor:pointer;user-select:none}
+  .opv-zoom-btn:hover{background:color-mix(in srgb,var(--foreground) 12%,transparent)}
+  .opv-zoom-btn:active{transform:translateY(1px)}
+  .opv-zoom-slider{width:112px;height:28px;margin:0;accent-color:#4f6df6;cursor:pointer}
+  .opv-zoom-value{min-width:40px;text-align:center;color:var(--foreground-secondary);font:var(--text-label);font-variant-numeric:tabular-nums}
+  :root[data-theme='light'] .opv-zoom-control{background:rgba(255,255,255,.86);border-color:rgba(15,15,16,.14)}
+  :root[data-theme='light'] .opv-zoom-btn{color:#0f0f10;background:rgba(15,15,16,.06)}
+  :root[data-theme='light'] .opv-zoom-value{color:#0f0f10}
 
   /* 底部 swimlane（32 rank 行，单 canvas，内部纵向滚动） */
   .opv-swimlane{position:relative;display:flex;flex-direction:column;height:100%;padding:6px 8px}
@@ -122,6 +136,9 @@
     [data-ide-pane="inspector"],
     [data-split-direction="horizontal"].pto-workbench-shell__split-gutter{display:none}
     [data-ide-split="standalone-main"]>[data-ide-pane="editor-preview"]{flex:1 1 100%!important;width:100%!important}
+    .opv-zoom-control{top:8px;right:8px}
+    .opv-zoom-slider{width:72px}
+    .opv-zoom-value{display:none}
   }
 </style>
 </head>
@@ -163,6 +180,13 @@
               </header>
               <div class="pto-ide-frame__pane-body opv-stage">
                 <div id="app"></div>
+                <div class="opv-zoom-control" aria-label="3D 视图缩放">
+                  <button id="zoomOut" class="opv-zoom-btn" type="button" title="缩小" aria-label="缩小">−</button>
+                  <input id="zoomSlider" class="opv-zoom-slider" type="range" min="0" max="100" step="1" aria-label="3D 视图缩放">
+                  <button id="zoomIn" class="opv-zoom-btn" type="button" title="放大" aria-label="放大">+</button>
+                  <button id="zoomReset" class="opv-zoom-btn" type="button" title="重置视图" aria-label="重置视图">↺</button>
+                  <output id="zoomValue" class="opv-zoom-value">100%</output>
+                </div>
                 <div class="pto-ide-frame__floating-playback-mount" id="playbackMount"></div>
               </div>
             </section>
@@ -481,9 +505,12 @@ renderer.setPixelRatio(Math.min(devicePixelRatio,2)); renderer.setSize(innerWidt
 renderer.setClearColor(initialSceneTheme.bg,1);
 app.appendChild(renderer.domElement);
 const camera=new THREE.PerspectiveCamera(12,innerWidth/innerHeight,0.02,900);  // 更长焦：FOV 20→12，相机拉远补偿透视压缩
-const target=new THREE.Vector3(0,2.55,0);
-const ZOOM_MIN=24, ZOOM_MAX=380;
-const cam={r:90,theta:-Math.PI/4,phi:Math.atan(Math.SQRT2)};
+const DEFAULT_TARGET=new THREE.Vector3(0,3.15,0);
+const DEFAULT_CAM={r:68,theta:-Math.PI/4,phi:Math.atan(Math.SQRT2)};
+const target=DEFAULT_TARGET.clone();
+const ZOOM_RATIO_MIN=0.7, ZOOM_RATIO_MAX=3;
+const ZOOM_MIN=DEFAULT_CAM.r/ZOOM_RATIO_MAX, ZOOM_MAX=DEFAULT_CAM.r/ZOOM_RATIO_MIN;
+const cam={...DEFAULT_CAM};
 const camRight=new THREE.Vector3(), camUp=new THREE.Vector3();
 function updateCam(){
   camera.position.set(
@@ -493,6 +520,38 @@ function updateCam(){
   camera.lookAt(target);
 }
 updateCam();
+const zoomOut=document.getElementById('zoomOut');
+const zoomIn=document.getElementById('zoomIn');
+const zoomReset=document.getElementById('zoomReset');
+const zoomSlider=document.getElementById('zoomSlider');
+const zoomValue=document.getElementById('zoomValue');
+const clampZoom=r=>Math.max(ZOOM_MIN,Math.min(ZOOM_MAX,r));
+const zoomLevel=()=>Math.round((ZOOM_MAX-cam.r)/(ZOOM_MAX-ZOOM_MIN)*100);
+function syncZoomControl(){
+  if(zoomSlider)zoomSlider.value=String(zoomLevel());
+  if(zoomValue)zoomValue.textContent=`${Math.round(DEFAULT_CAM.r/cam.r*100)}%`;
+}
+function setCameraDistance(r){
+  cam.r=clampZoom(r);
+  updateCam();
+  syncZoomControl();
+}
+function resetCameraView(){
+  target.copy(DEFAULT_TARGET);
+  cam.r=DEFAULT_CAM.r;
+  cam.theta=DEFAULT_CAM.theta;
+  cam.phi=DEFAULT_CAM.phi;
+  updateCam();
+  syncZoomControl();
+}
+zoomOut?.addEventListener('click',()=>setCameraDistance(cam.r/0.88));
+zoomIn?.addEventListener('click',()=>setCameraDistance(cam.r*0.88));
+zoomReset?.addEventListener('click',resetCameraView);
+zoomSlider?.addEventListener('input',()=>{
+  const v=Number(zoomSlider.value)||0;
+  setCameraDistance(ZOOM_MAX-(v/100)*(ZOOM_MAX-ZOOM_MIN));
+});
+syncZoomControl();
 const hemi=new THREE.HemisphereLight(0xffffff,initialSceneTheme.ground,initialSceneTheme.hemi); scene.add(hemi);
 const key=new THREE.DirectionalLight(0xffffff,initialSceneTheme.key); key.position.set(8,20,12); scene.add(key);
 const fill=new THREE.DirectionalLight(0xffffff,initialSceneTheme.fill); fill.position.set(-8,8,-10); scene.add(fill);
@@ -1456,8 +1515,7 @@ addEventListener('pointermove',e=>{
 });
 renderer.domElement.addEventListener('wheel',e=>{
   e.preventDefault();
-  cam.r=Math.max(ZOOM_MIN,Math.min(ZOOM_MAX,cam.r+e.deltaY*0.018));
-  updateCam();
+  setCameraDistance(cam.r+e.deltaY*0.018);
 },{passive:false});
 
 const ray=new THREE.Raycaster(),mouse=new THREE.Vector2(),tip=document.getElementById('tip');
