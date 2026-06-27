@@ -199,35 +199,50 @@ export function buildRankLoadViewModel(timelineRuntime) {
   };
 }
 
-export function buildCardLoadViewModel(rankViewModel) {
-  const cards = (rankViewModel?.ranks || []).map(rank => ({
-    cardId: rank.rank,
-    label: `Card ${rank.rank}`,
-    dp: rank.dp,
-    stage: rank.stage,
-    tp: rank.tp,
-    utilRatio: rank.utilRatio,
-    commRatio: rank.commRatio,
-    bubbleRatio: rank.bubbleRatio,
-    pressure: clamp01(rank.utilRatio * 0.72 + rank.commRatio * 0.48),
-  }));
-  const byStage = new Map();
-  for (const card of cards) {
-    const key = `D${card.dp}·P${card.stage}`;
-    if (!byStage.has(key)) byStage.set(key, []);
-    byStage.get(key).push(card);
-  }
+// 每 step 一份卡占用快照：collapse(0..1) 来自 load_balance_loss，>0 时令牌路由坍缩 →
+// 每个 DP·PP 组里令牌堆到 TP1（winner，util→97%、comm→60%），其余卡饥饿（util→12%）。
+export function buildCardLoadViewModel(rankViewModel, collapse = 0) {
+  const c = clamp01(collapse);
+  const cards = (rankViewModel?.ranks || []).map(rank => {
+    let util = rank.utilRatio;
+    let comm = rank.commRatio;
+    if (c > 0) {
+      const winner = rank.tp === 1;
+      util += ((winner ? 0.97 : 0.12) - util) * c;
+      comm += ((winner ? 0.60 : 0.44) - comm) * c;
+    }
+    util = clamp01(util);
+    comm = clamp01(comm);
+    return {
+      cardId: rank.rank,
+      label: `Card ${rank.rank}`,
+      dp: rank.dp,
+      stage: rank.stage,
+      tp: rank.tp,
+      utilRatio: util,
+      commRatio: comm,
+      bubbleRatio: rank.bubbleRatio,
+      pressure: util,
+      state: util < 0.30 ? 'alert' : (util > 0.95 || comm > 0.5) ? 'warn' : 'ok',
+    };
+  });
+  // 组排序：先 DP·PP 组，组内按 TP → 8 列网格自然铺成 4 行（行=并行组，列=TP）
+  cards.sort((a, b) => (a.dp - b.dp) || (a.stage - b.stage) || (a.tp - b.tp));
+  const tpCount = Math.max(1, ...cards.map(card => card.tp + 1));
+  const avgUtil = summarize(cards.map(card => card.utilRatio)).avg || 0;
+  const starved = cards.filter(card => card.state === 'alert').length;
+  const hot = cards.filter(card => card.state === 'warn').length;
   return {
     id: 'card-load',
     title: 'Card Load',
-    meta: `${cards.length} cards · grouped by DP/PP stage`,
+    meta: `${cards.length} cards · ${tpCount}×${Math.ceil(cards.length / tpCount)} · 每 step 占用`,
     cards,
-    groups: [...byStage.entries()].map(([label, items]) => ({ label, cards: items.sort((a, b) => a.tp - b.tp) })),
+    tpCount,
     stats: [
       { label: 'cards', value: `${cards.length}` },
-      { label: 'groups', value: `${byStage.size}` },
-      { label: 'max pressure', value: `${Math.round(Math.max(...cards.map(c => c.pressure), 0) * 100)}%` },
-      { label: 'max comm', value: `${Math.round(Math.max(...cards.map(c => c.commRatio), 0) * 100)}%` },
+      { label: 'avg util', value: `${Math.round(avgUtil * 100)}%` },
+      { label: 'starved', value: `${starved}` },
+      { label: 'hot', value: `${hot}` },
     ],
   };
 }

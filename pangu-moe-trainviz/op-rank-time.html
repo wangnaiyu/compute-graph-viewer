@@ -212,16 +212,45 @@
   .opv-analysis-legend .is-comm::before{background:#b99ae7}
   .opv-analysis-legend .is-bubble::before{background:#d6dbe3}
   .opv-analysis-scroll{position:relative;flex:1;min-height:0;overflow:auto}
-  .opv-card-load-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;min-height:0;overflow:auto}
-  .opv-card-load-group{min-width:0;border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:9px;background:color-mix(in srgb,var(--foreground) 3%,transparent)}
-  .opv-card-load-group h3{margin:0 0 8px;font:var(--text-label);font-weight:800;color:var(--foreground-secondary)}
-  .opv-card-load-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
-  .opv-card-load-cell{height:42px;border:1px solid color-mix(in srgb,var(--foreground) 14%,transparent);border-radius:var(--radius-md);
-    color:#0f0f10;font:var(--text-label);cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;padding:0 8px}
-  .opv-card-load-cell b,.opv-card-load-cell span{display:block;line-height:1.15}
-  .opv-card-load-cell span{opacity:.72}
-  :root[data-theme='dark'] .opv-card-load-cell{color:#fff}
-  :root[data-theme='light'] .opv-card-load-cell{color:#0f0f10}
+  /* ===== Card Load · 平涂正方形卡（行=并行组，列=TP；占用随 step 重分布） ===== */
+  .opv-cardload{display:flex;flex-direction:column;min-height:0}
+  .opv-cardload-head{position:relative;display:flex;align-items:flex-start;gap:8px}
+  .opv-cardload-head .opv-analysis-stats{flex:1;min-width:0}
+  .opv-cardload-info{flex:none;width:26px;height:26px;display:grid;place-items:center;margin-top:2px;
+    border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--surface-disabled);
+    color:var(--foreground-secondary);cursor:pointer;transition:color var(--duration-fast),border-color var(--duration-fast)}
+  .opv-cardload-info:hover{color:var(--foreground);border-color:var(--border-strong)}
+  .opv-cardload-pop{position:absolute;top:32px;right:0;z-index:90;width:268px;padding:12px 13px;
+    border:1px solid var(--border-strong);border-radius:var(--radius-md);background:var(--surface-3);box-shadow:var(--shadow-md)}
+  .opv-cardload-pop[hidden]{display:none}
+  .opv-cardload-pop h4{margin:0 0 7px;font:var(--text-title-2);font-size:13px;color:var(--foreground)}
+  .opv-cardload-pop p{margin:0 0 7px;font:var(--text-body-sm);color:var(--foreground-secondary);line-height:1.45}
+  .opv-cardload-pop code{font:var(--text-mono);font-size:11px;color:var(--foreground)}
+  .opv-cardload-pop ul{margin:0 0 9px;padding-left:16px;font:var(--text-body-sm);color:var(--foreground-secondary)}
+  .opv-cardload-pop ul li{margin:2px 0}
+  .opv-cardload-legend{display:flex;flex-wrap:wrap;gap:5px 9px;font:var(--text-label);color:var(--foreground-muted)}
+  .opv-cardload-legend span::before{content:"";display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+  .opv-cardload-legend .ok::before{background:var(--success)}
+  .opv-cardload-legend .warn::before{background:var(--warning)}
+  .opv-cardload-legend .alert::before{background:var(--danger)}
+  .opv-cardload-grid{display:grid;grid-template-columns:repeat(var(--card-cols,16),minmax(0,110px));gap:8px;
+    justify-content:center;align-content:start}
+  .opv-cardload-cell{--accent:var(--success);position:relative;aspect-ratio:1;display:flex;flex-direction:column;justify-content:space-between;
+    min-width:0;padding:8px 9px;border-radius:var(--radius-md);overflow:hidden;cursor:pointer;text-align:left;
+    border:1px solid color-mix(in srgb,var(--accent) 26%,var(--border-subtle));
+    background:color-mix(in srgb,var(--accent) var(--heat-soft,8%),var(--surface-3));
+    transition:transform var(--duration-fast) var(--easing-default),border-color var(--duration-fast) var(--easing-default)}
+  .opv-cardload-cell.is-warn{--accent:var(--warning)}
+  .opv-cardload-cell.is-alert{--accent:var(--danger)}
+  .opv-cardload-cell:hover{transform:translateY(-1px);border-color:color-mix(in srgb,var(--accent) 55%,var(--border-subtle))}
+  :root[data-theme='light'] .opv-cardload-cell:not(.is-warn):not(.is-alert){border-color:rgba(255,255,255,.5)}
+  .opv-cardload-cell .cl-top{display:flex;align-items:center;justify-content:space-between;gap:4px}
+  .opv-cardload-cell .cl-top b{font:600 12px/1 var(--font-mono);color:var(--foreground)}
+  .opv-cardload-cell .cl-top span{font:500 9px/1 var(--font-sans);color:var(--foreground-muted)}
+  .opv-cardload-cell .cl-meter{height:4px;border-radius:var(--radius-pill);background:var(--surface-disabled);overflow:hidden}
+  .opv-cardload-cell .cl-meter i{display:block;height:100%;width:var(--flow,4%);background:var(--accent);opacity:.8;border-radius:inherit;
+    transition:width var(--duration-normal) var(--easing-default)}
+  .opv-cardload-cell .cl-bot{display:flex;justify-content:space-between;font:500 10px/1 var(--font-mono);color:var(--foreground-secondary)}
   .opv-swimlane{position:relative;display:flex;flex-direction:column;height:100%;padding:6px 8px}
   .opv-swim-axis{display:block;width:100%;height:28px;flex:none}
   .opv-swim-scroll{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden}
@@ -361,7 +390,7 @@
     .opv-analysis-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
     .opv-analysis-grid-wrap{grid-template-columns:1fr}
     .opv-analysis-detail{display:none}
-    .opv-card-load-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .opv-cardload-pop{width:228px}
   }
 </style>
 </head>
@@ -542,7 +571,6 @@
                 <div id="swimlaneView" class="opv-swimlane"></div>
               </section>
               <section id="analysisPanelMoe" class="opv-analysis-panel" data-analysis-panel="moe-load"></section>
-              <section id="analysisPanelRank" class="opv-analysis-panel" data-analysis-panel="rank-load"></section>
               <section id="analysisPanelCard" class="opv-analysis-panel" data-analysis-panel="card-load"></section>
             </div>
           </div>
@@ -638,7 +666,6 @@ import {
 import {
   createAnalysisDock,
   createMoeLoadView,
-  createRankLoadView,
   createCardLoadView,
 } from './js/analysis-dock.js';
 
@@ -2390,7 +2417,6 @@ const analysisPanels={
   loss:document.getElementById('analysisPanelLoss'),
   timeline:document.getElementById('analysisPanelTimeline'),
   moe:document.getElementById('analysisPanelMoe'),
-  rank:document.getElementById('analysisPanelRank'),
   card:document.getElementById('analysisPanelCard')
 };
 // moeMetrics / moeLoadViewModel 随 Loss 主时间(step)重算 → 用 let
@@ -2402,7 +2428,8 @@ let moeMetrics=buildMoeRuntimeMetrics({
 });
 let moeLoadViewModel=buildMoeLoadViewModel(moeMetrics);
 const rankLoadViewModel=buildRankLoadViewModel(RT);
-const cardLoadViewModel=buildCardLoadViewModel(rankLoadViewModel);
+// 卡占用随 step 重算（路由坍缩重分布）→ 用 let
+let cardLoadViewModel=buildCardLoadViewModel(rankLoadViewModel);
 
 /* ===== focusContext：单一真相源；step = 迭代级主时间，trace tick 由 step 派生 =====
    step 1+2 落地：建立共享上下文 + Loss 作为主时间控制面；
@@ -2521,6 +2548,7 @@ function handleAnalysisSelection(selection){
   }
 }
 const moeView=createMoeLoadView({panel:analysisPanels.moe,viewModel:moeLoadViewModel,onSelect:handleAnalysisSelection});
+const cardView=createCardLoadView({panel:analysisPanels.card,viewModel:cardLoadViewModel,onSelect:handleAnalysisSelection});
 // step(主时间) → MoE 热力/异常派生：loop 内按帧合并，重 DOM 重挂只在 MoE tab 活动时做
 let moeStepPending=focusContext.step, moeStepApplied=null, moeViewDirty=false;
 // 坍缩强度 = load_balance_loss 从健康基线(0.42)掉了多少 → 0(均衡)..1(坍缩)。loss 与 MoE 同源。
@@ -2540,6 +2568,10 @@ function applyMoeStep(){
   else moeViewDirty=true;
 }
 onContext(()=>{moeStepPending=focusContext.step;});
+// step → 卡占用重算：坍缩强度令牌路由重分布，DOM 轻量(32 卡)每 step 直接刷
+function refreshCardLoad(){cardLoadViewModel=buildCardLoadViewModel(rankLoadViewModel,collapseIntensity(focusContext.step));cardView.setViewModel(cardLoadViewModel);}
+onContext(refreshCardLoad);
+refreshCardLoad();
 analysisDockController=createAnalysisDock({
   tabsRoot:document.getElementById('analysisTabs'),
   titleEl:document.getElementById('analysisTitle'),
@@ -2565,18 +2597,11 @@ analysisDockController=createAnalysisDock({
       ...moeView
     },
     {
-      id:'rank-load',
-      label:'Rank Load',
-      title:rankLoadViewModel.title,
-      meta:rankLoadViewModel.meta,
-      ...createRankLoadView({panel:analysisPanels.rank,viewModel:rankLoadViewModel,onSelect:handleAnalysisSelection})
-    },
-    {
       id:'card-load',
       label:'Card Load',
       title:cardLoadViewModel.title,
-      meta:cardLoadViewModel.meta,
-      ...createCardLoadView({panel:analysisPanels.card,viewModel:cardLoadViewModel,onSelect:handleAnalysisSelection})
+      meta:()=>cardLoadViewModel.meta,
+      ...cardView
     }
   ],
   onViewChange(id){
@@ -2927,7 +2952,7 @@ function computeAnomalies(){
       focus:{source:'anomaly',rank:worst.rank,dp:worst.dp,stage:worst.stage,metric:'bubble',severity:sev},
       actions:[
         {label:'下钻 Swimlane',primary:true,run:()=>drillSwimlane({type:'rank-wait',rank:worst.rank,label:`R${worst.rank} 空泡/通信`,dp:worst.dp,stage:worst.stage})},
-        {label:'看 Rank 负载',run:()=>DOCK()?.setActiveView('rank-load')},
+        {label:'看 Card 负载',run:()=>DOCK()?.setActiveView('card-load')},
         {label:'复制采集命令',run:()=>copyCmd(`profiler --capture comm --rank ${worst.rank} --pp ${worst.stage}`)},
       ]
     });
@@ -3032,10 +3057,10 @@ function buildInspectorFindings(){
     evidence:[['PP 配置',`${RT.config.pp} stages`],['micro-batch',`${RT.config.microbatches}`],['最高空泡 stage',`PP${ppWorst?.stage??0}`],['stage 差异',`${pct(ppSkew)}%`]],
     cause:'PP 切分需要让各 stage 的计算耗时接近，并用足够 micro-batch 覆盖 warmup / drain。',
     confidence:'推断',
-    swimlaneNote:'先看 Rank Load 和 Swimlane 的空泡是否集中在某个 PP stage；如果集中，优先调 layer range / micro-batch，再评估是否改变 PP size。',
+    swimlaneNote:'先看 Card Load 和 Swimlane 的空泡是否集中在某个 PP stage；如果集中，优先调 layer range / micro-batch，再评估是否改变 PP size。',
     metrics:[`PP${ppWorst?.stage??0}`,`bubble ${pct(ppWorst?.avgBubble??0)}%`,`skew ${pct(ppSkew)}%`],
     actions:[
-      {label:'看 Rank 负载',primary:true,run:()=>DOCK()?.setActiveView('rank-load')},
+      {label:'看 Card 负载',primary:true,run:()=>DOCK()?.setActiveView('card-load')},
       {label:'下钻空泡',run:()=>worstRank&&drillSwimlane({type:'rank-wait',rank:worstRank.rank,label:`R${worstRank.rank} 空泡/通信`,dp:worstRank.dp,stage:worstRank.stage})},
     ]
   });

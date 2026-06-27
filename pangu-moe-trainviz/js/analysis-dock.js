@@ -187,18 +187,19 @@ export function createMoeLoadView({ panel, viewModel, onSelect }) {
     if (!canvas || panel.hidden) return;
     const bounds = panel.getBoundingClientRect();
     const width = Math.max(460, bounds.width - 24);
-    const height = Math.max(220, bounds.height - 92);
-    const ctx = resizeCanvas(canvas, width, height);
     const left = 56;
     const top = 12;
     const rightPad = 10;
     const bottomPad = 22;
     const gridW = width - left - rightPad;
-    const gridH = height - top - bottomPad;
     const layerCount = viewModel.metrics.layerCount;
     const experts = viewModel.metrics.expertsPerLayer;
-    const rowH = gridH / layerCount;
+    // 正方形格子：边长由列宽决定，行高跟随列宽，整体高度不随窗口高度拉伸
     const colW = gridW / experts;
+    const rowH = colW;
+    const gridH = rowH * layerCount;
+    const height = top + gridH + bottomPad;
+    const ctx = resizeCanvas(canvas, width, height);
     const option = metric();
     const values = option.array;
     const maxValue = metricId === 'loadRatio' ? 1.35 : Math.max(1, ...values);
@@ -303,154 +304,78 @@ export function createMoeLoadView({ panel, viewModel, onSelect }) {
   return { panel, mount, render: draw, resize: draw, setViewModel };
 }
 
-function createStackedBarRows({ panel, rows, titleForRow, onSelect }) {
-  let canvas;
-  let tooltip;
-  let hover = null;
-
-  function rowAt(event) {
-    const rect = canvas.getBoundingClientRect();
-    const y = event.clientY - rect.top;
-    const top = 10;
-    const rowH = 24;
-    const index = Math.floor((y - top) / rowH);
-    return index >= 0 && index < rows.length ? rows[index] : null;
-  }
-
-  function draw() {
-    if (!canvas || panel.hidden) return;
-    const bounds = panel.getBoundingClientRect();
-    const width = Math.max(420, bounds.width - 24);
-    const height = Math.max(220, rows.length * 24 + 22);
-    const ctx = resizeCanvas(canvas, width, height);
-    const left = 112;
-    const right = 16;
-    const top = 10;
-    const rowH = 24;
-    const barW = width - left - right;
-    ctx.clearRect(0, 0, width, height);
-    ctx.font = '600 10px JetBrains Mono, monospace';
-    ctx.textBaseline = 'middle';
-    rows.forEach((row, index) => {
-      const y = top + index * rowH;
-      const active = hover === row;
-      ctx.fillStyle = active ? readCssVar('--state-hover', 'rgba(255,255,255,0.08)') : 'transparent';
-      ctx.fillRect(0, y, width, rowH);
-      ctx.fillStyle = readCssVar('--foreground-secondary', 'rgba(255,255,255,0.65)');
-      ctx.textAlign = 'left';
-      ctx.fillText(titleForRow(row), 8, y + rowH * 0.5);
-      let x = left;
-      const computeW = Math.max(1, row.utilRatio * barW);
-      const commW = Math.max(1, row.commRatio * barW);
-      const bubbleW = Math.max(1, row.bubbleRatio * barW);
-      ctx.fillStyle = '#7fcbd3';
-      ctx.fillRect(x, y + 6, computeW, 12);
-      x += computeW;
-      ctx.fillStyle = '#b99ae7';
-      ctx.fillRect(x, y + 6, commW, 12);
-      x += commW;
-      ctx.fillStyle = '#d6dbe3';
-      ctx.fillRect(x, y + 6, bubbleW, 12);
-      ctx.strokeStyle = readCssVar('--border-subtle', 'rgba(255,255,255,0.08)');
-      ctx.strokeRect(left, y + 6, barW, 12);
-      ctx.textAlign = 'right';
-      ctx.fillStyle = readCssVar('--foreground-muted', 'rgba(255,255,255,0.44)');
-      ctx.fillText(`${Math.round(row.utilRatio * 100)}%`, width - 8, y + rowH * 0.5);
-    });
-  }
-
-  function mount() {
-    canvas = document.createElement('canvas');
-    canvas.className = 'opv-load-bars';
-    panel.appendChild(canvas);
-    tooltip = makeTooltip(panel);
-    canvas.addEventListener('pointermove', event => {
-      hover = rowAt(event);
-      if (hover) {
-        tooltip.show(event, `
-          <b>${esc(titleForRow(hover))}</b>
-          <span>compute ${Math.round(hover.utilRatio * 100)}% · comm ${Math.round(hover.commRatio * 100)}% · bubble ${Math.round(hover.bubbleRatio * 100)}%</span>
-        `);
-      } else {
-        tooltip.hide();
-      }
-      draw();
-    });
-    canvas.addEventListener('pointerleave', () => {
-      hover = null;
-      tooltip.hide();
-      draw();
-    });
-    canvas.addEventListener('click', () => hover && onSelect?.(hover));
-  }
-
-  return { mount, render: draw, resize: draw };
-}
-
-export function createRankLoadView({ panel, viewModel, onSelect }) {
-  let bars;
-  return {
-    panel,
-    mount() {
-      panel.innerHTML = `<div class="opv-analysis-view">${makeStatGrid(viewModel.stats)}<div class="opv-analysis-legend"><span class="is-compute">compute</span><span class="is-comm">comm</span><span class="is-bubble">bubble</span></div><div class="opv-analysis-scroll"></div></div>`;
-      const target = panel.querySelector('.opv-analysis-scroll');
-      bars = createStackedBarRows({
-        panel: target,
-        rows: viewModel.ranks,
-        titleForRow: row => `R${row.rank} D${row.dp}P${row.stage}T${row.tp}`,
-        onSelect: row => onSelect?.({ type: 'rank', rank: row.rank, dp: row.dp, stage: row.stage, tp: row.tp }),
-      });
-      bars.mount();
-    },
-    render() { bars?.render(); },
-    resize() { bars?.resize(); },
-  };
-}
+const CARDLOAD_STATE_LABEL = { ok: '正常', warn: '过载', alert: '饥饿' };
 
 export function createCardLoadView({ panel, viewModel, onSelect }) {
   let tooltip;
-  function render() {
-    if (panel.hidden) return;
-    panel.querySelectorAll('[data-card-id]').forEach(card => {
-      const pressure = Number(card.dataset.pressure || 0);
-      card.style.background = loadColor(pressure * 1.35);
+  let grid;
+  const pct = v => Math.round((v || 0) * 100);
+
+  function paintCards() {
+    if (!grid) return;
+    grid.style.setProperty('--card-cols', String(Math.ceil(viewModel.cards.length / 2) || 8));
+    grid.innerHTML = viewModel.cards.map(card => {
+      const state = card.state === 'alert' ? ' is-alert' : card.state === 'warn' ? ' is-warn' : '';
+      const heat = Math.round(4 + card.utilRatio * 14);            // 4–18% 低饱和平涂
+      const flow = Math.max(4, pct(card.commRatio));
+      return `<button class="opv-cardload-cell${state}" type="button" data-card-id="${card.cardId}" style="--heat-soft:${heat}%;--flow:${flow}%">`
+        + `<div class="cl-top"><b>R${card.cardId}</b><span>D${card.dp}P${card.stage}T${card.tp}</span></div>`
+        + `<div class="cl-meter"><i></i></div>`
+        + `<div class="cl-bot"><span>u${pct(card.utilRatio)}</span><span>c${pct(card.commRatio)}</span></div>`
+        + `</button>`;
+    }).join('');
+    grid.querySelectorAll('[data-card-id]').forEach(el => {
+      const card = viewModel.cards.find(item => String(item.cardId) === el.dataset.cardId);
+      el.addEventListener('pointermove', event => tooltip.show(event, `
+        <b>Card / Rank ${card.cardId}</b>
+        <span>D${card.dp} · P${card.stage} · TP${card.tp}</span>
+        <span>util ${pct(card.utilRatio)}% · comm ${pct(card.commRatio)}% · ${CARDLOAD_STATE_LABEL[card.state]}</span>
+      `));
+      el.addEventListener('pointerleave', () => tooltip.hide());
+      el.addEventListener('click', () => onSelect?.({ type: 'card', rank: card.cardId, dp: card.dp, stage: card.stage, tp: card.tp }));
     });
   }
+
   return {
     panel,
     mount() {
       panel.innerHTML = `
-        <div class="opv-analysis-view">
-          ${makeStatGrid(viewModel.stats)}
-          <div class="opv-card-load-grid">
-            ${viewModel.groups.map(group => `
-              <section class="opv-card-load-group">
-                <h3>${esc(group.label)}</h3>
-                <div class="opv-card-load-cards">
-                  ${group.cards.map(card => `
-                    <button class="opv-card-load-cell" type="button" data-card-id="${card.cardId}" data-pressure="${card.pressure}" data-rank="${card.cardId}">
-                      <b>R${card.cardId}</b><span>TP${card.tp}</span>
-                    </button>
-                  `).join('')}
-                </div>
-              </section>
-            `).join('')}
+        <div class="opv-analysis-view opv-cardload">
+          <div class="opv-cardload-head">
+            ${makeStatGrid(viewModel.stats)}
+            <button class="opv-cardload-info" type="button" aria-label="占用率规则" title="占用率规则">
+              <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="4.6" r="1" fill="currentColor"/><rect x="7.2" y="6.8" width="1.6" height="5.2" rx="0.8" fill="currentColor"/></svg>
+            </button>
+            <div class="opv-cardload-pop" hidden>
+              <h4>卡占用率怎么算</h4>
+              <p><code>util = Σ compute_us / iter_wall_us</code> · 每个训练 step 聚合一次</p>
+              <p>采样粒度 <b>1 值 / 卡 / step</b>，随播放条走；跨过路由坍缩点占用会重分布。</p>
+              <ul><li>底色浓淡 = util 占用</li><li>下方 meter = comm 通信占比</li></ul>
+              <div class="opv-cardload-legend">
+                <span class="ok">正常</span><span class="warn">过载 util&gt;95% / comm&gt;50%</span><span class="alert">饥饿 util&lt;30%</span>
+              </div>
+            </div>
           </div>
+          <div class="opv-analysis-scroll"><div class="opv-cardload-grid"></div></div>
         </div>`;
       tooltip = makeTooltip(panel);
-      panel.querySelectorAll('[data-card-id]').forEach(el => {
-        const card = viewModel.cards.find(item => String(item.cardId) === el.dataset.cardId);
-        el.addEventListener('pointermove', event => tooltip.show(event, `
-          <b>Card / Rank ${card.cardId}</b>
-          <span>D${card.dp} · P${card.stage} · TP${card.tp}</span>
-          <span>pressure ${Math.round(card.pressure * 100)}% · comm ${Math.round(card.commRatio * 100)}% · bubble ${Math.round(card.bubbleRatio * 100)}%</span>
-        `));
-        el.addEventListener('pointerleave', () => tooltip.hide());
-        el.addEventListener('click', () => onSelect?.({ type: 'card', rank: card.cardId, dp: card.dp, stage: card.stage, tp: card.tp }));
+      grid = panel.querySelector('.opv-cardload-grid');
+      const infoBtn = panel.querySelector('.opv-cardload-info');
+      const pop = panel.querySelector('.opv-cardload-pop');
+      infoBtn.addEventListener('click', event => {
+        event.stopPropagation();
+        pop.hidden = !pop.hidden;
+        if (!pop.hidden) {
+          const cleanup = () => { document.removeEventListener('click', onDoc); document.removeEventListener('keydown', onKey); };
+          const onDoc = e => { if (!pop.contains(e.target) && e.target !== infoBtn) { pop.hidden = true; cleanup(); } };
+          const onKey = e => { if (e.key === 'Escape') { pop.hidden = true; cleanup(); } };
+          setTimeout(() => { document.addEventListener('click', onDoc); document.addEventListener('keydown', onKey); }, 0);
+        }
       });
-      render();
+      paintCards();
     },
-    render,
-    resize: render,
+    render: paintCards,
+    resize() {},
+    setViewModel(next) { viewModel = next; if (!panel.hidden) paintCards(); },
   };
 }
