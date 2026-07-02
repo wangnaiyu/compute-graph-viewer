@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-theme="dark">
+<html lang="zh-CN" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -19,7 +19,7 @@
   <link rel="stylesheet" href="./vendor/pto-design-system/patterns/workbench-shell/pattern.css">
   <link rel="stylesheet" href="./vendor/pto-design-system/patterns/floating-playback-control/pattern.css">
   <link rel="stylesheet" href="./vendor/pto-design-system/patterns/ide-frame/pattern.css">
-  <link rel="stylesheet" href="./styles.css?v=20260701-selection-panel">
+  <link rel="stylesheet" href="./styles.css?v=20260702-pane-fix">
 </head>
 <body class="op-fusion-page">
   <div class="op-fusion-host">
@@ -152,8 +152,9 @@
           <div class="pto-ide-frame__split op-fusion-main-split"
             data-ide-split="standalone-main"
             data-sizes="22,50,28"
-            data-pixel-sizes="300,0,390"
-            data-min-size="240,520,320"
+            data-storage-key="op-fusion-main-fixed-left-v1"
+            data-pixel-sizes="280,0,390"
+            data-min-size="280,520,320"
             data-gutter-size="7">
             <aside class="pto-ide-frame__pane pto-ide-frame__explorer" data-ide-pane="explorer" id="op-fusion-explorer-pane">
               <div class="pto-ide-frame__pane-header">
@@ -210,6 +211,16 @@
                   <div class="pto-ide-frame__pane-meta" id="mid-d">中央算子脊柱 · 旁挂权重张量 · 橙=可融合点</div>
                 </div>
                 <div class="pto-ide-frame__toolbar-group op-graph-actions" aria-label="图视图工具">
+                  <div class="op-view-switch" aria-label="图展开模式">
+                    <button class="btn btn-ghost op-view-toggle is-selected" type="button" id="view-drill" aria-pressed="true">下钻</button>
+                    <div class="op-flat-control">
+                      <button class="btn btn-ghost op-view-toggle op-flat-toggle" type="button" id="view-flat" aria-haspopup="menu" aria-expanded="false">
+                        <span id="flat-label">平铺 · L3</span>
+                        <span class="op-flat-caret" aria-hidden="true">v</span>
+                      </button>
+                      <div class="op-flat-menu" id="flat-menu" role="menu" hidden></div>
+                    </div>
+                  </div>
                   <button class="btn btn-ghost btn-icon" type="button" id="zin" aria-label="放大" title="放大">
                     <svg class="op-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
                   </button>
@@ -221,7 +232,7 @@
                       <path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"></path>
                     </svg>
                   </button>
-                  <button class="btn btn-ghost btn-icon is-selected" type="button" id="zbr" aria-label="切换融合括号" title="切换融合括号">
+                  <button class="btn btn-ghost btn-icon is-selected" type="button" id="zbr" aria-label="切换推荐叠加" title="切换推荐叠加">
                     <svg class="op-icon" viewBox="0 0 24 24" aria-hidden="true">
                       <path d="M8 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h2"></path>
                       <path d="M16 4h2a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-2"></path>
@@ -335,6 +346,6 @@
   <script src="./vendor/pto-design-system/patterns/workbench-shell/pattern.js" defer></script>
   <script src="./vendor/pto-design-system/patterns/floating-playback-control/pattern.js" defer></script>
   <script src="./vendor/pto-design-system/patterns/ide-frame/pattern.js" defer></script>
-  <script src="./app.js?v=20260701-default-gradient" defer></script>
+  <script src="./app.js?v=20260702-flat-l3-black-switch" defer></script>
 </body>
 </html>

@@ -20,10 +20,10 @@
       prio: 's',
       title: 'QK-Norm + RoPE 融合',
       star: true,
-      chain: [['q_norm', 'fu'], ['->'], ['k_norm', 'fu'], ['->'], ['RoPE', 'fu'], ['=>'], ['RmsNormRope', 'out']],
+      chain: [['q_norm', 'fu'], ['+'], ['k_norm', 'fu'], ['+'], ['Q/K RoPE', 'fu'], ['=>'], ['RmsNormRope', 'out']],
       gains: [['访存 -42%', 'mem'], ['吞吐 +1.3x', 'tp'], ['kernel 3->1', '']],
       reason: 'Qwen3 在 QKV 投影后、RoPE 前对 Q/K 按 <b>head_dim=128</b> 做 per-head RMSNorm。单独执行时 q_norm/k_norm 是访存受限的小向量算子，归一化后的 Q/K 要落 HBM 再被 RoPE 读回。融合后归一化结果驻留 UB，直接喂给旋转编码。',
-      affects: ['q_norm', 'k_norm', 'rotary_emb'],
+      affects: ['q_norm', 'k_norm', 'q_rope', 'k_rope'],
       doc: 'aclnnRmsNormRope / ascendc_kernels/rms_norm_rope.h',
       vllm: [
         '# vLLM: q/k norm 与 rope 分立 (qwen3)',
@@ -81,7 +81,7 @@
       chain: [['q_proj', 'op'], ['k_proj', 'op'], ['v_proj', 'op'], ['=>'], ['QKVProj', 'out']],
       gains: [['吞吐 +1.15x', 'tp'], ['启动开销下降', '']],
       reason: 'Q/K/V 三个 Linear 共享同一输入 hidden。合并为单个 <b>QKVParallelLinear</b> 做一次大 GEMM，可以更好填满 Cube 单元并减少 kernel 启动与权重重排开销。',
-      affects: ['qkv_proj'],
+      affects: ['q_proj', 'k_proj', 'v_proj'],
       doc: 'QKVParallelLinear / aclnnMatmul',
       vllm: [
         '# vLLM: QKVParallelLinear 一次投影',
@@ -99,7 +99,7 @@
       chain: [['QK^T', 'op'], ['softmax', 'fu'], ['xV', 'op'], ['+ PagedKV'], ['=>'], ['FlashAttn', 'out']],
       gains: [['显存下降', 'mem'], ['长序列吞吐提升', 'tp']],
       reason: '<b>FlashAttention</b> 分块计算 QK^T、online-softmax 和加权 V，打分矩阵不落 HBM；叠加 PagedAttention 的分页 KV-cache，按 block 寻址非连续 KV。',
-      affects: ['attention'],
+      affects: ['qk_matmul', 'attn_scale', 'attn_softmax', 'attn_values'],
       doc: 'aclnnFlashAttention / PagedAttention',
       vllm: [
         '# vLLM: 统一注意力后端入口',
@@ -160,6 +160,30 @@
       meta: 'hidden 4096 · ffn 14336 · L32\nGQA 32Q:8KV · 8 experts top-2',
       recs: ['grouped_matmul', 'add_rmsnorm', 'swiglu', 'qkv_merge', 'flash_paged'],
       spec: { name: 'Mixtral-8x7B', layers: 32, qh: 32, kvh: 8, topk: 2, experts: 8, variant: 'moe', qknorm: false, attnBias: false },
+    },
+    pangu_flash: {
+      name: 'openPangu-2.0-Flash',
+      tags: [['MoE', 'moe'], ['Sparse MLA', 'new'], ['MTP', 'new']],
+      meta: 'hidden 2560 · L46 · 256 experts top-8\nSparse MLA · DSA16/SWA30 · MTP x3',
+      recs: ['add_rmsnorm', 'flash_paged', 'grouped_matmul', 'swiglu'],
+      spec: {
+        name: 'openPangu-2.0-Flash',
+        layers: 46,
+        qh: 48,
+        kvh: 48,
+        topk: 8,
+        experts: 256,
+        variant: 'pangu_moe',
+        qknorm: false,
+        attnBias: false,
+        hidden: 2560,
+        qRank: 1024,
+        kvRank: 512,
+        dsaLayers: 16,
+        swaLayers: 30,
+        denseLayers: 2,
+        mtp: 3,
+      },
     },
   };
 
@@ -274,6 +298,30 @@
   let selectedNode = null;
   let showBrackets = true;
   let currentModel = null;
+  let activeFusionPreviews = new Set();
+  let graphViewMode = 'drill';
+  let flatDepth = 3;
+  let flatMenuOpen = false;
+  let expandedModules = new Set([
+    'model',
+    'transformer',
+    'decoder',
+    'attention',
+    'qkv_projection',
+    'q_lane',
+    'k_lane',
+    'v_lane',
+    'attention_core',
+    'mlp',
+    'pangu_mhc',
+    'pangu_q_lane',
+    'pangu_kv_lane',
+    'pangu_sparse_core',
+    'ffn',
+    'dense_ffn',
+    'moe',
+    'mtp_stack',
+  ]);
 
   function svg(tag, attrs = {}) {
     const element = document.createElementNS(SVGNS, tag);
@@ -293,12 +341,13 @@
   }
 
   function buildGraph(spec) {
-    const cx = 470;
+    const isPangu = spec.variant === 'pangu_moe';
+    const cx = 560;
     const Wp = 168;
     const Wo = 252;
     const Wt = 190;
-    const Lx = 150;
-    const Rx = 790;
+    const Lx = 130;
+    const Rx = 1000;
     const N = [];
     const E = [];
     const CL = [];
@@ -329,50 +378,236 @@
     flow('token_ids', 'embedding');
     pL('emb_w', 'Embedding W', '[vocab, h]', 'embedding');
 
-    op('attn_norm', 'attn RMSNorm', 'Op', 'norm', { fuseRec: 'add_rmsnorm', typeLabel: 'AddRmsNorm?' });
-    y += 96;
-    flow('embedding', 'attn_norm');
-    pR('attn_g', 'attn γ', '[h]', 'attn_norm');
+    const qx = 330;
+    const kx = 560;
+    const vx = 790;
+    const laneW = 172;
+    const narrowW = 164;
+    let ffnEntry = 'ffn_norm';
 
-    op('qkv_proj', 'QKV Projection', 'Op', 'linear', { fuseRec: 'qkv_merge', typeLabel: spec.attnBias ? '+bias' : 'no-bias' });
-    y += 96;
-    flow('attn_norm', 'qkv_proj');
-    pL('qkv_w', 'QKV W', `[h, ${spec.attnBias ? '+b' : 'q+2kv'}]`, 'qkv_proj');
+    if (isPangu) {
+      op('mhc_attention', 'mHC Pre Mix', 'Module', 'attention', { w: 260, typeLabel: 'S_mhc=4' });
+      y += 90;
+      flow('embedding', 'mhc_attention');
 
-    if (spec.qknorm) {
-      op('q_norm', 'Q-Norm', 'Op', 'qknorm', { fuseRec: 'qknorm_rope', typeLabel: 'per-head RMS' });
-      y += 88;
-      flow('qkv_proj', 'q_norm', 'Q');
-      pR('qn_g', 'q_norm γ', '[hd=128]', 'q_norm');
-      op('k_norm', 'K-Norm', 'Op', 'qknorm', { fuseRec: 'qknorm_rope', typeLabel: 'per-head RMS' });
-      y += 88;
-      flow('q_norm', 'k_norm', 'K');
-      pR('kn_g', 'k_norm γ', '[hd=128]', 'k_norm');
-      op('rotary_emb', 'RoPE', 'Op', 'rope', { fuseRec: 'qknorm_rope', typeLabel: 'rotary' });
+      op('input_layernorm', 'Input RMSNorm', 'Op', 'norm', { fuseRec: 'add_rmsnorm', typeLabel: 'pre-attn' });
       y += 96;
-      flow('k_norm', 'rotary_emb');
+      flow('mhc_attention', 'input_layernorm');
+      pR('input_ln_g', 'input γ', '[h]', 'input_layernorm');
+
+      op('sparse_mla_attention', 'Sparse MLA Attention', 'Module', 'attention', { w: 280, typeLabel: `DSA${spec.dsaLayers}/SWA${spec.swaLayers}` });
+      y += 96;
+      flow('input_layernorm', 'sparse_mla_attention');
+
+      op('q_a_proj', 'Q Latent Linear', 'Op', 'linear', { x: qx, w: laneW, typeLabel: `H->${spec.qRank}` });
+      op('kv_a_proj', 'KV Latent Linear', 'Op', 'linear', { x: kx, w: laneW, typeLabel: `H->${spec.kvRank}+RoPE` });
+      flow('sparse_mla_attention', 'q_a_proj', 'Q');
+      flow('sparse_mla_attention', 'kv_a_proj', 'KV');
+      pL('qa_w', 'Q A W', '[h, r_q]', 'q_a_proj');
+      pR('kva_w', 'KV A W', '[h, r_kv]', 'kv_a_proj');
+      y += 84;
+
+      op('q_causal_conv', 'Q Causal Conv1D', 'Op', 'comm', { x: qx, w: laneW, typeLabel: 'W=3' });
+      op('kv_causal_conv', 'KV Causal Conv1D', 'Op', 'comm', { x: kx, w: laneW, typeLabel: 'W=3' });
+      flow('q_a_proj', 'q_causal_conv', 'q_lora');
+      flow('kv_a_proj', 'kv_causal_conv', 'kv_lora');
+      y += 84;
+
+      op('q_residual_add', 'Q Local Add', 'Op', 'norm', { x: qx, w: laneW, typeLabel: 'residual' });
+      op('kv_residual_add', 'KV Local Add', 'Op', 'norm', { x: kx, w: laneW, typeLabel: 'residual' });
+      flow('q_a_proj', 'q_residual_add', 'skip');
+      flow('q_causal_conv', 'q_residual_add', 'local');
+      flow('kv_a_proj', 'kv_residual_add', 'skip');
+      flow('kv_causal_conv', 'kv_residual_add', 'local');
+      y += 84;
+
+      op('q_a_norm', 'Q Latent Norm', 'Op', 'norm', { x: qx, w: laneW, typeLabel: 'LayerNorm' });
+      op('kv_a_norm', 'KV Latent Norm', 'Op', 'norm', { x: kx, w: laneW, typeLabel: 'LayerNorm' });
+      flow('q_residual_add', 'q_a_norm', 'Q');
+      flow('kv_residual_add', 'kv_a_norm', 'KV');
+      pL('qa_g', 'q_a γ', '[r_q]', 'q_a_norm');
+      pR('kva_g', 'kv_a γ', '[r_kv]', 'kv_a_norm');
+      y += 84;
+
+      op('q_b_proj', 'Q Up Linear', 'Op', 'linear', { x: qx, w: laneW, typeLabel: 'R_q->Q' });
+      op('kv_b_proj', 'KV Up Linear', 'Op', 'linear', { x: kx, w: laneW, typeLabel: 'R_kv->KV' });
+      flow('q_a_norm', 'q_b_proj', 'Q');
+      flow('kv_a_norm', 'kv_b_proj', 'KV');
+      pL('qb_w', 'Q B W', '[r_q, q]', 'q_b_proj');
+      pR('kvb_w', 'KV B W', '[r_kv, kv]', 'kv_b_proj');
+      y += 92;
+
+      op('rope_apply', 'RoPE Apply', 'Op', 'rope', { x: qx, w: laneW, typeLabel: 'q_rope' });
+      op('dsa_indexer', 'DSA Indexer', 'Op', 'attention', { x: kx, w: laneW, fuseRec: 'flash_paged', typeLabel: 'global K' });
+      op('attention_core', 'Sparse FlashAttention', 'Op', 'attention', { x: vx, w: laneW + 18, fuseRec: 'flash_paged', typeLabel: 'DSA/SWA' });
+      flow('q_b_proj', 'rope_apply', 'Q');
+      flow('rope_apply', 'dsa_indexer', 'idx');
+      flow('rope_apply', 'attention_core', 'Q');
+      flow('kv_b_proj', 'attention_core', 'KV');
+      flow('dsa_indexer', 'attention_core', 'sparse');
+      N.push({ id: 'rope_cache', label: 'RoPE Cache', typeLabel: 'State', kind: 'param', x: Lx, y, w: Wp, h: 42 });
+      N.push({ id: 'kv_cache', label: 'KV Cache', typeLabel: 'State', kind: 'param', x: Rx, y: y - 22, w: Wp, h: 42 });
+      N.push({ id: 'param_sink_state', label: 'Parameter Sink', typeLabel: 'State', kind: 'param', x: Rx, y: y + 26, w: Wp, h: 42 });
+      N.push({ id: 'mome_state', label: 'MoME State', typeLabel: 'State', kind: 'param', x: Rx, y: y + 74, w: Wp, h: 42 });
+      E.push({ s: 'rope_cache', t: 'rope_apply', tag: 'cos/sin', type: 'param' });
+      E.push({ s: 'kv_cache', t: 'attention_core', tag: 'KV', type: 'param' });
+      E.push({ s: 'param_sink_state', t: 'attention_core', tag: 'sink', type: 'param' });
+      E.push({ s: 'mome_state', t: 'attention_core', tag: 'MoME', type: 'param' });
+      y += 120;
+
+      op('o_causal_conv', 'O Causal Conv1D', 'Op', 'comm', { x: qx, w: laneW, typeLabel: 'W=3' });
+      op('o_residual_add', 'O Local Add', 'Op', 'norm', { x: kx, w: laneW, typeLabel: 'residual' });
+      op('o_proj', 'O Projection', 'Op', 'linear', { x: vx, w: laneW, typeLabel: 'h->h' });
+      flow('attention_core', 'o_causal_conv', 'attn');
+      flow('attention_core', 'o_residual_add', 'skip');
+      flow('o_causal_conv', 'o_residual_add', 'local');
+      flow('o_residual_add', 'o_proj', 'ATTN');
+      pL('oproj_w', 'O-Proj W', '[v, h]', 'o_proj');
+      y += 96;
+
+      op('post_attention_norm', 'Post Attention RMSNorm', 'Op', 'norm', { fuseRec: 'add_rmsnorm', typeLabel: 'post-attn' });
+      y += 96;
+      flow('o_proj', 'post_attention_norm');
+      pR('post_attn_g', 'post γ', '[h]', 'post_attention_norm');
+
+      op('mhc_attention_post', 'mHC Merge', 'Module', 'attention', { w: 250, typeLabel: 'sandwich' });
+      y += 92;
+      flow('post_attention_norm', 'mhc_attention_post');
+
+      op('pre_mlp_norm', 'Pre MLP RMSNorm', 'Op', 'norm', { fuseRec: 'add_rmsnorm', typeLabel: 'pre-ffn' });
+      y += 96;
+      flow('mhc_attention_post', 'pre_mlp_norm');
+      pR('pre_mlp_g', 'pre-mlp γ', '[h]', 'pre_mlp_norm');
+      ffnEntry = 'pre_mlp_norm';
     } else {
-      op('rotary_emb', 'RoPE', 'Op', 'rope', { typeLabel: 'rotary' });
+      op('attn_norm', 'attn RMSNorm', 'Op', 'norm', { fuseRec: 'add_rmsnorm', typeLabel: 'AddRmsNorm?' });
       y += 96;
-      flow('qkv_proj', 'rotary_emb');
+      flow('embedding', 'attn_norm');
+      pR('attn_g', 'attn γ', '[h]', 'attn_norm');
+
+      op('q_proj', 'Q Projection', 'Logical Linear', 'linear', { x: qx, w: laneW, fuseRec: 'qkv_merge', typeLabel: spec.attnBias ? '+bias' : 'candidate' });
+      op('k_proj', 'K Projection', 'Logical Linear', 'linear', { x: kx, w: laneW, fuseRec: 'qkv_merge', typeLabel: spec.attnBias ? '+bias' : 'candidate' });
+      op('v_proj', 'V Projection', 'Logical Linear', 'linear', { x: vx, w: laneW, fuseRec: 'qkv_merge', typeLabel: spec.attnBias ? '+bias' : 'candidate' });
+      N.push({ id: 'qkv_w', label: 'QKV W', typeLabel: spec.attnBias ? 'logical +bias' : 'logical shard', kind: 'param', x: Lx, y, w: Wp, h: 42 });
+      flow('attn_norm', 'q_proj', 'Q');
+      flow('attn_norm', 'k_proj', 'K');
+      flow('attn_norm', 'v_proj', 'V');
+      E.push({ s: 'qkv_w', t: 'q_proj', tag: 'Wq', type: 'param' });
+      E.push({ s: 'qkv_w', t: 'k_proj', tag: 'Wk', type: 'param' });
+      E.push({ s: 'qkv_w', t: 'v_proj', tag: 'Wv', type: 'param' });
+      y += 100;
+
+      if (spec.qknorm) {
+        op('q_norm', 'Q-Norm', 'Op', 'qknorm', { x: qx, w: narrowW, fuseRec: 'qknorm_rope', typeLabel: 'per-head RMS' });
+        op('k_norm', 'K-Norm', 'Op', 'qknorm', { x: kx, w: narrowW, fuseRec: 'qknorm_rope', typeLabel: 'per-head RMS' });
+        flow('q_proj', 'q_norm', 'Q');
+        flow('k_proj', 'k_norm', 'K');
+        N.push({ id: 'qn_g', label: 'q_norm γ', typeLabel: 'gamma', kind: 'param', x: qx - 160, y, w: 122, h: 36 });
+        N.push({ id: 'kn_g', label: 'k_norm γ', typeLabel: 'gamma', kind: 'param', x: kx + 160, y, w: 122, h: 36 });
+        E.push({ s: 'qn_g', t: 'q_norm', tag: 'γ', type: 'param' });
+        E.push({ s: 'kn_g', t: 'k_norm', tag: 'γ', type: 'param' });
+        y += 92;
+        op('q_rope', 'Q RoPE', 'Op', 'rope', { x: qx, w: narrowW, fuseRec: 'qknorm_rope', typeLabel: 'rotary' });
+        op('k_rope', 'K RoPE', 'Op', 'rope', { x: kx, w: narrowW, fuseRec: 'qknorm_rope', typeLabel: 'rotary' });
+        flow('q_norm', 'q_rope', 'Q');
+        flow('k_norm', 'k_rope', 'K');
+      } else {
+        op('q_rope', 'Q RoPE', 'Op', 'rope', { x: qx, w: narrowW, typeLabel: 'rotary' });
+        op('k_rope', 'K RoPE', 'Op', 'rope', { x: kx, w: narrowW, typeLabel: 'rotary' });
+        flow('q_proj', 'q_rope', 'Q');
+        flow('k_proj', 'k_rope', 'K');
+      }
+      op('kv_cache_update', 'KV Cache Update', 'State Update', 'comm', { x: vx, w: laneW, typeLabel: 'paged KV' });
+      flow('v_proj', 'kv_cache_update', 'V', 'comm');
+      flow('k_rope', 'kv_cache_update', 'K', 'comm');
+      N.push({ id: 'rope_cache', label: 'RoPE Cache', typeLabel: 'State', kind: 'param', x: Rx, y, w: Wp, h: 42 });
+      E.push({ s: 'rope_cache', t: 'q_rope', tag: 'cos/sin', type: 'param' });
+      E.push({ s: 'rope_cache', t: 'k_rope', tag: 'cos/sin', type: 'param' });
+      y += 104;
+
+      op('qk_matmul', 'QK^T MatMul', 'Op', 'attention', { fuseRec: 'flash_paged', typeLabel: 'scores' });
+      flow('q_rope', 'qk_matmul', 'Q');
+      flow('k_rope', 'qk_matmul', 'K');
+      y += 88;
+      op('attn_scale', 'Scale / Mask', 'Op', 'attention', { fuseRec: 'flash_paged', typeLabel: 'causal' });
+      flow('qk_matmul', 'attn_scale', 'SCORE');
+      y += 88;
+      op('attn_softmax', 'Softmax', 'Op', 'attention', { fuseRec: 'flash_paged', typeLabel: 'online' });
+      flow('attn_scale', 'attn_softmax', 'PROB');
+      y += 88;
+      op('attn_values', 'AV MatMul', 'Op', 'attention', { fuseRec: 'flash_paged', typeLabel: 'x V' });
+      flow('attn_softmax', 'attn_values', 'P');
+      flow('kv_cache_update', 'attn_values', 'V/KV', 'comm');
+      N.push({ id: 'kv_cache', label: 'KV Cache', typeLabel: 'State', kind: 'param', x: Rx, y, w: Wp, h: 42 });
+      E.push({ s: 'kv_cache', t: 'attn_values', tag: 'KV', type: 'param' });
+      y += 96;
+      op('attn_output_linear', 'O Projection', 'Op', 'linear', { typeLabel: 'h->h' });
+      flow('attn_values', 'attn_output_linear', 'ATTN');
+      pL('o_w', 'O-Proj W', '[hd, h]', 'attn_output_linear');
+
+      op('ffn_norm', 'ffn RMSNorm', 'Op', 'norm', { fuseRec: 'add_rmsnorm', typeLabel: 'AddRmsNorm?' });
+      y += 96;
+      flow('attn_output_linear', 'ffn_norm');
+      pR('ffn_g', 'ffn γ', '[h]', 'ffn_norm');
     }
-
-    op('attention', 'Grouped Attention', 'Op', 'attention', { fuseRec: 'flash_paged', typeLabel: `GQA ${spec.qh}:${spec.kvh}` });
-    y += 96;
-    flow('rotary_emb', 'attention');
-    pL('o_w', 'O-Proj W', '[hd, h]', 'attention');
-
-    op('ffn_norm', 'ffn RMSNorm', 'Op', 'norm', { fuseRec: 'add_rmsnorm', typeLabel: 'AddRmsNorm?' });
-    y += 96;
-    flow('attention', 'ffn_norm');
-    pR('ffn_g', 'ffn γ', '[h]', 'ffn_norm');
 
     let lastBlock = '';
     let moeClusterOps = [];
-    if (spec.variant === 'moe') {
+    if (isPangu) {
+      op('ffn_choice', 'FFN Choice', 'Module', 'gate', { w: 280, typeLabel: `dense ${spec.denseLayers} · MoE ${spec.layers - spec.denseLayers}` });
+      y += 86;
+      flow(ffnEntry, 'ffn_choice');
+
+      const denseX = qx;
+      const routedX = kx;
+      const sharedX = vx;
+      const row1 = y;
+      const row2 = y + 84;
+      const row3 = y + 168;
+      const row4 = y + 260;
+      const row5 = y + 352;
+      const row6 = y + 444;
+
+      op('dense_gate_up', 'Dense Gate/Up', 'Op', 'linear', { x: denseX, y: row1, w: laneW, typeLabel: 'L0-1' });
+      op('dense_silu', 'Dense SwiGLU', 'Op', 'act', { x: denseX, y: row2, w: laneW, fuseRec: 'swiglu', typeLabel: 'SiluAndMul' });
+      op('dense_down', 'Dense Down', 'Op', 'linear', { x: denseX, y: row3, w: laneW, typeLabel: 'dense out' });
+      pL('dense_w', 'Dense MLP W', '[h, ffn]', 'dense_gate_up');
+      flow('ffn_choice', 'dense_gate_up', 'L0-1');
+      flow('dense_gate_up', 'dense_silu');
+      flow('dense_silu', 'dense_down');
+
+      op('router_gate', 'Router Gate', 'Op', 'gate', { x: routedX, y: row1, w: laneW, fuseRec: 'grouped_matmul', typeLabel: `E=${spec.experts}` });
+      op('route_topk', 'TopK Router', 'Op', 'gate', { x: routedX, y: row2, w: laneW, fuseRec: 'grouped_matmul', typeLabel: `top-${spec.topk}` });
+      op('routed_expert_bank', 'Routed Experts', 'Op', 'moe', { x: routedX, y: row3, w: laneW, fuseRec: 'grouped_matmul', typeLabel: 'FusedMoE' });
+      N.push({ id: 'expert_parallel_state', label: 'Expert Parallel', typeLabel: 'State', kind: 'param', x: Rx, y: row3, w: Wp, h: 42 });
+      pR('router_w', 'Router W', '[h, E]', 'router_gate', 'W');
+      flow('ffn_choice', 'router_gate', 'L2-45');
+      flow('router_gate', 'route_topk', 'logits');
+      flow('route_topk', 'routed_expert_bank', 'ids/weights');
+      E.push({ s: 'expert_parallel_state', t: 'routed_expert_bank', tag: 'map', type: 'param' });
+
+      op('shared_expert_mlp', 'Shared Expert MLP', 'Op', 'act', { x: sharedX, y: row1, w: laneW, fuseRec: 'swiglu', typeLabel: 'E_shared=1' });
+      flow('ffn_choice', 'shared_expert_mlp', 'shared');
+
+      op('moe_combine', 'MoE Combine', 'Op', 'moe', { x: routedX, y: row4, w: laneW + 22, typeLabel: 'routed + shared' });
+      flow('routed_expert_bank', 'moe_combine', 'routed');
+      flow('shared_expert_mlp', 'moe_combine', 'shared');
+
+      op('post_mlp_norm', 'Post MLP RMSNorm', 'Op', 'norm', { x: cx, y: row5, fuseRec: 'add_rmsnorm', typeLabel: 'post-ffn' });
+      flow('dense_down', 'post_mlp_norm', 'dense');
+      flow('moe_combine', 'post_mlp_norm', 'moe');
+      pR('post_mlp_g', 'post-mlp γ', '[h]', 'post_mlp_norm');
+
+      op('block_post_norm', 'Block Post RMSNorm', 'Op', 'norm', { x: cx, y: row6, typeLabel: 'selected layers' });
+      flow('post_mlp_norm', 'block_post_norm');
+      pR('block_post_g', 'block γ', '[h]', 'block_post_norm');
+      y = row6 + 96;
+      lastBlock = 'block_post_norm';
+      moeClusterOps = ['router_gate', 'route_topk', 'routed_expert_bank', 'shared_expert_mlp', 'moe_combine'];
+    } else if (spec.variant === 'moe') {
       op('router', 'Router (Gate)', 'Op', 'gate', { fuseRec: 'grouped_matmul', typeLabel: `top-${spec.topk}` });
       y += 92;
-      flow('ffn_norm', 'router');
+      flow(ffnEntry, 'router');
       pL('gate_w', 'Gate W', `[h, E=${spec.experts}]`, 'router');
       op('dispatch', 'Token Dispatch', 'Comm', 'comm', { fuseRec: 'grouped_matmul', typeLabel: 'all-to-all' });
       y += 88;
@@ -390,7 +625,7 @@
     } else {
       op('gate_up', 'Gate/Up Proj', 'Op', 'linear', { typeLabel: 'merged' });
       y += 88;
-      flow('ffn_norm', 'gate_up');
+      flow(ffnEntry, 'gate_up');
       pL('gu_w', 'Gate/Up W', '[h, 2·ffn]', 'gate_up');
       op('mlp_act', 'SwiGLU', 'Op', 'act', { fuseRec: 'swiglu', typeLabel: 'SiluAndMul' });
       y += 88;
@@ -413,6 +648,24 @@
     io('logits', 'Logits', 'Output');
     y += 60;
     flow('lm_head', 'logits', 'LOSS');
+
+    if (isPangu) {
+      const mtpY1 = y + 40;
+      const mtpY2 = mtpY1 + 88;
+      op('mtp_input_norms', 'MTP Input Norms', 'Op', 'norm', { x: qx, y: mtpY1, w: laneW, typeLabel: 'enorm + hnorm' });
+      op('mtp_eh_proj', 'MTP EH Projection', 'Op', 'linear', { x: kx, y: mtpY1, w: laneW, typeLabel: '2H->H' });
+      op('mtp_decoder_layer', 'MTP Decoder Layer', 'Module', 'attention', { x: vx, y: mtpY1, w: laneW, typeLabel: `x${spec.mtp}` });
+      flow('final_norm', 'mtp_input_norms', 'hidden');
+      flow('embedding', 'mtp_input_norms', 'embed');
+      flow('mtp_input_norms', 'mtp_eh_proj', 'concat');
+      flow('mtp_eh_proj', 'mtp_decoder_layer', 'draft');
+
+      op('mtp_shared_head', 'MTP Shared Head', 'Op', 'linear', { x: kx, y: mtpY2, w: laneW, typeLabel: 'shared vocab' });
+      io('mtp_logits', 'MTP Logits', 'Output', { x: vx, y: mtpY2, w: laneW });
+      flow('mtp_decoder_layer', 'mtp_shared_head');
+      flow('mtp_shared_head', 'mtp_logits', 'draft');
+      y = mtpY2 + 78;
+    }
 
     const nodeById = new Map(N.map((node) => [node.id, node]));
     const existingIds = (ids) => ids.filter((id) => nodeById.has(id));
@@ -441,14 +694,78 @@
       };
     };
 
-    const decoderOps = existingIds([
+    const genericAttentionOps = existingIds([
       'attn_norm',
-      'qkv_proj',
+      'q_proj',
+      'k_proj',
+      'v_proj',
       'q_norm',
       'k_norm',
-      'rotary_emb',
-      'attention',
+      'q_rope',
+      'k_rope',
+      'kv_cache_update',
+      'qk_matmul',
+      'attn_scale',
+      'attn_softmax',
+      'attn_values',
+      'attn_output_linear',
+    ]);
+    const panguMhcOps = withParamTensors(['mhc_attention', 'input_layernorm', 'post_attention_norm', 'mhc_attention_post']);
+    const panguQLaneOps = withParamTensors(['q_a_proj', 'q_causal_conv', 'q_residual_add', 'q_a_norm', 'q_b_proj']);
+    const panguKvLaneOps = withParamTensors(['kv_a_proj', 'kv_causal_conv', 'kv_residual_add', 'kv_a_norm', 'kv_b_proj']);
+    const panguSparseCoreOps = withParamTensors(['rope_apply', 'dsa_indexer', 'attention_core', 'o_causal_conv', 'o_residual_add', 'o_proj']);
+    const panguAttentionOps = existingIds([
+      'mhc_attention',
+      'input_layernorm',
+      'sparse_mla_attention',
+      'q_a_proj',
+      'q_causal_conv',
+      'q_residual_add',
+      'q_a_norm',
+      'q_b_proj',
+      'kv_a_proj',
+      'kv_causal_conv',
+      'kv_residual_add',
+      'kv_a_norm',
+      'kv_b_proj',
+      'rope_apply',
+      'dsa_indexer',
+      'attention_core',
+      'o_causal_conv',
+      'o_residual_add',
+      'o_proj',
+      'post_attention_norm',
+      'mhc_attention_post',
+    ]);
+    const attentionOps = isPangu ? panguAttentionOps : genericAttentionOps;
+    const qkvProjectionOps = withParamTensors(['q_proj', 'k_proj', 'v_proj']);
+    const qLaneOps = withParamTensors(['q_norm', 'q_rope']).filter((id) => id !== 'rope_cache');
+    const kLaneOps = withParamTensors(['k_norm', 'k_rope']).filter((id) => id !== 'rope_cache');
+    const vLaneOps = withParamTensors(['kv_cache_update']);
+    const attentionCoreOps = withParamTensors(['qk_matmul', 'attn_scale', 'attn_softmax', 'attn_values', 'attn_output_linear']);
+    const denseFfnOps = withParamTensors(['dense_gate_up', 'dense_silu', 'dense_down']);
+    const panguMoeOps = withParamTensors(['router_gate', 'route_topk', 'routed_expert_bank', 'shared_expert_mlp', 'moe_combine']);
+    const mtpOps = withParamTensors(['mtp_input_norms', 'mtp_eh_proj', 'mtp_decoder_layer', 'mtp_shared_head', 'mtp_logits']);
+    const ffnOps = existingIds(isPangu
+      ? ['pre_mlp_norm', 'ffn_choice', 'dense_gate_up', 'dense_silu', 'dense_down', 'router_gate', 'route_topk', 'routed_expert_bank', 'shared_expert_mlp', 'moe_combine', 'post_mlp_norm', 'block_post_norm']
+      : spec.variant === 'moe'
+        ? ['ffn_norm', 'router', 'dispatch', 'experts', 'mlp_act']
+        : ['ffn_norm', 'gate_up', 'mlp_act', 'down_proj']);
+    const decoderOps = existingIds([
+      ...attentionOps,
+      'pre_mlp_norm',
       'ffn_norm',
+      'ffn_choice',
+      'dense_gate_up',
+      'dense_silu',
+      'dense_down',
+      'post_mlp_norm',
+      'block_post_norm',
+      'router_gate',
+      'route_topk',
+      'routed_expert_bank',
+      'shared_expert_mlp',
+      'moe_combine',
       'router',
       'dispatch',
       'experts',
@@ -456,17 +773,603 @@
       'mlp_act',
       'down_proj',
     ]);
-    const transformerStackIds = withParamTensors(decoderOps.concat('final_norm'));
+    const allNodeIds = N.map((node) => node.id);
+    const transformerStackIds = withParamTensors(decoderOps.concat(['embedding', 'final_norm', 'lm_head'], isPangu ? mtpOps : []));
     const decoderIds = withParamTensors(decoderOps);
+    const attentionIds = withParamTensors(attentionOps);
+    const ffnIds = withParamTensors(ffnOps);
+    const setParent = (ids, parent) => {
+      existingIds(ids).forEach((id) => {
+        nodeById.get(id).parent = parent;
+      });
+    };
+    setParent(['token_ids', 'logits', 'mtp_logits'], 'model');
+    setParent(withParamTensors(['embedding', 'final_norm', 'lm_head']), 'transformer');
+    if (isPangu) {
+      setParent(withParamTensors(['sparse_mla_attention']).concat(['rope_cache', 'kv_cache', 'param_sink_state', 'mome_state']), 'attention');
+      setParent(panguMhcOps, 'pangu_mhc');
+      setParent(panguQLaneOps, 'pangu_q_lane');
+      setParent(panguKvLaneOps, 'pangu_kv_lane');
+      setParent(panguSparseCoreOps, 'pangu_sparse_core');
+      setParent(ffnIds, 'ffn');
+      setParent(denseFfnOps, 'dense_ffn');
+      setParent(panguMoeOps, 'moe');
+      setParent(mtpOps, 'mtp_stack');
+    } else {
+      setParent(withParamTensors(['attn_norm']).concat(['rope_cache']), 'attention');
+      setParent(qkvProjectionOps, 'qkv_projection');
+      setParent(qLaneOps, 'q_lane');
+      setParent(kLaneOps, 'k_lane');
+      setParent(vLaneOps, 'v_lane');
+      setParent(attentionCoreOps, 'attention_core');
+      setParent(ffnIds, spec.variant === 'moe' ? 'moe' : 'mlp');
+    }
+
+    const modelBox = boundsFor(allNodeIds, { x: 34, top: 38, bottom: 30 });
     const transformerBox = boundsFor(transformerStackIds, { x: 26, top: 42, bottom: 26 });
     const decoderBox = boundsFor(decoderIds, { x: 18, top: 34, bottom: 22 });
-    if (transformerBox) CL.push({ id: 'transformer', label: 'Transformer Stack', ...transformerBox });
-    if (decoderBox) CL.push({ id: 'decoder', label: `Decoder Layer x ${spec.layers}`, ...decoderBox, repeat: true });
-    if (moeClusterOps.length) {
-      const moeBox = boundsFor(withParamTensors(moeClusterOps), { x: 16, top: 26, bottom: 18 });
-      if (moeBox) CL.push({ id: 'moe', label: 'MoE FFN · 专家分组', ...moeBox, repeat: false });
+    const attentionBox = boundsFor(attentionIds, { x: 18, top: 52, bottom: 24 });
+    const qkvProjectionBox = boundsFor(qkvProjectionOps, { x: 16, top: 48, bottom: 20 });
+    const qLaneBox = boundsFor(qLaneOps, { x: 16, top: 44, bottom: 20 });
+    const kLaneBox = boundsFor(kLaneOps, { x: 16, top: 44, bottom: 20 });
+    const vLaneBox = boundsFor(vLaneOps, { x: 16, top: 44, bottom: 20 });
+    const attentionCoreBox = boundsFor(attentionCoreOps, { x: 18, top: 48, bottom: 22 });
+    const ffnBox = boundsFor(ffnIds, { x: 14, top: 26, bottom: 18 });
+    const panguMhcBox = boundsFor(panguMhcOps, { x: 16, top: 44, bottom: 20 });
+    const panguQLaneBox = boundsFor(panguQLaneOps, { x: 16, top: 44, bottom: 20 });
+    const panguKvLaneBox = boundsFor(panguKvLaneOps, { x: 16, top: 44, bottom: 20 });
+    const panguSparseCoreBox = boundsFor(panguSparseCoreOps, { x: 18, top: 48, bottom: 22 });
+    const denseFfnBox = boundsFor(denseFfnOps, { x: 14, top: 38, bottom: 18 });
+    const panguMoeBox = boundsFor(panguMoeOps, { x: 14, top: 38, bottom: 18 });
+    const mtpBox = boundsFor(mtpOps, { x: 18, top: 40, bottom: 20 });
+    const H = [];
+    if (modelBox) {
+      CL.push({ id: 'model', label: `${spec.name} Model`, ...modelBox });
+      H.push({ id: 'model', label: `${spec.name} Model`, typeLabel: 'Root module', childIds: allNodeIds, sem: 'linear' });
     }
-    return { width: 980, height: y + 20, clusters: CL, nodes: N, edges: E, spec };
+    if (transformerBox) CL.push({ id: 'transformer', label: 'Transformer Stack', ...transformerBox });
+    if (transformerBox) H.push({ id: 'transformer', label: 'Transformer Stack', typeLabel: 'Module', parentModule: 'model', childIds: transformerStackIds, sem: 'linear' });
+    if (decoderBox) CL.push({ id: 'decoder', label: `Decoder Layer x ${spec.layers}`, ...decoderBox, repeat: true });
+    if (decoderBox) H.push({ id: 'decoder', label: 'Decoder Layer', typeLabel: `Repeated x ${spec.layers}`, parentModule: 'transformer', childIds: decoderIds, sem: 'linear', repeat: true });
+    if (attentionBox) {
+      CL.push({ id: 'attention', label: isPangu ? `Sparse MLA Attention · DSA${spec.dsaLayers}/SWA${spec.swaLayers}` : `Attention · GQA ${spec.qh}:${spec.kvh}`, ...attentionBox });
+      H.push({
+        id: 'attention',
+        label: isPangu ? 'Sparse MLA Attention' : 'Attention',
+        typeLabel: isPangu ? `DSA${spec.dsaLayers} / SWA${spec.swaLayers}` : `GQA ${spec.qh}:${spec.kvh}`,
+        parentModule: 'decoder',
+        childIds: attentionIds,
+        sem: 'attention',
+      });
+    }
+    if (isPangu) {
+      if (panguMhcBox) {
+        CL.push({ id: 'pangu_mhc', label: 'mHC Sandwich Norm', ...panguMhcBox });
+        H.push({ id: 'pangu_mhc', label: 'mHC Sandwich Norm', typeLabel: 'S_mhc=4', parentModule: 'attention', childIds: panguMhcOps, sem: 'attention' });
+      }
+      if (panguQLaneBox) {
+        CL.push({ id: 'pangu_q_lane', label: 'Q Latent Lane', ...panguQLaneBox });
+        H.push({ id: 'pangu_q_lane', label: 'Q Latent Lane', typeLabel: `R_q ${spec.qRank}`, parentModule: 'attention', childIds: panguQLaneOps, sem: 'linear' });
+      }
+      if (panguKvLaneBox) {
+        CL.push({ id: 'pangu_kv_lane', label: 'KV Latent Lane', ...panguKvLaneBox });
+        H.push({ id: 'pangu_kv_lane', label: 'KV Latent Lane', typeLabel: `R_kv ${spec.kvRank}`, parentModule: 'attention', childIds: panguKvLaneOps, sem: 'linear' });
+      }
+      if (panguSparseCoreBox) {
+        CL.push({ id: 'pangu_sparse_core', label: 'Sparse Core · DSA/SWA + cache states', ...panguSparseCoreBox });
+        H.push({ id: 'pangu_sparse_core', label: 'Sparse Core', typeLabel: 'RoPE + DSA + Flash', parentModule: 'attention', childIds: panguSparseCoreOps, sem: 'attention' });
+      }
+      if (ffnBox) {
+        CL.push({ id: 'ffn', label: `Dense + MoE FFN · dense ${spec.denseLayers} / MoE ${spec.layers - spec.denseLayers}`, ...ffnBox });
+        H.push({ id: 'ffn', label: 'Dense + MoE FFN', typeLabel: `L0-${spec.denseLayers - 1} dense · L${spec.denseLayers}-${spec.layers - 1} MoE`, parentModule: 'decoder', childIds: ffnIds, sem: 'moe' });
+      }
+      if (denseFfnBox) {
+        CL.push({ id: 'dense_ffn', label: 'Dense MLP · early layers', ...denseFfnBox });
+        H.push({ id: 'dense_ffn', label: 'Dense MLP', typeLabel: `layers 0-${spec.denseLayers - 1}`, parentModule: 'ffn', childIds: denseFfnOps, sem: 'act' });
+      }
+      if (panguMoeBox) {
+        CL.push({ id: 'moe', label: 'MoE FFN · routed + shared', ...panguMoeBox });
+        H.push({ id: 'moe', label: 'MoE FFN', typeLabel: `Experts ${spec.experts} top-${spec.topk}`, parentModule: 'ffn', childIds: panguMoeOps, sem: 'moe' });
+      }
+      if (mtpBox) {
+        CL.push({ id: 'mtp_stack', label: `MTP Stack · next ${spec.mtp}`, ...mtpBox, repeat: true });
+        H.push({ id: 'mtp_stack', label: 'Multi Token Predictor', typeLabel: `Repeated x ${spec.mtp}`, parentModule: 'transformer', childIds: mtpOps, sem: 'linear', repeat: true });
+      }
+    } else if (qkvProjectionBox) {
+      CL.push({ id: 'qkv_projection', label: 'QKV Projection · logical lanes', ...qkvProjectionBox });
+      H.push({ id: 'qkv_projection', label: 'QKV Projection', typeLabel: 'Fusion candidate view', parentModule: 'attention', childIds: qkvProjectionOps, sem: 'linear' });
+    }
+    if (!isPangu && qLaneBox) {
+      CL.push({ id: 'q_lane', label: 'Q Lane', ...qLaneBox });
+      H.push({ id: 'q_lane', label: 'Q Lane', typeLabel: 'Query path', parentModule: 'attention', childIds: qLaneOps, sem: 'qknorm' });
+    }
+    if (!isPangu && kLaneBox) {
+      CL.push({ id: 'k_lane', label: 'K Lane', ...kLaneBox });
+      H.push({ id: 'k_lane', label: 'K Lane', typeLabel: 'Key path', parentModule: 'attention', childIds: kLaneOps, sem: 'qknorm' });
+    }
+    if (!isPangu && vLaneBox) {
+      CL.push({ id: 'v_lane', label: 'V Lane', ...vLaneBox });
+      H.push({ id: 'v_lane', label: 'V Lane', typeLabel: 'Value / cache path', parentModule: 'attention', childIds: vLaneOps, sem: 'attention' });
+    }
+    if (!isPangu && attentionCoreBox) {
+      CL.push({ id: 'attention_core', label: 'Attention Core · flash candidate', ...attentionCoreBox });
+      H.push({ id: 'attention_core', label: 'Attention Core', typeLabel: 'QK softmax V', parentModule: 'attention', childIds: attentionCoreOps, sem: 'attention' });
+    }
+    if (!isPangu && moeClusterOps.length) {
+      if (ffnBox) {
+        CL.push({ id: 'moe', label: 'MoE FFN · 专家分组', ...ffnBox, repeat: false });
+        H.push({ id: 'moe', label: 'MoE FFN', typeLabel: `Experts ${spec.experts} top-${spec.topk}`, parentModule: 'decoder', childIds: ffnIds, sem: 'moe' });
+      }
+    } else if (!isPangu && ffnBox) {
+      CL.push({ id: 'mlp', label: 'SwiGLU MLP', ...ffnBox, repeat: false });
+      H.push({ id: 'mlp', label: 'SwiGLU MLP', typeLabel: 'Feed-forward', parentModule: 'decoder', childIds: ffnIds, sem: 'act' });
+    }
+    return { width: 1140, height: y + 20, clusters: CL, nodes: N, edges: E, hierarchy: H, spec };
+  }
+
+  function cloneGraph(graph) {
+    return {
+      width: graph.width,
+      height: graph.height,
+      spec: graph.spec,
+      clusters: graph.clusters.map((cluster) => ({ ...cluster })),
+      hierarchy: (graph.hierarchy || []).map((module) => ({ ...module, childIds: [...(module.childIds || [])] })),
+      nodes: graph.nodes.map((node) => {
+        const { _el, ...data } = node;
+        return { ...data };
+      }),
+      edges: graph.edges.map((edge) => ({ ...edge })),
+    };
+  }
+
+  function currentModelData() {
+    return currentModel ? MODELS[currentModel] : null;
+  }
+
+  function ensureModelGraph(model) {
+    if (!model.graph) model.graph = buildGraph(model.spec);
+    return model.graph;
+  }
+
+  function fusionAffectedIds(recId, graph) {
+    const rec = FUSION_LIB[recId];
+    if (!rec || !graph) return [];
+    const ids = new Set(rec.affects || []);
+    graph.nodes.forEach((node) => {
+      if (node.fuseRec === recId) ids.add(node.id);
+    });
+    return graph.nodes
+      .filter((node) => ids.has(node.id) && node.kind === 'op')
+      .map((node) => node.id);
+  }
+
+  function fusionOutputLabel(recId) {
+    const rec = FUSION_LIB[recId];
+    const output = (rec?.chain || []).slice().reverse().find((segment) => segment[1] === 'out') || rec?.chain?.[rec.chain.length - 1];
+    if (Array.isArray(output) && output[0]) return output[0];
+    const fallback = {
+      qknorm_rope: 'RmsNormRope',
+      add_rmsnorm: 'AddRmsNorm',
+      swiglu: 'SiluAndMul',
+      qkv_merge: 'QKVProj',
+      flash_paged: 'FlashAttn',
+      grouped_matmul: 'GroupedMatmul',
+    };
+    return fallback[recId] || rec?.title || recId;
+  }
+
+  function semanticForFusion(recId, ids, graph) {
+    if (recId === 'grouped_matmul') return 'moe';
+    if (recId === 'flash_paged' || recId === 'qknorm_rope') return 'attention';
+    if (recId === 'add_rmsnorm') return 'norm';
+    if (recId === 'swiglu') return 'act';
+    if (recId === 'qkv_merge') return 'linear';
+    const node = graph.nodes.find((item) => ids.includes(item.id) && item.sem);
+    return node?.sem || 'linear';
+  }
+
+  function contiguousFusionGroups(ids, graph) {
+    const wanted = new Set(ids);
+    const spine = graph.nodes.filter((node) => node.kind === 'op');
+    const groups = [];
+    let current = [];
+    spine.forEach((node) => {
+      if (wanted.has(node.id)) {
+        current.push(node.id);
+        return;
+      }
+      if (current.length) groups.push(current);
+      current = [];
+    });
+    if (current.length) groups.push(current);
+    return groups;
+  }
+
+  function moduleAncestors(moduleId, graph) {
+    const moduleById = new Map((graph.hierarchy || []).map((module) => [module.id, module]));
+    const ancestors = [];
+    let current = moduleId;
+    let guard = 0;
+    while (current && guard < 16) {
+      ancestors.push(current);
+      current = moduleById.get(current)?.parentModule;
+      guard += 1;
+    }
+    return ancestors;
+  }
+
+  function commonModuleParentForNodes(nodes, graph) {
+    const chains = nodes
+      .map((node) => moduleAncestors(node.parent, graph))
+      .filter((chain) => chain.length);
+    if (!chains.length) return null;
+    return chains[0].find((moduleId) => chains.every((chain) => chain.includes(moduleId))) || null;
+  }
+
+  function projectGraphWithFusions(baseGraph, previewIds) {
+    const graph = cloneGraph(baseGraph);
+    const active = Array.from(previewIds || []).filter((recId) => FUSION_LIB[recId]);
+    if (!active.length) return graph;
+
+    const nodeMap = new Map(graph.nodes.map((node) => [node.id, node]));
+    const replacementByNode = new Map();
+    const fusedNodes = [];
+
+    active.forEach((recId) => {
+      const availableIds = fusionAffectedIds(recId, graph).filter((id) => nodeMap.has(id) && !replacementByNode.has(id));
+      const groups = contiguousFusionGroups(availableIds, graph).filter((group) => group.length);
+      groups.forEach((group, index) => {
+        const originals = group.map((id) => nodeMap.get(id)).filter(Boolean);
+        if (!originals.length) return;
+        const minY = Math.min(...originals.map((node) => node.y - node.h / 2));
+        const maxY = Math.max(...originals.map((node) => node.y + node.h / 2));
+        const centerX = originals.reduce((sum, node) => sum + node.x, 0) / originals.length;
+        const centerY = (minY + maxY) / 2;
+        const width = Math.max(230, Math.min(320, fusionOutputLabel(recId).length * 8 + 92));
+        const fusedId = groups.length === 1 ? `fused_${recId}` : `fused_${recId}_${index + 1}`;
+        const parent = commonModuleParentForNodes(originals, graph) || originals.find((node) => node.parent)?.parent || 'decoder';
+        fusedNodes.push({
+          id: fusedId,
+          label: fusionOutputLabel(recId),
+          typeLabel: `Applied fusion · ${originals.length} ops`,
+          kind: 'op',
+          sem: semanticForFusion(recId, group, graph),
+          x: centerX,
+          y: centerY,
+          w: width,
+          h: 58,
+          fuseRec: recId,
+          virtual: true,
+          parent,
+          originalNodeIds: group,
+        });
+        group.forEach((id) => replacementByNode.set(id, fusedId));
+      });
+    });
+
+    if (!fusedNodes.length) return graph;
+
+    graph.nodes = graph.nodes.filter((node) => !replacementByNode.has(node.id)).concat(fusedNodes);
+    const seenEdges = new Set();
+    graph.edges = graph.edges.reduce((edges, edge) => {
+      const source = replacementByNode.get(edge.s) || edge.s;
+      const target = replacementByNode.get(edge.t) || edge.t;
+      if (source === target) return edges;
+      const key = `${source}->${target}:${edge.tag || ''}:${edge.type || ''}`;
+      if (seenEdges.has(key)) return edges;
+      seenEdges.add(key);
+      edges.push({ ...edge, s: source, t: target, fusedProjection: replacementByNode.has(edge.s) || replacementByNode.has(edge.t) });
+      return edges;
+    }, []);
+    graph.viewMode = 'applied-fusions';
+    return graph;
+  }
+
+  function moduleDepth(module, moduleById) {
+    let depth = 0;
+    let parent = module.parentModule;
+    let guard = 0;
+    while (parent && guard < 16) {
+      depth += 1;
+      parent = moduleById.get(parent)?.parentModule;
+      guard += 1;
+    }
+    return depth;
+  }
+
+  function maxFlatDepthForGraph(graph) {
+    const hierarchy = graph?.hierarchy || [];
+    if (!hierarchy.length) return 1;
+    const moduleById = new Map(hierarchy.map((module) => [module.id, module]));
+    const maxDepth = Math.max(...hierarchy.map((module) => moduleDepth(module, moduleById)));
+    return Math.max(1, maxDepth + 1);
+  }
+
+  function minFlatDepthForGraph(graph) {
+    return Math.min(3, maxFlatDepthForGraph(graph));
+  }
+
+  function clampedFlatDepth(graph) {
+    const minDepth = minFlatDepthForGraph(graph);
+    return Math.max(minDepth, Math.min(flatDepth, maxFlatDepthForGraph(graph)));
+  }
+
+  function expansionSetForGraph(graph, moduleById) {
+    if (graphViewMode !== 'flat') return new Set(expandedModules);
+    const level = clampedFlatDepth(graph);
+    return new Set((graph.hierarchy || [])
+      .filter((module) => moduleDepth(module, moduleById) < level)
+      .map((module) => module.id));
+  }
+
+  function moduleHasCollapsedAncestor(module, collapsedIds, moduleById) {
+    let parent = module.parentModule;
+    let guard = 0;
+    while (parent && guard < 16) {
+      if (collapsedIds.has(parent)) return true;
+      parent = moduleById.get(parent)?.parentModule;
+      guard += 1;
+    }
+    return false;
+  }
+
+  function moduleContainsNode(module, node, moduleById) {
+    if ((module.childIds || []).includes(node.id)) return true;
+    let parent = node.parent;
+    let guard = 0;
+    while (parent && guard < 16) {
+      if (parent === module.id) return true;
+      parent = moduleById.get(parent)?.parentModule;
+      guard += 1;
+    }
+    return false;
+  }
+
+  function moduleFallbackBounds(nodes) {
+    if (!nodes.length) return null;
+    const left = Math.min(...nodes.map((node) => node.x - node.w / 2));
+    const right = Math.max(...nodes.map((node) => node.x + node.w / 2));
+    const top = Math.min(...nodes.map((node) => node.y - node.h / 2));
+    const bottom = Math.max(...nodes.map((node) => node.y + node.h / 2));
+    return { x: left - 18, y: top - 24, w: right - left + 36, h: bottom - top + 48 };
+  }
+
+  function applyHierarchyProjection(inputGraph) {
+    const graph = cloneGraph(inputGraph);
+    const hierarchy = graph.hierarchy || [];
+    if (!hierarchy.length) return graph;
+
+    const moduleById = new Map(hierarchy.map((module) => [module.id, module]));
+    const clusterById = new Map(graph.clusters.map((cluster) => [cluster.id, cluster]));
+    const expandedSet = expansionSetForGraph(graph, moduleById);
+    const collapsedIds = new Set(hierarchy.filter((module) => !expandedSet.has(module.id)).map((module) => module.id));
+    const visibleCollapsedModules = hierarchy
+      .filter((module) => collapsedIds.has(module.id) && !moduleHasCollapsedAncestor(module, collapsedIds, moduleById))
+      .sort((a, b) => moduleDepth(a, moduleById) - moduleDepth(b, moduleById));
+
+    if (!visibleCollapsedModules.length) {
+      graph.hierarchy = hierarchy.map((module) => ({ ...module, expanded: true, hiddenByAncestor: false }));
+      graph.viewMode = graphViewMode;
+      graph.flatDepth = graphViewMode === 'flat' ? clampedFlatDepth(graph) : null;
+      return graph;
+    }
+
+    const hiddenOwnerByNode = new Map();
+    visibleCollapsedModules.forEach((module) => {
+      graph.nodes.forEach((node) => {
+        if (!hiddenOwnerByNode.has(node.id) && moduleContainsNode(module, node, moduleById)) {
+          hiddenOwnerByNode.set(node.id, module.id);
+        }
+      });
+    });
+
+    const moduleNodes = visibleCollapsedModules.map((module) => {
+      const childNodes = graph.nodes.filter((node) => moduleContainsNode(module, node, moduleById));
+      const cluster = clusterById.get(module.id);
+      const bounds = cluster || moduleFallbackBounds(childNodes) || { x: 360, y: 120, w: 240, h: 90 };
+      const collapsedChildIds = Array.from(new Set(childNodes.flatMap((node) => [node.id].concat(node.originalNodeIds || []))));
+      return {
+        id: `module_${module.id}`,
+        label: module.label,
+        typeLabel: `${module.typeLabel || 'Module'} · ${collapsedChildIds.length} children`,
+        kind: 'module',
+        sem: module.sem || 'linear',
+        parent: module.parentModule,
+        moduleId: module.id,
+        collapsedModule: true,
+        collapsedChildIds,
+        x: bounds.x + bounds.w / 2,
+        y: bounds.y + bounds.h / 2,
+        w: Math.max(210, Math.min(300, bounds.w * 0.46)),
+        h: 58,
+      };
+    });
+
+    const moduleNodeIdByModule = new Map(moduleNodes.map((node) => [node.moduleId, node.id]));
+    graph.nodes = graph.nodes
+      .filter((node) => !hiddenOwnerByNode.has(node.id))
+      .concat(moduleNodes)
+      .sort((a, b) => (a.y - b.y) || (a.x - b.x));
+
+    const edgeKeys = new Set();
+    graph.edges = graph.edges.reduce((edges, edge) => {
+      const sourceModule = hiddenOwnerByNode.get(edge.s);
+      const targetModule = hiddenOwnerByNode.get(edge.t);
+      const source = sourceModule ? moduleNodeIdByModule.get(sourceModule) : edge.s;
+      const target = targetModule ? moduleNodeIdByModule.get(targetModule) : edge.t;
+      if (!source || !target || source === target) return edges;
+      const key = `${source}->${target}:${edge.tag || ''}:${edge.type || ''}`;
+      if (edgeKeys.has(key)) return edges;
+      edgeKeys.add(key);
+      edges.push({
+        ...edge,
+        s: source,
+        t: target,
+        hierarchyProjection: Boolean(sourceModule || targetModule),
+      });
+      return edges;
+    }, []);
+
+    graph.clusters = graph.clusters.filter((cluster) => {
+      const module = moduleById.get(cluster.id);
+      if (!module) return true;
+      return !collapsedIds.has(module.id) && !moduleHasCollapsedAncestor(module, collapsedIds, moduleById);
+    });
+    graph.hierarchy = hierarchy.map((module) => ({
+      ...module,
+      expanded: expandedSet.has(module.id),
+      hiddenByAncestor: moduleHasCollapsedAncestor(module, collapsedIds, moduleById),
+    }));
+    graph.collapsedModules = visibleCollapsedModules.map((module) => module.id);
+    graph.viewMode = graphViewMode;
+    graph.flatDepth = graphViewMode === 'flat' ? clampedFlatDepth(graph) : null;
+    return graph;
+  }
+
+  function graphForCurrentView(model) {
+    const base = ensureModelGraph(model);
+    const graph = activeFusionPreviews.size
+      ? projectGraphWithFusions(base, activeFusionPreviews)
+      : cloneGraph(base);
+    return applyHierarchyProjection(graph);
+  }
+
+  function renderActiveGraph(options = {}) {
+    const model = currentModelData();
+    if (!model) return;
+    const graph = graphForCurrentView(model);
+    renderGraph(graph, { preserveView: options.preserveView });
+    const base = ensureModelGraph(model);
+    const opCount = base.nodes.filter((node) => node.kind === 'op').length;
+    const moduleCount = base.hierarchy?.length || 0;
+    const fusionText = activeFusionPreviews.size ? `${activeFusionPreviews.size} 个融合已应用` : '推荐层叠加';
+    const viewText = graphViewMode === 'flat' ? `平铺 L${clampedFlatDepth(base)}` : '下钻';
+    els.midD.textContent = `${model.name} · ${viewText} · ${moduleCount} 级模块 · ${opCount} 原始算子 · ${fusionText}`;
+    updateGraphControls();
+  }
+
+  function updateGraphControls() {
+    els.zbr?.classList.toggle('is-selected', showBrackets);
+    els.viewDrill?.classList.toggle('is-selected', graphViewMode === 'drill');
+    els.viewDrill?.setAttribute('aria-pressed', String(graphViewMode === 'drill'));
+    els.viewFlat?.classList.toggle('is-selected', graphViewMode === 'flat');
+    els.viewFlat?.setAttribute('aria-expanded', String(flatMenuOpen));
+    const model = currentModelData();
+    const graph = model ? ensureModelGraph(model) : null;
+    if (graph) {
+      const depth = clampedFlatDepth(graph);
+      if (depth !== flatDepth) flatDepth = depth;
+      if (els.flatLabel) els.flatLabel.textContent = `平铺 · L${depth}`;
+      renderFlatDepthMenu(graph);
+    }
+    positionFlatMenu();
+    if (els.flatMenu) els.flatMenu.hidden = !flatMenuOpen;
+  }
+
+  function positionFlatMenu() {
+    if (!els.flatMenu || !els.viewFlat) return;
+    const rect = els.viewFlat.getBoundingClientRect();
+    const width = Math.max(96, els.flatMenu.offsetWidth || 96);
+    const left = Math.max(8, Math.min(window.innerWidth - width - 8, rect.right - width));
+    const top = Math.min(window.innerHeight - 8, rect.bottom + 6);
+    els.flatMenu.style.setProperty('--op-flat-menu-left', `${Math.round(left)}px`);
+    els.flatMenu.style.setProperty('--op-flat-menu-top', `${Math.round(top)}px`);
+  }
+
+  function renderFlatDepthMenu(graph) {
+    if (!els.flatMenu || !graph) return;
+    const minDepth = minFlatDepthForGraph(graph);
+    const maxDepth = maxFlatDepthForGraph(graph);
+    const current = clampedFlatDepth(graph);
+    els.flatMenu.innerHTML = Array.from({ length: maxDepth - minDepth + 1 }, (_, index) => {
+      const depth = minDepth + index;
+      return `<button class="op-flat-menu__item${depth === current && graphViewMode === 'flat' ? ' is-selected' : ''}" type="button" role="menuitemradio" aria-checked="${depth === current && graphViewMode === 'flat' ? 'true' : 'false'}" data-flat-depth="${depth}">L${depth}</button>`;
+    }).join('');
+    els.flatMenu.querySelectorAll('[data-flat-depth]').forEach((button) => {
+      button.addEventListener('click', (event) => {
+        event.stopPropagation();
+        setFlatDepth(Number(button.dataset.flatDepth));
+      });
+    });
+  }
+
+  function setFlatMenuOpen(open) {
+    flatMenuOpen = Boolean(open);
+    updateGraphControls();
+  }
+
+  function setGraphViewMode(mode, options = {}) {
+    if (mode !== 'drill' && mode !== 'flat') return;
+    graphViewMode = mode;
+    if (mode === 'drill') flatMenuOpen = false;
+    if (mode === 'flat') flatMenuOpen = options.openMenu ?? flatMenuOpen;
+    const model = currentModelData();
+    if (model && mode === 'flat') flatDepth = clampedFlatDepth(ensureModelGraph(model));
+    renderActiveGraph({ preserveView: options.preserveView ?? true });
+    clearSelection();
+  }
+
+  function setFlatDepth(depth) {
+    const model = currentModelData();
+    if (!model) return;
+    const graph = ensureModelGraph(model);
+    flatDepth = Math.max(minFlatDepthForGraph(graph), Math.min(depth, maxFlatDepthForGraph(graph)));
+    graphViewMode = 'flat';
+    flatMenuOpen = false;
+    renderActiveGraph({ preserveView: true });
+    clearSelection();
+  }
+
+  function setFusionOverlayVisible(visible) {
+    showBrackets = Boolean(visible);
+    renderActiveGraph({ preserveView: true });
+  }
+
+  function toggleModule(moduleId) {
+    if (!moduleId) return;
+    if (graphViewMode === 'flat') {
+      const graph = currentModelData()?.graph || G;
+      const moduleById = new Map((graph?.hierarchy || []).map((module) => [module.id, module]));
+      moduleAncestors(moduleId, graph).forEach((id) => expandedModules.add(id));
+      let parent = moduleById.get(moduleId)?.parentModule;
+      let guard = 0;
+      while (parent && guard < 16) {
+        expandedModules.add(parent);
+        parent = moduleById.get(parent)?.parentModule;
+        guard += 1;
+      }
+      graphViewMode = 'drill';
+      flatMenuOpen = false;
+      renderActiveGraph({ preserveView: true });
+      clearSelection();
+      return;
+    }
+    if (expandedModules.has(moduleId)) expandedModules.delete(moduleId);
+    else expandedModules.add(moduleId);
+    renderActiveGraph({ preserveView: true });
+    clearSelection();
+  }
+
+  function toggleFusionPreview(recId) {
+    if (!FUSION_LIB[recId]) return;
+    if (activeFusionPreviews.has(recId)) {
+      activeFusionPreviews.delete(recId);
+    } else {
+      activeFusionPreviews.add(recId);
+    }
+    renderActiveGraph({ preserveView: true });
+    renderRecommendations(currentModelData());
+    clearSelection();
+  }
+
+  function toggleAllFusionPreviews() {
+    const model = currentModelData();
+    if (!model) return;
+    const allPreviewed = model.recs.every((id) => activeFusionPreviews.has(id));
+    activeFusionPreviews = allPreviewed ? new Set() : new Set(model.recs);
+    renderActiveGraph({ preserveView: true });
+    renderRecommendations(model);
+    clearSelection();
   }
 
   function anchor(node, direction) {
@@ -505,7 +1408,7 @@
     applyTransform();
   }
 
-  function renderGraph(graph) {
+  function renderGraph(graph, options = {}) {
     G = graph;
     NM = {};
     graph.nodes.forEach((node) => {
@@ -522,8 +1425,12 @@
     defs.appendChild(marker);
     els.gsvg.appendChild(defs);
 
+    renderBrackets();
+
+    const hierarchyById = new Map((graph.hierarchy || []).map((module) => [module.id, module]));
     graph.clusters.forEach((cluster) => {
-      const group = svg('g');
+      const module = hierarchyById.get(cluster.id);
+      const group = svg('g', { class: module ? 'cl-group' : '' });
       group.appendChild(svg('rect', {
         class: `cl-rect${cluster.repeat ? ' repeat' : ''}`,
         x: cluster.x,
@@ -536,6 +1443,32 @@
       const label = svg('text', { class: 'cl-label', x: cluster.x + 18, y: cluster.y + 22 });
       label.textContent = cluster.label;
       group.appendChild(label);
+      if (module) {
+        const toggle = svg('g', {
+          class: 'cl-toggle',
+          transform: `translate(${cluster.x + cluster.w - 28}, ${cluster.y + 17})`,
+        });
+        toggle.appendChild(svg('circle', { class: 'cl-toggle__bg', cx: 0, cy: 0, r: 10 }));
+        const glyph = svg('text', {
+          class: 'cl-toggle__glyph',
+          x: 0,
+          y: 1,
+          'text-anchor': 'middle',
+          'dominant-baseline': 'central',
+        });
+        glyph.textContent = '-';
+        toggle.appendChild(glyph);
+        toggle.addEventListener('pointerdown', (event) => event.stopPropagation());
+        toggle.addEventListener('click', (event) => {
+          event.stopPropagation();
+          toggleModule(module.id);
+        });
+        group.addEventListener('dblclick', (event) => {
+          event.stopPropagation();
+          toggleModule(module.id);
+        });
+        group.appendChild(toggle);
+      }
       els.gsvg.appendChild(group);
     });
 
@@ -545,7 +1478,7 @@
       const target = NM[edge.t];
       if (!source || !target) return;
       const pathData = edgePath(source, target);
-      const cls = `edge ${edge.type === 'param' ? 'param' : edge.type === 'comm' ? 'comm' : ''}`;
+      const cls = `edge ${edge.type === 'param' ? 'param' : edge.type === 'comm' ? 'comm' : ''}${edge.fusedProjection || edge.hierarchyProjection ? ' fuse' : ''}`;
       const path = svg('path', { class: cls, d: pathData.d, 'marker-end': 'url(#arr)' });
       els.gsvg.appendChild(path);
       if (edge.tag) {
@@ -569,13 +1502,15 @@
 
     graph.nodes.forEach((node) => {
       const kind = node.kind;
+      const nodeClass = kind === 'tensor' || kind === 'param' ? 'tensor' : kind === 'io' ? 'io' : kind === 'module' ? 'module' : 'op';
+      const operatorLike = kind === 'op' || kind === 'module';
       const group = svg('g', {
-        class: `nd ${kind === 'tensor' || kind === 'param' ? 'tensor' : kind === 'io' ? 'io' : 'op'}${node.fuseRec ? ' fuse' : ''}`,
+        class: `nd ${nodeClass}${node.fuseRec ? ' fuse' : ''}${node.virtual ? ' virtual' : ''}${node.collapsedModule ? ' collapsed' : ''}`,
         transform: `translate(${node.x}, ${node.y})`,
       });
       group.dataset.id = node.id;
-      const radius = kind === 'op' ? node.h / 2 : Math.min(13, node.h * 0.32);
-      const fill = kind === 'op' ? (SEM[node.sem] || 'var(--primary)') : null;
+      const radius = operatorLike ? node.h / 2 : Math.min(13, node.h * 0.32);
+      const fill = operatorLike ? (SEM[node.sem] || 'var(--primary)') : null;
       group.appendChild(svg('rect', {
         class: 'nd-rect',
         x: -node.w / 2,
@@ -585,9 +1520,9 @@
         rx: radius,
         ry: radius,
         fill,
-        stroke: kind === 'op' ? 'color-mix(in srgb, var(--foreground) 16%, transparent)' : null,
+        stroke: operatorLike ? 'color-mix(in srgb, var(--foreground) 16%, transparent)' : null,
       }));
-      const label = svg('text', { class: 'nd-label', x: 0, y: kind === 'op' ? -3 : 0 });
+      const label = svg('text', { class: 'nd-label', x: 0, y: operatorLike ? -3 : 0 });
       label.textContent = node.label;
       group.appendChild(label);
       if (kind !== 'tensor' && kind !== 'io') {
@@ -609,8 +1544,24 @@
           group.appendChild(svg('circle', { class: 'fuse-dot', cx: node.w / 2 - 11, cy: 0, r: 4 }));
         }
       }
+      if (node.collapsedModule) {
+        group.appendChild(svg('circle', { class: 'module-plus__bg', cx: node.w / 2 - 18, cy: 0, r: 9 }));
+        const plus = svg('text', {
+          class: 'module-plus__glyph',
+          x: node.w / 2 - 18,
+          y: 1,
+          'text-anchor': 'middle',
+          'dominant-baseline': 'central',
+        });
+        plus.textContent = '+';
+        group.appendChild(plus);
+      }
       group.addEventListener('click', (event) => {
         event.stopPropagation();
+        if (node.collapsedModule) {
+          toggleModule(node.moduleId);
+          return;
+        }
         selectNode(node.id, 'graph', event);
       });
       group.addEventListener('mousemove', (event) => showTip(node, event));
@@ -619,13 +1570,15 @@
       node._el = group;
     });
 
-    renderBrackets();
-    requestAnimationFrame(fit);
+    requestAnimationFrame(() => {
+      if (options.preserveView) applyTransform();
+      else fit();
+    });
   }
 
   function renderBrackets() {
     els.gsvg.querySelectorAll('.fbracket,.fbracket-bg,.fbracket-lbl').forEach((node) => node.remove());
-    if (!showBrackets || !G) return;
+    if (!showBrackets || !G || activeFusionPreviews.size) return;
     const spine = G.nodes.filter((node) => node.kind === 'op');
     let i = 0;
     while (i < spine.length) {
@@ -665,7 +1618,13 @@
   function showTip(node, event) {
     const type = node.typeLabel || node.kind;
     let html = `<div class="op-graph-tip__head"><span class="op-graph-tip__kind">${esc(type).slice(0, 16)}</span>${esc(node.label)}</div>`;
-    html += `<div class="op-graph-tip__row">类型：<b>${node.kind === 'op' ? '算子 Op' : node.kind === 'param' ? '权重张量' : node.kind === 'io' ? 'IO 张量' : '张量'}</b></div>`;
+    html += `<div class="op-graph-tip__row">类型：<b>${node.virtual ? '已应用融合算子' : node.kind === 'module' ? '父级模块' : node.kind === 'op' ? '算子 Op' : node.kind === 'param' ? '权重张量' : node.kind === 'io' ? 'IO 张量' : '张量'}</b></div>`;
+    if (node.collapsedModule) {
+      html += `<div class="op-graph-tip__row">点击展开：${esc(node.moduleId)} · ${node.collapsedChildIds?.length || 0} 个 child</div>`;
+    }
+    if (node.virtual && node.originalNodeIds?.length) {
+      html += `<div class="op-graph-tip__row">折叠自：${node.originalNodeIds.map(esc).join(' / ')}</div>`;
+    }
     if (node.fuseRec) {
       const rec = FUSION_LIB[node.fuseRec];
       html += `<div class="op-graph-tip__fusion">${rec?.star ? '★' : '●'} 可融合点 -> ${esc(rec?.title || node.fuseRec)}</div>`;
@@ -707,6 +1666,24 @@
 
   function sourceForNode(node) {
     if (!node || node.kind !== 'op') return null;
+    if (node.virtual && node.fuseRec && FUSION_LIB[node.fuseRec]) {
+      const rec = FUSION_LIB[node.fuseRec];
+      const baseGraph = currentModelData()?.graph;
+      const baseNodes = new Map((baseGraph?.nodes || []).map((item) => [item.id, item]));
+      const originals = (node.originalNodeIds || [])
+        .map((id) => baseNodes.get(id)?.label || id)
+        .join(' -> ');
+      return {
+        title: `${node.label} · 已应用融合`,
+        meta: `${node.id} · ${originals || rec.title}`,
+        doc: rec.doc,
+        blocks: [
+          ['原始 child ops', originals ? originals.split(' -> ') : [rec.title]],
+          ['V · vLLM 原始实现', rec.vllm],
+          ['A · 昇腾融合算子', rec.asc],
+        ],
+      };
+    }
     if (node.fuseRec && FUSION_LIB[node.fuseRec]) {
       const rec = FUSION_LIB[node.fuseRec];
       return {
@@ -836,36 +1813,47 @@
   }
 
   function renderRecommendations(model) {
+    if (!model) return;
+    const baseGraph = ensureModelGraph(model);
+    const baseMap = new Map(baseGraph.nodes.map((node) => [node.id, node]));
     const recs = model.recs;
-    const fusePoints = model.graph.nodes.filter((node) => node.fuseRec).length;
-    els.rightD.textContent = `${recs.length} 个方案 · 计算图含 ${fusePoints} 个融合点`;
+    const fusePoints = baseGraph.nodes.filter((node) => node.fuseRec).length;
+    const allApplied = recs.every((id) => activeFusionPreviews.has(id));
+    els.rightD.textContent = `${recs.length} 个方案 · ${activeFusionPreviews.size} 个已应用`;
     els.topRecChip.textContent = `${recs.length} recs`;
+    const toolbar = `<div class="op-rec-toolbar">
+      <button class="btn btn-solid btn-lg op-apply-all${allApplied ? ' is-selected' : ''}" type="button" id="apply-all-fusions" aria-pressed="${allApplied ? 'true' : 'false'}">${allApplied ? 'Clear applied' : 'Apply all'}</button>
+    </div>`;
     const summary = `<div class="op-summary-grid">
       <div class="op-summary-cell"><div class="op-summary-cell__value" data-tone="fusion">${recs.length}</div><div class="op-summary-cell__label">推荐方案</div></div>
-      <div class="op-summary-cell"><div class="op-summary-cell__value" data-tone="info">${fusePoints}</div><div class="op-summary-cell__label">融合点</div></div>
-      <div class="op-summary-cell"><div class="op-summary-cell__value" data-tone="success">${model.graph.nodes.filter((node) => node.kind === 'op').length}</div><div class="op-summary-cell__label">算子节点</div></div>
+      <div class="op-summary-cell"><div class="op-summary-cell__value" data-tone="info">${activeFusionPreviews.size}</div><div class="op-summary-cell__label">已应用</div></div>
+      <div class="op-summary-cell"><div class="op-summary-cell__value" data-tone="success">${fusePoints}</div><div class="op-summary-cell__label">候选点</div></div>
     </div>`;
 
     const cards = recs.map((id) => {
       const rec = FUSION_LIB[id];
       if (!rec) return '';
+      const previewed = activeFusionPreviews.has(id);
       const prioText = rec.prio === 's' ? 'STAR' : rec.prio === 'h' ? 'HIGH' : 'MED';
       const prioClass = rec.prio === 's' ? 'op-priority--star' : rec.prio === 'h' ? 'op-priority--high' : 'op-priority--medium';
       const gains = rec.gains.map(([label, kind]) => `<span class="op-gain ${kind === 'tp' ? 'op-gain--tp' : kind === 'mem' ? 'op-gain--mem' : ''}">${esc(label)}</span>`).join('');
-      const affects = rec.affects
-        .filter((nodeId) => NM[nodeId])
-        .map((nodeId) => `<button class="btn btn-sm op-affect-chip" type="button" data-go="${esc(nodeId)}">${esc(NM[nodeId].label)}</button>`)
+      const affects = fusionAffectedIds(id, baseGraph)
+        .filter((nodeId) => baseMap.has(nodeId))
+        .map((nodeId) => `<button class="btn btn-sm op-affect-chip" type="button" data-go="${esc(nodeId)}" data-rec="${esc(id)}">${esc(baseMap.get(nodeId).label)}</button>`)
         .join('');
-      return `<article class="op-rec-card" data-rec="${esc(id)}">
-        <button class="op-rec-card__head" type="button" aria-expanded="false">
+      return `<article class="op-rec-card${previewed ? ' is-previewed' : ''}" data-rec="${esc(id)}">
+        <div class="op-rec-card__head" role="button" tabindex="0" aria-expanded="false">
           <span class="op-priority ${prioClass}">${prioText}</span>
           <span class="op-rec-card__title">
             <span class="op-rec-card__name">${rec.star ? '<span class="op-badge op-badge--fusion">★</span> ' : ''}${esc(rec.title)}</span>
             <span class="op-chain">${chainHtml(rec.chain)}</span>
             <span class="op-gain-row">${gains}</span>
           </span>
-          <span class="op-rec-card__expander" aria-hidden="true">v</span>
-        </button>
+          <span class="op-rec-card__actions">
+            <button class="btn btn-sm op-rec-preview${previewed ? ' is-selected' : ''}" type="button" data-preview-rec="${esc(id)}">${previewed ? 'Applied' : 'Apply'}</button>
+            <span class="op-rec-card__expander" aria-hidden="true">v</span>
+          </span>
+        </div>
         <div class="op-rec-card__body">
           <section class="op-detail-section">
             <div class="op-detail-section__head">推荐理由</div>
@@ -887,19 +1875,36 @@
       </article>`;
     }).join('');
 
-    els.rbody.innerHTML = `${summary}${cards}`;
+    els.rbody.innerHTML = `${toolbar}${summary}${cards}`;
+    els.rbody.querySelector('#apply-all-fusions')?.addEventListener('click', (event) => {
+      event.stopPropagation();
+      toggleAllFusionPreviews();
+    });
     els.rbody.querySelectorAll('.op-rec-card__head').forEach((head) => {
-      head.addEventListener('click', () => {
+      const toggleCard = () => {
         const card = head.closest('.op-rec-card');
         card.classList.toggle('is-open');
         syncExpander(card);
         if (card.classList.contains('is-open')) highlightRecommendation(card.dataset.rec);
+      };
+      head.addEventListener('click', toggleCard);
+      head.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        toggleCard();
+      });
+    });
+    els.rbody.querySelectorAll('[data-preview-rec]').forEach((button) => {
+      button.addEventListener('click', (event) => {
+        event.stopPropagation();
+        toggleFusionPreview(button.dataset.previewRec);
       });
     });
     els.rbody.querySelectorAll('[data-go]').forEach((chip) => {
       chip.addEventListener('click', (event) => {
         event.stopPropagation();
-        selectNode(chip.dataset.go, 'recommendation');
+        if (NM[chip.dataset.go]) selectNode(chip.dataset.go, 'recommendation');
+        else highlightRecommendation(chip.dataset.rec);
       });
     });
   }
@@ -915,7 +1920,13 @@
   function highlightRecommendation(id) {
     const rec = FUSION_LIB[id];
     if (!rec || !G) return;
-    const affected = new Set(rec.affects.filter((nodeId) => NM[nodeId]));
+    const baseGraph = currentModelData()?.graph || G;
+    const baseAffected = new Set(fusionAffectedIds(id, baseGraph));
+    const affected = new Set(Array.from(baseAffected).filter((nodeId) => NM[nodeId]));
+    G.nodes.forEach((node) => {
+      if (node.virtual && node.fuseRec === id) affected.add(node.id);
+      if (node.collapsedChildIds?.some((nodeId) => baseAffected.has(nodeId))) affected.add(node.id);
+    });
     G.nodes.forEach((node) => {
       node._el.classList.toggle('sel', affected.has(node.id));
       node._el.classList.toggle('dim', !affected.has(node.id) && node.kind !== 'param');
@@ -926,7 +1937,7 @@
       el.classList.toggle('rel', isRelated);
       el.classList.toggle('dim', !isRelated);
     });
-    const first = NM[rec.affects.find((nodeId) => NM[nodeId])];
+    const first = G.nodes.find((node) => affected.has(node.id));
     if (first) {
       const rect = els.stage.getBoundingClientRect();
       view.ty = rect.height / 2 - first.y * view.z;
@@ -954,13 +1965,14 @@
   function selectModel(key) {
     currentModel = key;
     const model = MODELS[key];
-    if (!model.graph) model.graph = buildGraph(model.spec);
+    const graph = ensureModelGraph(model);
+    if (graphViewMode === 'flat') flatDepth = clampedFlatDepth(graph);
+    activeFusionPreviews = new Set(Array.from(activeFusionPreviews).filter((id) => model.recs.includes(id)));
     document.querySelectorAll('.op-model-card').forEach((card) => {
       card.classList.toggle('is-selected', card.dataset.model === key);
     });
-    els.midD.textContent = `${model.name} · ${model.graph.nodes.filter((node) => node.kind === 'op').length} 算子 · ${model.graph.nodes.filter((node) => node.fuseRec).length} 融合点`;
     els.topModelChip.textContent = model.name;
-    renderGraph(model.graph);
+    renderActiveGraph();
     renderRecommendations(model);
     clearSelection();
   }
@@ -1035,8 +2047,8 @@
   function initCursorFollow() {
     if (!els.frame) return;
     const show = () => {
-      els.frame.style.setProperty('--ide-cursor-alpha', document.documentElement.dataset.theme === 'light' ? '0.20' : '0.28');
-      els.frame.style.setProperty('--ide-dot-opacity', document.documentElement.dataset.theme === 'light' ? '0.24' : '0.34');
+      els.frame.style.setProperty('--ide-cursor-alpha', document.documentElement.dataset.theme === 'light' ? '0.06' : '0.08');
+      els.frame.style.setProperty('--ide-dot-opacity', document.documentElement.dataset.theme === 'light' ? '0.08' : '0.10');
     };
     const hide = () => {
       els.frame.style.setProperty('--ide-cursor-alpha', '0');
@@ -1077,10 +2089,18 @@
     });
     els.zfit.addEventListener('click', fit);
     els.zbr.addEventListener('click', () => {
-      showBrackets = !showBrackets;
-      els.zbr.classList.toggle('is-selected', showBrackets);
-      renderBrackets();
+      setFusionOverlayVisible(!showBrackets);
     });
+    els.viewDrill?.addEventListener('click', () => setGraphViewMode('drill', { preserveView: true }));
+    els.viewFlat?.addEventListener('click', (event) => {
+      event.stopPropagation();
+      if (graphViewMode !== 'flat') {
+        setGraphViewMode('flat', { preserveView: true, openMenu: true });
+      } else {
+        setFlatMenuOpen(!flatMenuOpen);
+      }
+    });
+    els.flatMenu?.addEventListener('click', (event) => event.stopPropagation());
 
     els.stage.addEventListener('pointerdown', (event) => {
       if (event.target.closest('.nd')) return;
@@ -1131,10 +2151,17 @@
       observer.observe(els.stage);
     }
     window.addEventListener('resize', fit);
+    window.addEventListener('resize', () => {
+      if (flatMenuOpen) updateGraphControls();
+    });
     document.addEventListener('keydown', (event) => {
       if (event.key !== 'Escape') return;
+      setFlatMenuOpen(false);
       setLegendOpen(false);
       hideSourcePanel();
+    });
+    document.addEventListener('click', () => {
+      setFlatMenuOpen(false);
     });
   }
 
@@ -1153,6 +2180,10 @@
       zout: document.getElementById('zout'),
       zfit: document.getElementById('zfit'),
       zbr: document.getElementById('zbr'),
+      viewDrill: document.getElementById('view-drill'),
+      viewFlat: document.getElementById('view-flat'),
+      flatLabel: document.getElementById('flat-label'),
+      flatMenu: document.getElementById('flat-menu'),
       legendToggle: document.getElementById('legend-toggle'),
       legend: document.getElementById('legend'),
       topModelChip: document.getElementById('top-model-chip'),
@@ -1167,6 +2198,9 @@
       sourceBody: document.getElementById('op-source-body'),
       sourceClose: document.getElementById('source-close'),
     });
+    if (els.flatMenu && els.flatMenu.parentElement !== document.body) {
+      document.body.appendChild(els.flatMenu);
+    }
     renderModelList();
     initInteractions();
     selectModel('qwen3_14b');
