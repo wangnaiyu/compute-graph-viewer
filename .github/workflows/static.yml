@@ -40,6 +40,10 @@ jobs:
         with:
           # Upload entire repository
           path: '.'
+          # 名字带上 run_id + run_attempt，避免重跑（re-run）时同一 run 下累积出多个同名 artifact
+          name: github-pages-${{ github.run_id }}-${{ github.run_attempt }}
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v5
+        with:
+          artifact_name: github-pages-${{ github.run_id }}-${{ github.run_attempt }}
