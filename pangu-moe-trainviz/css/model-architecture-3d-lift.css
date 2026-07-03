@@ -1,0 +1,348 @@
+:root {
+  --arch3d-input: #64748b;
+  --arch3d-parameter: #f59e0b;
+  --arch3d-output: #ef4444;
+  --arch3d-embedding: #8b5cf6;
+  --arch3d-decoder: #4369ef;
+  --arch3d-attention: #0ea5e9;
+  --arch3d-norm: #14b8a6;
+  --arch3d-gate: #ec4899;
+  --arch3d-comm: #10b981;
+  --arch3d-moe: #a855f7;
+  --arch3d-mlp: #84cc16;
+  --arch3d-residual: #6366f1;
+  --arch3d-head: #f97316;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+body.arch3d-page {
+  min-height: 100vh;
+  overflow: hidden;
+  background: var(--background);
+  color: var(--foreground);
+  font: var(--text-body);
+}
+
+.arch3d-app {
+  width: 100vw;
+  height: 100dvh;
+  display: grid;
+  grid-template-rows: var(--comp-toolbar-height) minmax(0, 1fr);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--background) 94%, var(--surface-1)), var(--background));
+}
+
+:root[data-theme='light'] .arch3d-app {
+  background: linear-gradient(180deg, #f8fafc 0%, var(--background) 48%, #eef2f7 100%);
+}
+
+.arch3d-header {
+  padding: 0 var(--space-4);
+  background: transparent;
+  border-bottom: 0;
+  z-index: var(--z-overlay);
+}
+
+.arch3d-brand {
+  border-right-color: color-mix(in srgb, var(--border-default) 72%, transparent);
+}
+
+.arch3d-title-copy {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+
+.arch3d-title-copy strong {
+  color: var(--foreground);
+  font: var(--text-body-sm);
+  font-weight: var(--font-weight-semibold);
+  overflow-wrap: anywhere;
+  white-space: nowrap;
+}
+
+.arch3d-title-copy span {
+  color: var(--foreground-secondary);
+  font: var(--text-label);
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.arch3d-actions {
+  gap: var(--space-2);
+}
+
+.arch3d-main {
+  min-height: 0;
+  padding: 0 var(--space-3) var(--space-3);
+}
+
+.arch3d-stage {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(circle at 50% 32%, color-mix(in srgb, var(--primary) 8%, transparent), transparent 42%),
+    linear-gradient(180deg, color-mix(in srgb, var(--surface-1) 94%, transparent), color-mix(in srgb, var(--surface-2) 96%, transparent));
+}
+
+:root[data-theme='light'] .arch3d-stage {
+  background:
+    radial-gradient(circle at 50% 30%, rgba(67, 105, 239, 0.08), transparent 42%),
+    linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
+}
+
+.arch3d-canvas-host {
+  position: absolute;
+  inset: 0;
+  min-width: 0;
+  min-height: 0;
+}
+
+.arch3d-canvas-host canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  cursor: grab;
+}
+
+.arch3d-canvas-host canvas:active {
+  cursor: grabbing;
+}
+
+.arch3d-hud {
+  position: absolute;
+  left: var(--space-4);
+  top: var(--space-4);
+  z-index: 2;
+  max-width: min(560px, calc(100% - 32px));
+  display: grid;
+  gap: var(--space-2);
+  pointer-events: none;
+}
+
+.arch3d-hud > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.arch3d-hud p {
+  max-width: 520px;
+  margin: 0;
+  color: var(--foreground-secondary);
+  font: var(--text-body-sm);
+}
+
+.arch3d-orientation {
+  position: absolute;
+  right: var(--space-4);
+  top: var(--space-4);
+  z-index: 3;
+  display: grid;
+  gap: var(--space-2);
+  justify-items: center;
+  padding: var(--space-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--background-elevated) 86%, transparent);
+}
+
+.arch3d-orientation-canvas {
+  width: 128px;
+  height: 128px;
+  display: block;
+}
+
+.arch3d-view-actions {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.arch3d-view-actions .btn {
+  min-height: var(--button-height-sm);
+  padding: 0 var(--button-padding-x-sm);
+}
+
+.arch3d-readout {
+  position: absolute;
+  right: var(--space-4);
+  bottom: var(--space-4);
+  z-index: 2;
+  width: min(320px, calc(100% - 32px));
+  display: grid;
+  gap: 3px;
+  padding: var(--space-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--background-elevated) 88%, transparent);
+  color: var(--foreground-secondary);
+  font: var(--text-body-sm);
+  pointer-events: none;
+}
+
+.arch3d-readout strong {
+  color: var(--foreground);
+  font: var(--text-body-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.arch3d-readout span {
+  color: var(--foreground-secondary);
+  font: var(--text-label);
+  line-height: 1.45;
+}
+
+.arch3d-tip {
+  position: fixed;
+  z-index: var(--z-toast);
+  max-width: 320px;
+  padding: 9px 11px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-default);
+  background: color-mix(in srgb, var(--background-elevated) 96%, transparent);
+  color: var(--foreground);
+  box-shadow: var(--shadow-md);
+  pointer-events: none;
+  opacity: 0;
+  transform: translate3d(10px, 10px, 0);
+  transition: opacity var(--duration-fast) var(--easing-default);
+}
+
+.arch3d-tip.is-visible {
+  opacity: 1;
+}
+
+.arch3d-tip strong {
+  display: block;
+  margin-bottom: 3px;
+  font: var(--text-body-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.arch3d-tip span {
+  display: block;
+  color: var(--foreground-secondary);
+  font: var(--text-label);
+  line-height: 1.45;
+}
+
+@media (max-width: 860px) {
+  body.arch3d-page {
+    overflow: auto;
+  }
+
+  .arch3d-app {
+    min-height: 100dvh;
+    height: auto;
+    grid-template-rows: auto minmax(560px, 1fr);
+  }
+
+  .arch3d-header {
+    height: auto;
+    min-height: var(--comp-toolbar-height);
+    padding-block: var(--space-2);
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .arch3d-header .layout-header-left,
+  .arch3d-header .layout-header-right {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .arch3d-title-copy strong,
+  .arch3d-title-copy span {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+  }
+
+  .arch3d-actions {
+    overflow-x: auto;
+    max-width: 100%;
+  }
+
+  .arch3d-main {
+    min-height: 560px;
+  }
+}
+
+@media (max-width: 560px) {
+  .arch3d-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-2);
+  }
+
+  .arch3d-header .layout-header-left {
+    display: grid;
+    gap: var(--space-1);
+  }
+
+  .arch3d-brand {
+    border-right: 0;
+    padding-right: var(--space-2);
+  }
+
+  .arch3d-actions {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+
+  .arch3d-actions .segmented-control {
+    flex: 1 1 100%;
+    justify-content: flex-start;
+  }
+
+  .arch3d-hud {
+    left: var(--space-3);
+    top: var(--space-3);
+  }
+
+  .arch3d-hud p {
+    display: none;
+  }
+
+  .arch3d-readout {
+    left: var(--space-3);
+    right: auto;
+    bottom: var(--space-3);
+  }
+
+  .arch3d-orientation {
+    position: fixed;
+    left: var(--space-3);
+    right: auto;
+    top: 228px;
+    width: 120px;
+  }
+
+  .arch3d-orientation-canvas {
+    width: 96px;
+    height: 96px;
+  }
+
+  .arch3d-view-actions {
+    width: 100%;
+    justify-content: center;
+  }
+}

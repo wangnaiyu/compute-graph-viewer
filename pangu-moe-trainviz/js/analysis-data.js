@@ -21,9 +21,9 @@ function summarize(values) {
 }
 
 export function buildMoeRuntimeMetrics({
-  firstMoeLayer = 3,
-  lastMoeLayer = 60,
-  expertsPerLayer = 256,
+  firstMoeLayer = 4,
+  lastMoeLayer = 49,
+  expertsPerLayer = 80,
   capacityTokens = 192,
   step = 0,
   collapse = 0,   // 0=均衡；1=路由坍缩（少数专家吃光 token，其余空转）—— 由 load_balance_loss 驱动
@@ -172,6 +172,7 @@ export function buildRankLoadViewModel(timelineRuntime) {
       dp: rank.dp,
       stage: rank.stage,
       tp: rank.tp,
+      ep: rank.ep ?? 0,
       group: rank.group,
       computeUs,
       commUs,
@@ -207,7 +208,7 @@ export function buildCardLoadViewModel(rankViewModel, collapse = 0) {
     let util = rank.utilRatio;
     let comm = rank.commRatio;
     if (c > 0) {
-      const winner = rank.tp === 1;
+      const winner = (rank.ep ?? rank.tp) === 1;
       util += ((winner ? 0.97 : 0.12) - util) * c;
       comm += ((winner ? 0.60 : 0.44) - comm) * c;
     }
@@ -219,6 +220,7 @@ export function buildCardLoadViewModel(rankViewModel, collapse = 0) {
       dp: rank.dp,
       stage: rank.stage,
       tp: rank.tp,
+      ep: rank.ep ?? 0,
       utilRatio: util,
       commRatio: comm,
       bubbleRatio: rank.bubbleRatio,
@@ -226,18 +228,20 @@ export function buildCardLoadViewModel(rankViewModel, collapse = 0) {
       state: util < 0.30 ? 'alert' : (util > 0.95 || comm > 0.5) ? 'warn' : 'ok',
     };
   });
-  // 组排序：先 DP·PP 组，组内按 TP → 8 列网格自然铺成 4 行（行=并行组，列=TP）
-  cards.sort((a, b) => (a.dp - b.dp) || (a.stage - b.stage) || (a.tp - b.tp));
+  // 组排序：先 DP·PP 组，组内按 TP→EP；DP2×PP4×TP2×EP2 会自然铺成 8 组×4 卡。
+  cards.sort((a, b) => (a.dp - b.dp) || (a.stage - b.stage) || (a.tp - b.tp) || (a.ep - b.ep));
   const tpCount = Math.max(1, ...cards.map(card => card.tp + 1));
+  const epCount = Math.max(1, ...cards.map(card => card.ep + 1));
   const avgUtil = summarize(cards.map(card => card.utilRatio)).avg || 0;
   const starved = cards.filter(card => card.state === 'alert').length;
   const hot = cards.filter(card => card.state === 'warn').length;
   return {
     id: 'card-load',
     title: 'Card Load',
-    meta: `${cards.length} cards · ${tpCount}×${Math.ceil(cards.length / tpCount)} · 每 step 占用`,
+    meta: `${cards.length} cards · local ${tpCount}TP×${epCount}EP · 每 step 占用`,
     cards,
     tpCount,
+    epCount,
     stats: [
       { label: 'cards', value: `${cards.length}` },
       { label: 'avg util', value: `${Math.round(avgUtil * 100)}%` },
@@ -325,26 +329,29 @@ function simulate1F1BSchedule(stageCount, microbatches, forwardBaseUs, backwardB
 
 export function buildSimulated1F1BRuntime({
   dp = 2,
-  pp = 2,
-  tp = 8,
+  pp = 4,
+  tp = 2,
+  ep = 2,
   microbatches = 8,
   forwardBaseUs = 420,
   backwardBaseUs = 780,
   ppCommUs = 72,
   tpCommUs = 58,
   epCommUs = 96,
-  stageRanges = [[0, 30], [31, 60]],
+  dpCommUs = 64,
+  stageRanges = [[0, 12], [13, 25], [26, 37], [38, 49]],
 } = {}) {
   const { compF, compB, stageOps, totalUs } = simulate1F1BSchedule(pp, microbatches, forwardBaseUs, backwardBaseUs, ppCommUs);
   const ranks = [];
   for (let dpIndex = 0; dpIndex < dp; dpIndex++) {
     for (let stage = 0; stage < pp; stage++) {
       for (let tpIndex = 0; tpIndex < tp; tpIndex++) {
-        const rank = (dpIndex * pp + stage) * tp + tpIndex;
-        const jitter = offset => (((rank * 131 + offset * 977) % 100) / 100 - 0.5);
-        const rankKey = variant => `rank:r${rank}:v${variant % 7}`;
-        const range = stageRanges[stage] || stageRanges[stageRanges.length - 1] || [0, 0];
-        const tasks = [];
+        for (let epIndex = 0; epIndex < ep; epIndex++) {
+          const rank = (((dpIndex * pp + stage) * tp + tpIndex) * ep) + epIndex;
+          const jitter = offset => (((rank * 131 + offset * 977) % 100) / 100 - 0.5);
+          const rankKey = variant => `rank:r${rank}:v${variant % 7}`;
+          const range = stageRanges[stage] || stageRanges[stageRanges.length - 1] || [0, 0];
+          const tasks = [];
 
         const emit = (rec, type, microbatch) => {
           if (!rec) return;
@@ -374,7 +381,7 @@ export function buildSimulated1F1BRuntime({
             microbatch,
             status: 'overlap',
             label: 'AR',
-            opName: `TP All-Reduce · 8-card TP group · micro ${microbatch}`,
+            opName: `TP All-Reduce · ${tp}-rank TP group · micro ${microbatch}`,
           });
           tasks.push({
             startUs: start + dur * 0.26,
@@ -385,7 +392,7 @@ export function buildSimulated1F1BRuntime({
             microbatch,
             status: 'overlap',
             label: 'A2A',
-            opName: `EP All-to-All · token dispatch/combine · micro ${microbatch}`,
+            opName: `EP All-to-All · ${ep}-rank expert group · token dispatch/combine · micro ${microbatch}`,
           });
         };
 
@@ -405,10 +412,23 @@ export function buildSimulated1F1BRuntime({
             label: 'PP',
             opName: label,
           });
-          if (stage === 0 && compF[0][microbatch]) pushPp(compF[0][microbatch].end, `PP send activation → PP1 · micro ${microbatch}`);
-          if (stage === 1 && compF[1][microbatch]) pushPp(compF[1][microbatch].start - ppCommUs * 0.8, `PP recv activation ← PP0 · micro ${microbatch}`);
-          if (stage === 1 && compB[1][microbatch]) pushPp(compB[1][microbatch].end, `PP send gradient → PP0 · micro ${microbatch}`);
-          if (stage === 0 && compB[0][microbatch]) pushPp(compB[0][microbatch].start - ppCommUs * 0.8, `PP recv gradient ← PP1 · micro ${microbatch}`);
+          if (stage > 0 && compF[stage][microbatch]) pushPp(compF[stage][microbatch].start - ppCommUs * 0.8, `PP recv activation ← PP${stage - 1} · micro ${microbatch}`);
+          if (stage < pp - 1 && compF[stage][microbatch]) pushPp(compF[stage][microbatch].end, `PP send activation → PP${stage + 1} · micro ${microbatch}`);
+          if (stage < pp - 1 && compB[stage][microbatch]) pushPp(compB[stage][microbatch].start - ppCommUs * 0.8, `PP recv gradient ← PP${stage + 1} · micro ${microbatch}`);
+          if (stage > 0 && compB[stage][microbatch]) pushPp(compB[stage][microbatch].end, `PP send gradient → PP${stage - 1} · micro ${microbatch}`);
+          if (compB[stage][microbatch]) {
+            tasks.push({
+              startUs: compB[stage][microbatch].end - dpCommUs * 0.38,
+              durUs: dpCommUs * (0.78 + jitter(8) * 0.42),
+              kind: 'dp',
+              colorKey: 'sem:head',
+              rankColorKey: rankKey(2),
+              microbatch,
+              status: 'overlap',
+              label: 'DP',
+              opName: `DP gradient sync · D0/D1 replica group · PP${stage} TP${tpIndex} EP${epIndex} · micro ${microbatch}`,
+            });
+          }
         }
 
         const ops = stageOps[stage];
@@ -442,17 +462,19 @@ export function buildSimulated1F1BRuntime({
           });
         }
 
-        ranks.push({
-          rank,
-          dp: dpIndex,
-          stage,
-          tp: tpIndex,
-          label: `Rank ${rank}`,
-          group: `D${dpIndex}·PP${stage}·TP${tpIndex}`,
-          tasks,
-        });
+          ranks.push({
+            rank,
+            dp: dpIndex,
+            stage,
+            tp: tpIndex,
+            ep: epIndex,
+            label: `Rank ${rank}`,
+            group: `D${dpIndex}·PP${stage}·TP${tpIndex}·EP${epIndex}`,
+            tasks,
+          });
+        }
       }
     }
   }
-  return { config: { dp, pp, tp, microbatches }, timeRangeUs: [0, totalUs], ranks };
+  return { config: { dp, pp, tp, ep, microbatches }, timeRangeUs: [0, totalUs], ranks };
 }

@@ -1,0 +1,1056 @@
+:root {
+  --ts3d-tp: #0ea5e9;
+  --ts3d-dp: #8b5cf6;
+  --ts3d-pp: #16a34a;
+  --ts3d-ep: #f59e0b;
+  --ts3d-runtime: #ef4444;
+  --ts3d-fabric: color-mix(in srgb, var(--foreground) 30%, transparent);
+  --ts3d-plane-w: 900px;
+  --ts3d-plane-h: 570px;
+  --ts3d-yaw: -36deg;
+  --ts3d-pitch: 58deg;
+  --ts3d-zoom: 0.96;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+body.ts3d-page {
+  min-height: 100vh;
+  overflow: hidden;
+  background: var(--background);
+  color: var(--foreground);
+  font: var(--text-body);
+}
+
+.ts3d-page svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ts3d-app {
+  width: 100vw;
+  height: 100dvh;
+  display: grid;
+  grid-template-rows: var(--comp-toolbar-height) minmax(0, 1fr);
+  background:
+    radial-gradient(circle at 18% 8%, color-mix(in srgb, var(--primary) 8%, transparent), transparent 30%),
+    linear-gradient(180deg, color-mix(in srgb, var(--background) 94%, var(--surface-1)), var(--background));
+}
+
+:root[data-theme='light'] .ts3d-app {
+  background:
+    linear-gradient(180deg, #f8fafc 0%, var(--background) 42%, #eef2f7 100%);
+}
+
+.ts3d-header {
+  padding: 0 var(--space-4);
+  background: transparent;
+  border-bottom: 0;
+  z-index: var(--z-overlay);
+}
+
+.ts3d-brand {
+  border-right-color: color-mix(in srgb, var(--border-default) 72%, transparent);
+}
+
+.ts3d-title-copy {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.ts3d-title-copy strong {
+  color: var(--foreground);
+  font: var(--text-body-sm);
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+}
+
+.ts3d-title-copy span {
+  color: var(--foreground-secondary);
+  font: var(--text-label);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ts3d-actions {
+  gap: var(--space-2);
+}
+
+.ts3d-header .segmented-control .btn {
+  min-height: var(--button-height-sm);
+  min-width: 46px;
+}
+
+.ts3d-main {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 292px minmax(560px, 1fr) 342px;
+  gap: var(--space-3);
+  padding: 0 var(--space-3) var(--space-3);
+}
+
+body[data-inspector='closed'] .ts3d-main {
+  grid-template-columns: 292px minmax(560px, 1fr) 0;
+}
+
+body[data-inspector='closed'] .ts3d-inspector {
+  display: none;
+}
+
+.ts3d-model-rail,
+.ts3d-inspector {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ts3d-model-rail .panel-shell-header,
+.ts3d-inspector .panel-shell-header {
+  min-height: 58px;
+}
+
+.ts3d-model-body,
+.ts3d-inspector-body {
+  min-height: 0;
+  overflow: auto;
+  display: grid;
+  gap: var(--space-4);
+}
+
+.ts3d-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.ts3d-metric-grid div {
+  min-height: 66px;
+  padding: var(--space-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--surface-1) 72%, transparent);
+  display: grid;
+  align-content: center;
+  gap: 2px;
+}
+
+.ts3d-metric-grid strong {
+  color: var(--foreground);
+  font: var(--text-title-2);
+}
+
+.ts3d-metric-grid span {
+  color: var(--foreground-secondary);
+  font: var(--text-label);
+}
+
+.ts3d-section-kicker {
+  color: var(--foreground-muted);
+  font: var(--text-label);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.ts3d-block-section {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.ts3d-block-lattice {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 5px;
+  padding: var(--space-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--surface-1) 76%, transparent);
+}
+
+.ts3d-block-cell {
+  position: relative;
+  height: 18px;
+  border-radius: 4px;
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-2);
+  cursor: pointer;
+}
+
+.ts3d-block-cell.is-dense {
+  background: color-mix(in srgb, var(--ts3d-tp) 16%, var(--surface-1));
+  border-color: color-mix(in srgb, var(--ts3d-tp) 35%, var(--border-default));
+}
+
+.ts3d-block-cell.is-moe {
+  background: color-mix(in srgb, var(--ts3d-ep) 13%, var(--surface-1));
+  border-color: color-mix(in srgb, var(--ts3d-ep) 30%, var(--border-default));
+}
+
+.ts3d-block-cell.is-selected {
+  background: color-mix(in srgb, var(--primary) 24%, var(--surface-1));
+  border-color: color-mix(in srgb, var(--primary) 70%, var(--border-default));
+}
+
+.ts3d-block-cell.is-hot::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 6px;
+  border: 1px solid var(--ts3d-runtime);
+}
+
+.ts3d-block-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  color: var(--foreground-secondary);
+  font: var(--text-label);
+}
+
+.ts3d-block-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.ts3d-block-legend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  border: 1px solid var(--border-default);
+}
+
+.ts3d-block-legend .is-dense {
+  background: color-mix(in srgb, var(--ts3d-tp) 24%, var(--surface-1));
+}
+
+.ts3d-block-legend .is-moe {
+  background: color-mix(in srgb, var(--ts3d-ep) 22%, var(--surface-1));
+}
+
+.ts3d-block-legend .is-selected {
+  background: color-mix(in srgb, var(--primary) 32%, var(--surface-1));
+}
+
+.ts3d-map-card {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--surface-1) 76%, transparent);
+}
+
+.ts3d-map-card-soft {
+  background: color-mix(in srgb, var(--surface-2) 66%, transparent);
+}
+
+.ts3d-map-card h2 {
+  margin: 0;
+  color: var(--foreground);
+  font: var(--text-title-2);
+}
+
+.ts3d-map-card p {
+  margin: 0;
+  color: var(--foreground-secondary);
+  font: var(--text-body-sm);
+  line-height: 1.55;
+}
+
+.ts3d-map-card dl,
+.ts3d-inspector dl {
+  margin: 0;
+  display: grid;
+  gap: 7px;
+}
+
+.ts3d-map-card dl div,
+.ts3d-inspector dl div {
+  display: grid;
+  grid-template-columns: minmax(72px, max-content) minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: baseline;
+}
+
+.ts3d-map-card dt,
+.ts3d-inspector dt {
+  color: var(--foreground-muted);
+  font: var(--text-label);
+}
+
+.ts3d-map-card dd,
+.ts3d-inspector dd {
+  margin: 0;
+  color: var(--foreground);
+  font: var(--text-body-sm);
+  font-weight: var(--font-weight-semibold);
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.ts3d-stage {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: 58px minmax(380px, 1fr) 224px;
+  gap: var(--space-3);
+}
+
+.ts3d-stage-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  min-width: 0;
+  padding: 0 var(--space-3);
+}
+
+.ts3d-stage-title {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.ts3d-stage-title strong {
+  color: var(--foreground);
+  font: var(--text-title-2);
+}
+
+.ts3d-stage-title span {
+  color: var(--foreground-secondary);
+  font: var(--text-body-sm);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ts3d-stage-controls {
+  flex: 0 0 auto;
+}
+
+.ts3d-stage-controls .btn {
+  min-height: var(--button-height-sm);
+  min-width: 54px;
+}
+
+.ts3d-world-shell {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--foreground) 5%, transparent) 1px, transparent 1px),
+    linear-gradient(0deg, color-mix(in srgb, var(--foreground) 5%, transparent) 1px, transparent 1px),
+    linear-gradient(180deg, color-mix(in srgb, var(--surface-1) 78%, transparent), color-mix(in srgb, var(--surface-2) 70%, transparent));
+  background-size: 30px 30px, 30px 30px, auto;
+  isolation: isolate;
+}
+
+.ts3d-world-hud {
+  position: absolute;
+  left: var(--space-4);
+  top: var(--space-4);
+  z-index: 8;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  max-width: min(760px, calc(100% - 32px));
+  pointer-events: none;
+}
+
+.ts3d-world-camera {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  perspective: 1300px;
+  overflow: hidden;
+  cursor: grab;
+  user-select: none;
+}
+
+.ts3d-world-camera.is-dragging {
+  cursor: grabbing;
+}
+
+.ts3d-world-plane {
+  position: relative;
+  width: var(--ts3d-plane-w);
+  height: var(--ts3d-plane-h);
+  transform-style: preserve-3d;
+  transform: rotateX(var(--ts3d-pitch)) rotateZ(var(--ts3d-yaw)) scale(var(--ts3d-zoom));
+  transition: transform 120ms var(--easing-default);
+}
+
+.ts3d-world-camera.is-dragging .ts3d-world-plane {
+  transition: none;
+}
+
+.ts3d-world-plane::before {
+  content: "";
+  position: absolute;
+  inset: 24px 18px 34px;
+  border: 1px dashed color-mix(in srgb, var(--foreground) 18%, transparent);
+  border-radius: 18px;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--foreground) 8%, transparent) 1px, transparent 1px),
+    linear-gradient(0deg, color-mix(in srgb, var(--foreground) 8%, transparent) 1px, transparent 1px),
+    color-mix(in srgb, var(--surface-1) 28%, transparent);
+  background-size: 40px 40px;
+  pointer-events: none;
+}
+
+.ts3d-world-links {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: auto;
+  z-index: 2;
+}
+
+.ts3d-world-links .ts3d-link-hit {
+  pointer-events: stroke;
+  stroke: transparent;
+  stroke-width: 16;
+  fill: none;
+}
+
+.ts3d-world-links .ts3d-link {
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.34;
+  pointer-events: stroke;
+}
+
+.ts3d-world-links .ts3d-link.is-node {
+  stroke-width: 4;
+  opacity: 0.42;
+}
+
+.ts3d-world-links .ts3d-link.is-active,
+.ts3d-world-links .ts3d-link.is-hovered {
+  opacity: 0.98;
+  stroke-width: 5;
+}
+
+.ts3d-world-links .ts3d-link.is-runtime {
+  opacity: 0.78;
+  stroke-width: 4;
+  stroke-dasharray: 10 8;
+  animation: ts3d-flow 1.15s linear infinite;
+}
+
+.ts3d-world-links .ts3d-link.is-fabric {
+  stroke-dasharray: 7 8;
+}
+
+.ts3d-link-tp { stroke: var(--ts3d-tp); }
+.ts3d-link-dp { stroke: var(--ts3d-dp); }
+.ts3d-link-pp { stroke: var(--ts3d-pp); }
+.ts3d-link-ep { stroke: var(--ts3d-ep); }
+.ts3d-link-runtime { stroke: var(--ts3d-runtime); }
+.ts3d-link-fabric { stroke: var(--ts3d-fabric); }
+
+body[data-overlay-tp='off'] .ts3d-link-tp,
+body[data-overlay-dp='off'] .ts3d-link-dp,
+body[data-overlay-pp='off'] .ts3d-link-pp,
+body[data-overlay-ep='off'] .ts3d-link-ep,
+body[data-overlay-runtime='off'] .ts3d-link-runtime {
+  display: none;
+}
+
+@keyframes ts3d-flow {
+  to { stroke-dashoffset: -36; }
+}
+
+.ts3d-node-layer,
+.ts3d-rank-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+}
+
+.ts3d-rank-layer {
+  z-index: 5;
+}
+
+.ts3d-node {
+  position: absolute;
+  width: 300px;
+  height: 190px;
+  border: 1px solid color-mix(in srgb, var(--foreground) 18%, transparent);
+  border-radius: 16px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--surface-1) 86%, transparent), color-mix(in srgb, var(--surface-2) 74%, transparent));
+  transform-style: preserve-3d;
+  pointer-events: auto;
+}
+
+.ts3d-node::before,
+.ts3d-node::after {
+  content: "";
+  position: absolute;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.ts3d-node::before {
+  inset: 8px;
+  border: 1px dashed color-mix(in srgb, var(--foreground) 11%, transparent);
+}
+
+.ts3d-node.is-selected {
+  border-color: color-mix(in srgb, var(--primary) 65%, var(--border-default));
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--primary) 13%, var(--surface-1)), color-mix(in srgb, var(--surface-2) 74%, transparent));
+}
+
+.ts3d-node-label {
+  position: absolute;
+  left: 15px;
+  top: 12px;
+  display: grid;
+  gap: 2px;
+  color: var(--foreground);
+  pointer-events: none;
+}
+
+.ts3d-node-label strong {
+  font: var(--text-label);
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+.ts3d-node-label span {
+  color: var(--foreground-secondary);
+  font: var(--text-label);
+}
+
+.ts3d-rank {
+  position: absolute;
+  width: 78px;
+  height: 43px;
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: 15px 1fr;
+  gap: 2px;
+  padding: 5px 7px;
+  border: 1px solid color-mix(in srgb, var(--foreground) 22%, transparent);
+  border-radius: 8px;
+  background: linear-gradient(180deg, #ffffff 0%, #edf2f7 100%);
+  color: #1f2937;
+  transform-style: preserve-3d;
+  cursor: pointer;
+  z-index: 1;
+}
+
+:root[data-theme='dark'] .ts3d-rank {
+  background: linear-gradient(180deg, #f5f8fb 0%, #dce7f2 100%);
+  color: #111827;
+}
+
+.ts3d-rank::before,
+.ts3d-rank::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+
+.ts3d-rank::before {
+  right: -7px;
+  top: 5px;
+  width: 7px;
+  height: 38px;
+  border-radius: 0 7px 7px 0;
+  background: #cbd5e1;
+  transform: skewY(35deg);
+  transform-origin: left top;
+}
+
+.ts3d-rank::after {
+  left: 6px;
+  right: -3px;
+  bottom: -6px;
+  height: 7px;
+  border-radius: 0 0 8px 8px;
+  background: #d8e0ea;
+  transform: skewX(48deg);
+  transform-origin: left top;
+}
+
+.ts3d-rank:hover,
+.ts3d-rank.is-selected {
+  border-color: color-mix(in srgb, var(--primary) 76%, var(--border-default));
+  background: linear-gradient(180deg, #eef6ff 0%, #cfdef4 100%);
+}
+
+.ts3d-rank.is-related {
+  border-color: color-mix(in srgb, var(--ts3d-pp) 56%, var(--border-default));
+}
+
+.ts3d-rank.is-hot {
+  border-color: var(--ts3d-runtime);
+  background: linear-gradient(180deg, #fff7ed 0%, #fed7aa 100%);
+}
+
+.ts3d-rank-logo {
+  width: 42px;
+  height: 13px;
+  object-fit: contain;
+  opacity: 0.86;
+}
+
+.ts3d-rank-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 0;
+  font: 700 10px / 1 var(--font-mono);
+}
+
+.ts3d-rank-main span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ts3d-ep-badge {
+  min-width: 26px;
+  height: 15px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ts3d-ep) 18%, white);
+  color: #92400e;
+  font: 700 9px / 1 var(--font-mono);
+}
+
+.ts3d-axis {
+  position: absolute;
+  z-index: 6;
+  color: var(--foreground-secondary);
+  font: 700 13px / 1 var(--font-mono);
+  pointer-events: auto;
+}
+
+.ts3d-axis::before {
+  content: "";
+  position: absolute;
+  background: currentColor;
+  opacity: 0.72;
+}
+
+.ts3d-axis::after {
+  content: "";
+  position: absolute;
+  border: 7px solid transparent;
+}
+
+.ts3d-axis-x {
+  left: 622px;
+  top: 52px;
+  color: var(--ts3d-pp);
+}
+
+.ts3d-axis-x::before {
+  width: 136px;
+  height: 2px;
+  left: -150px;
+  top: 8px;
+}
+
+.ts3d-axis-x::after {
+  border-left-color: currentColor;
+  left: -16px;
+  top: 2px;
+}
+
+.ts3d-axis-y {
+  left: 54px;
+  top: 428px;
+  color: var(--ts3d-dp);
+  transform: rotate(90deg);
+  transform-origin: left center;
+}
+
+.ts3d-axis-y::before {
+  width: 124px;
+  height: 2px;
+  left: -138px;
+  top: 8px;
+}
+
+.ts3d-axis-y::after {
+  border-left-color: currentColor;
+  left: -11px;
+  top: 2px;
+}
+
+.ts3d-z-stack {
+  position: absolute;
+  right: 42px;
+  top: 78px;
+  width: 34px;
+  height: 416px;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 2px;
+  z-index: 7;
+  pointer-events: auto;
+}
+
+.ts3d-z-segment {
+  flex: 1 1 0;
+  min-height: 3px;
+  border: 1px solid color-mix(in srgb, var(--foreground) 16%, transparent);
+  background: color-mix(in srgb, var(--ts3d-ep) 16%, var(--surface-1));
+}
+
+.ts3d-z-segment.is-dense {
+  background: color-mix(in srgb, var(--ts3d-tp) 20%, var(--surface-1));
+}
+
+.ts3d-z-segment.is-selected {
+  border-color: color-mix(in srgb, var(--primary) 70%, var(--border-default));
+  background: color-mix(in srgb, var(--primary) 30%, var(--surface-1));
+}
+
+.ts3d-z-segment.is-hot {
+  border-color: var(--ts3d-runtime);
+}
+
+.ts3d-projections {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.ts3d-projection-card {
+  min-height: 0;
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: 44px minmax(0, 1fr);
+}
+
+.ts3d-projection-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 0 var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.ts3d-projection-head strong {
+  color: var(--foreground);
+  font: var(--text-body-sm);
+  font-weight: 800;
+}
+
+.ts3d-projection-head span {
+  color: var(--foreground-secondary);
+  font: var(--text-label);
+}
+
+.ts3d-projection-card svg {
+  width: 100%;
+  height: 100%;
+  min-height: 166px;
+  display: block;
+}
+
+.ts3d-proj-axis {
+  stroke: color-mix(in srgb, var(--foreground) 42%, transparent);
+  stroke-width: 1.2;
+}
+
+.ts3d-proj-grid {
+  stroke: color-mix(in srgb, var(--foreground) 10%, transparent);
+  stroke-width: 1;
+}
+
+.ts3d-proj-cell {
+  fill: color-mix(in srgb, var(--surface-2) 76%, transparent);
+  stroke: color-mix(in srgb, var(--foreground) 16%, transparent);
+  stroke-width: 1;
+}
+
+.ts3d-proj-cell.is-selected {
+  fill: color-mix(in srgb, var(--primary) 20%, var(--surface-1));
+  stroke: color-mix(in srgb, var(--primary) 70%, var(--border-default));
+}
+
+.ts3d-proj-cell.is-hot {
+  fill: color-mix(in srgb, var(--ts3d-runtime) 22%, var(--surface-1));
+  stroke: var(--ts3d-runtime);
+}
+
+.ts3d-proj-label {
+  fill: var(--foreground-secondary);
+  font: 9px var(--font-mono);
+}
+
+.ts3d-inspector-body {
+  gap: var(--space-4);
+}
+
+.ts3d-inspector-section {
+  display: grid;
+  gap: var(--space-3);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.ts3d-inspector-section:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.ts3d-inspector-section h2 {
+  margin: 0;
+  color: var(--foreground);
+  font: var(--text-title-2);
+}
+
+.ts3d-badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.ts3d-badge {
+  min-height: var(--tag-height);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--comp-tag-border);
+  border-radius: var(--tag-radius);
+  background: var(--comp-tag-bg);
+  color: var(--comp-tag-fg);
+  font: var(--text-label);
+}
+
+.ts3d-badge::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--badge-color, var(--foreground-muted));
+}
+
+.ts3d-badge.tp { --badge-color: var(--ts3d-tp); }
+.ts3d-badge.dp { --badge-color: var(--ts3d-dp); }
+.ts3d-badge.pp { --badge-color: var(--ts3d-pp); }
+.ts3d-badge.ep { --badge-color: var(--ts3d-ep); }
+.ts3d-badge.runtime { --badge-color: var(--ts3d-runtime); }
+
+.ts3d-runtime-card {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in srgb, var(--ts3d-runtime) 30%, var(--border-default));
+  background: color-mix(in srgb, var(--ts3d-runtime) 8%, var(--surface-1));
+}
+
+.ts3d-runtime-card strong {
+  color: var(--foreground);
+  font: var(--text-body-sm);
+  font-weight: 800;
+}
+
+.ts3d-runtime-card span {
+  color: var(--foreground-secondary);
+  font: var(--text-body-sm);
+  line-height: 1.5;
+}
+
+.ts3d-popover {
+  position: fixed;
+  z-index: var(--z-modal);
+  top: calc(var(--comp-toolbar-height) + 10px);
+  right: 16px;
+  width: min(420px, calc(100vw - 32px));
+  background: var(--panel-shell-bg);
+}
+
+.ts3d-settings-panel {
+  width: min(360px, calc(100vw - 32px));
+}
+
+.ts3d-popover-body {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.ts3d-popover-body p {
+  margin: 0;
+  color: var(--foreground-secondary);
+  font: var(--text-body-sm);
+  line-height: 1.55;
+}
+
+.ts3d-source-list {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.ts3d-source-list span {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--surface-2) 70%, transparent);
+  color: var(--foreground-secondary);
+  font: var(--text-body-sm);
+}
+
+.ts3d-slider {
+  display: grid;
+  gap: 6px;
+  color: var(--foreground-secondary);
+  font: var(--text-body-sm);
+}
+
+.ts3d-slider input {
+  width: 100%;
+  accent-color: var(--primary);
+}
+
+.ts3d-tip {
+  position: fixed;
+  z-index: var(--z-toast);
+  display: none;
+  max-width: 310px;
+  padding: 9px 11px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--background-elevated) 96%, transparent);
+  color: var(--foreground);
+  pointer-events: none;
+}
+
+.ts3d-tip.is-visible {
+  display: grid;
+  gap: 4px;
+}
+
+.ts3d-tip strong {
+  color: var(--foreground);
+  font: var(--text-body-sm);
+  font-weight: 800;
+}
+
+.ts3d-tip span {
+  color: var(--foreground-secondary);
+  font: var(--text-label);
+  line-height: 1.5;
+}
+
+#playbackMount .pto-floating-playback {
+  bottom: 20px;
+}
+
+#playbackMount .pto-floating-playback__shell.is-expanded {
+  width: min(1040px, calc(100vw - 32px));
+}
+
+body[data-focus-view='front'] .ts3d-projection-card[data-projection='front'],
+body[data-focus-view='right'] .ts3d-projection-card[data-projection='right'] {
+  border-color: color-mix(in srgb, var(--primary) 60%, var(--border-default));
+}
+
+@media (max-width: 1180px) {
+  .ts3d-main,
+  body[data-inspector='closed'] .ts3d-main {
+    grid-template-columns: minmax(0, 1fr);
+    overflow: auto;
+  }
+
+  body.ts3d-page {
+    overflow: auto;
+  }
+
+  .ts3d-app {
+    height: auto;
+    min-height: 100dvh;
+  }
+
+  .ts3d-model-rail,
+  .ts3d-inspector {
+    min-height: 360px;
+  }
+
+  .ts3d-stage {
+    min-height: 860px;
+  }
+
+  body[data-inspector='closed'] .ts3d-inspector {
+    display: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .ts3d-header {
+    min-height: auto;
+    padding: 8px 10px;
+    flex-wrap: wrap;
+  }
+
+  .layout-header-left,
+  .layout-header-right {
+    width: 100%;
+  }
+
+  .ts3d-actions {
+    justify-content: flex-start;
+    overflow-x: auto;
+  }
+
+  .ts3d-main {
+    padding-inline: 10px;
+  }
+
+  .ts3d-stage {
+    grid-template-rows: auto 520px auto;
+  }
+
+  .ts3d-stage-bar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .ts3d-stage-controls {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  .ts3d-projections {
+    grid-template-columns: 1fr;
+  }
+}

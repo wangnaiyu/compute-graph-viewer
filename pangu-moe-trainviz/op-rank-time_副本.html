@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>openPangu-718B · 算子 × 硬件 × 时间(真实架构 + 流水线满载)</title>
+<style>
+  :root{
+    --bg:#0e1116; --panel:rgba(16,20,28,.84); --line:rgba(255,255,255,.08);
+    --txt:#e7ecf5; --dim:#8b95a8; --accent:#a78bfa;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);
+    font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+  #app{position:fixed;inset:0}
+  canvas{display:block}
+  .hud{position:fixed;z-index:10;backdrop-filter:blur(10px);
+    background:var(--panel);border:1px solid var(--line);border-radius:14px}
+  #title{top:16px;left:16px;padding:13px 15px;max-width:320px}
+  #title h1{font-size:12px;letter-spacing:.05em;font-weight:600;line-height:1.4}
+  #title h1 b{color:var(--accent)}
+  #title p{margin-top:6px;font-size:10.5px;line-height:1.6;color:var(--dim)}
+  #title .cfg{margin-top:8px;font-size:10px;color:var(--txt)}
+  #title .cfg em{font-style:normal;color:var(--accent)}
+  #focus{top:16px;right:16px;width:300px;padding:14px 16px}
+  #focus .k{font-size:10px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase}
+  #focus .who{margin-top:4px;font-size:13px;font-weight:600;color:#38bdf8}
+  #focus .meta{margin-top:6px;font-size:10.5px;color:var(--dim);line-height:1.7}
+  #focus .meta b{color:var(--txt)}
+  #focus .opname{margin-top:10px;font-size:14px;font-weight:600;line-height:1.35}
+  #focus .opdesc{margin-top:7px;font-size:10.5px;line-height:1.6;color:var(--dim)}
+  #focus .opdesc b{color:var(--txt)}
+  #focus .maptag{display:inline-block;margin-top:10px;font-size:10px;padding:4px 9px;
+    border-radius:999px;border:1px solid var(--line)}
+  #gantt{left:50%;transform:translateX(-50%);bottom:78px;padding:9px 12px}
+  #gantt .gh{font-size:9.5px;color:var(--dim);letter-spacing:.08em;margin-bottom:6px;text-transform:uppercase}
+  #gantt table{border-collapse:collapse}
+  #gantt td{width:30px;height:18px;text-align:center;font-size:9px;border:1px solid rgba(255,255,255,.05);color:var(--dim)}
+  #gantt td.lab{width:54px;color:var(--txt);border:none;text-align:left;padding-right:8px}
+  #gantt td.fwd{color:#0e1116;font-weight:600}
+  #gantt td.cur{outline:2px solid #fff;outline-offset:-2px}
+  #gantt td.bub{color:#3a4150}
+  #legend{left:16px;bottom:16px;padding:11px 13px;font-size:10px;display:flex;gap:18px}
+  #legend .col .h{color:var(--txt);font-size:9.5px;letter-spacing:.06em;margin-bottom:5px}
+  #legend .row{display:flex;align-items:center;gap:7px;margin:3.5px 0;color:var(--dim)}
+  #legend .dot{width:9px;height:9px;border-radius:2px;flex:none}
+  #legend .ln{width:15px;height:0;border-top:2px solid;flex:none}
+  #transport{left:50%;transform:translateX(-50%);bottom:16px;padding:10px 15px;
+    display:flex;align-items:center;gap:13px}
+  #transport button{cursor:pointer;border:1px solid var(--line);background:rgba(255,255,255,.04);
+    color:var(--txt);border-radius:9px;padding:7px 11px;font:inherit;font-size:12px;transition:.15s}
+  #transport button:hover{background:rgba(167,139,250,.16);border-color:rgba(167,139,250,.4)}
+  #playBtn{min-width:80px}
+  #transport input[type=range]{accent-color:var(--accent);width:110px}
+  #tip{position:fixed;z-index:20;pointer-events:none;display:none;
+    background:rgba(10,13,20,.95);border:1px solid var(--line);border-radius:9px;
+    padding:8px 10px;font-size:11px;line-height:1.5;max-width:250px}
+  #tip .t-id{color:#38bdf8;font-weight:600}
+  #tip .t-task{color:var(--txt);margin-top:3px}
+  #tip .t-idle{color:var(--dim)}
+  .hint{position:fixed;bottom:120px;left:50%;transform:translateX(-50%);
+    font-size:10px;color:var(--dim);z-index:9}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<div id="title" class="hud">
+  <h1>openPangu-Ultra-MoE-718B · <b>算子 × 硬件 × 时间</b></h1>
+  <p>上方是<b style="color:#e7ecf5">真实完整架构图</b>(全展开,来自源数据,未改);下方 32 卡(UB-fabric)。靠 <b style="color:#e7ecf5">1F1B 流水</b>让每张卡都在忙——点哪个 node 就跟随它看算子。</p>
+  <div class="cfg">代表配置 <em>DP2 × PP2 × TP8 = 32 卡</em>(真实 DP32/PP16/TP8/EP32·4096 卡的缩放示意)</div>
+</div>
+
+<div id="focus" class="hud">
+  <div class="k">聚焦 / focused rank</div>
+  <div class="who" id="fWho">D0·P0</div>
+  <div class="meta" id="fMeta">—</div>
+  <div class="opname" id="fOp">—</div>
+  <div class="opdesc" id="fDesc">—</div>
+  <span class="maptag" id="fTag">—</span>
+</div>
+
+<div id="gantt" class="hud">
+  <div class="gh">1F1B 流水(前向)· 每列=宏观步 · 格内=micro-batch</div>
+  <table id="gtab"></table>
+</div>
+
+<div id="legend" class="hud">
+  <div class="col">
+    <div class="h">算子语义色</div>
+    <div class="row"><span class="dot" style="background:#7a5cc4"></span>Embedding</div>
+    <div class="row"><span class="dot" style="background:#4f8fc0"></span>MLA 注意力</div>
+    <div class="row"><span class="dot" style="background:#c45c93"></span>Router 门控</div>
+    <div class="row"><span class="dot" style="background:#9a5cc4"></span>Expert FFN</div>
+    <div class="row"><span class="dot" style="background:#3ba88a"></span>All-to-All(算子)</div>
+    <div class="row"><span class="dot" style="background:#5c7ac4"></span>Norm/残差</div>
+  </div>
+  <div class="col">
+    <div class="h">通信连线色</div>
+    <div class="row"><span class="ln" style="border-color:#38bdf8"></span>All-Reduce (TP)</div>
+    <div class="row"><span class="ln" style="border-color:#fbbf24"></span>All-to-All (EP)</div>
+    <div class="row"><span class="ln" style="border-color:#4ade80"></span>send/recv (PP)</div>
+  </div>
+</div>
+
+<div id="transport" class="hud">
+  <button id="prevBtn">◀</button>
+  <button id="playBtn">▶ 播放</button>
+  <button id="nextBtn">▶</button>
+  <label style="font-size:10px;color:var(--dim)">速度<input id="speed" type="range" min="500" max="2400" value="1300" step="100"></label>
+</div>
+<div class="hint">拖拽旋转 · 滚轮缩放 · 点卡片/node 聚焦 · 悬停看它在算什么</div>
+
+<div id="tip"><div class="t-id"></div><div class="t-body"></div></div>
+
+<!-- 真实架构数据(经典脚本,只读) -->
+<script src="data/graph-ultramoe-718b.js"></script>
+
+<script type="importmap">
+{ "imports": { "three": "../hpc-topology-viewer-main/node_modules/three/build/three.module.min.js" } }
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+
+/* ===== 真实图(全展开,只读) ===== */
+const G = window.buildUltraMoE718BGraph({moeExpanded:true, expertExpanded:true});
+const byId = new Map(G.nodes.map(n=>[n.id,n]));
+const EXPERT_IDS = G.nodes.filter(n=>/^expert_group_/.test(n.id)).map(n=>n.id);
+
+/* ===== 配色(沿用原架构页 SEM_HUE + hslHex) ===== */
+const SEM_HUE={'sem:embedding':262,'module:decoder':222,'sem:attention':205,'sem:norm':182,
+  'sem:gate':330,'sem:comm':158,'sem:moe':280,'sem:mlp':118,'sem:residual':242,'sem:head':20,
+  'module:moe':288,'module:model':215,'module:mlp':118};
+function hslHex(h,s=0.45,l=0.46){
+  const a=s*Math.min(l,1-l);
+  const f=n=>{const k=(n+h/30)%12;const c=l-a*Math.max(-1,Math.min(k-3,9-k,1));
+    return Math.round(255*c).toString(16).padStart(2,'0');};
+  return parseInt(f(0)+f(8)+f(4),16);
+}
+const GRAY=0x6b7280;
+function colorForNode(n){
+  if(n.colorKey&&SEM_HUE[n.colorKey]!=null) return hslHex(SEM_HUE[n.colorKey]);
+  return GRAY;
+}
+const LINE={tp:0x38bdf8, ep:0xfbbf24, pp:0x4ade80};
+const TH={board:0x2c313a, pkg:0x383e48, outline:0x525a66, tray:0x3c4654, grid:0x222730};
+
+/* ===== 算子步进定义(映射表 §4) ===== */
+const STEP_META={
+  embedding:{label:'Parallel Embedding', sem:'sem:embedding', comm:'tp', nodes:['embedding','embedding_weight']},
+  dense:{label:'Dense 解码层 ×3', sem:'module:decoder', comm:'tp', nodes:['dense_block']},
+  mla:{label:'MLA 注意力', sem:'sem:attention', comm:'tp', nodes:['mla']},
+  moe_prenorm:{label:'Pre-RMSNorm', sem:'sem:norm', comm:null, nodes:['moe_prenorm']},
+  gate:{label:'Router · Top-8', sem:'sem:gate', comm:null, nodes:['gate','w_gate']},
+  a2a_dispatch:{label:'All-to-All 分发', sem:'sem:comm', comm:'ep', nodes:['a2a_dispatch']},
+  experts:{label:'路由专家 FFN ×256 + 共享专家', sem:'sem:moe', comm:null, nodes:EXPERT_IDS.concat(['shared_expert','w_expert'])},
+  a2a_combine:{label:'All-to-All 汇聚', sem:'sem:comm', comm:'ep', nodes:['a2a_combine']},
+  moe_residual:{label:'残差 + RMSNorm', sem:'sem:residual', comm:null, nodes:['moe_residual']},
+  final_norm:{label:'Final RMSNorm', sem:'sem:norm', comm:null, nodes:['final_norm']},
+  lm_head:{label:'LM Head', sem:'sem:head', comm:'tp', nodes:['lm_head','lm_head_weight']},
+};
+const descOf=step=>{const id=STEP_META[step].nodes[0];return byId.get(id)?.desc||'';};
+const semColor=step=>hslHex(SEM_HUE[STEP_META[step].sem]);
+const LAYER_STEPS=['mla','moe_prenorm','gate','a2a_dispatch','experts','a2a_combine','moe_residual'];
+
+/* ===== 场景 ===== */
+const app=document.getElementById('app');
+const scene=new THREE.Scene(); scene.background=new THREE.Color(0x0e1116);
+scene.fog=new THREE.FogExp2(0x0e1116,0.008);
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2)); renderer.setSize(innerWidth,innerHeight);
+app.appendChild(renderer.domElement);
+const camera=new THREE.PerspectiveCamera(42,innerWidth/innerHeight,0.1,400);
+const target=new THREE.Vector3(0,5,-1.5);
+const cam={r:30,theta:-0.5,phi:1.02};
+function updateCam(){
+  camera.position.set(
+    target.x+cam.r*Math.sin(cam.phi)*Math.sin(cam.theta),
+    target.y+cam.r*Math.cos(cam.phi),
+    target.z+cam.r*Math.sin(cam.phi)*Math.cos(cam.theta));
+  camera.lookAt(target);
+}
+updateCam();
+scene.add(new THREE.HemisphereLight(0xffffff,0x10131a,1.45));
+const key=new THREE.DirectionalLight(0xffffff,0.85); key.position.set(8,20,12); scene.add(key);
+const fill=new THREE.DirectionalLight(0xffffff,0.3); fill.position.set(-8,8,-10); scene.add(fill);
+
+/* ===== 文字贴图 ===== */
+function makeTextPlane(text,w,h,colorHex,bg){
+  const cv=document.createElement('canvas'); cv.width=512; cv.height=Math.max(64,Math.round(512*h/w));
+  const g=cv.getContext('2d');
+  if(bg){g.fillStyle=bg;g.fillRect(0,0,cv.width,cv.height);}
+  g.fillStyle='#'+colorHex.toString(16).padStart(6,'0');
+  let fs=Math.min(64, cv.height*0.5);
+  g.font=`600 ${fs}px "JetBrains Mono",monospace`; g.textAlign='center'; g.textBaseline='middle';
+  // 自动缩字号适配宽度
+  while(g.measureText(text).width>cv.width*0.92 && fs>14){fs-=2;g.font=`600 ${fs}px "JetBrains Mono",monospace`;}
+  g.fillText(text,cv.width/2,cv.height/2);
+  const tex=new THREE.CanvasTexture(cv); tex.anisotropy=4;
+  const mat=new THREE.MeshBasicMaterial({map:tex,transparent:true,depthTest:false});
+  const pl=new THREE.Mesh(new THREE.PlaneGeometry(w,h),mat); pl.renderOrder=6; return pl;
+}
+function makeSprite(text,colorHex,scale){
+  const cv=document.createElement('canvas'); cv.width=384;cv.height=72;
+  const g=cv.getContext('2d'); g.font='600 30px "JetBrains Mono",monospace';g.textBaseline='middle';
+  g.fillStyle='#'+colorHex.toString(16).padStart(6,'0'); g.fillText(text,6,40);
+  const tex=new THREE.CanvasTexture(cv);tex.anisotropy=4;
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false}));
+  sp.scale.set(scale,scale*72/384,1);sp.renderOrder=7;return sp;
+}
+
+const SHORT={embedding:'Embedding',dense:'Dense ×3',mla:'MLA 注意力',moe_prenorm:'Pre-RMSNorm',
+  gate:'Router Top-8',a2a_dispatch:'All-to-All 分发',experts:'专家 FFN ×256',a2a_combine:'All-to-All 汇聚',
+  moe_residual:'残差 + Norm',final_norm:'Final Norm',lm_head:'LM Head'};
+function makeStatusLabel(l1,l2,colorHex){
+  const cv=document.createElement('canvas'); cv.width=440; cv.height=120;
+  const g=cv.getContext('2d'); g.textAlign='center';
+  g.font='600 28px "JetBrains Mono",monospace'; g.fillStyle='#aab2bd'; g.fillText(l1,220,36);
+  g.font='600 36px "JetBrains Mono",monospace'; g.fillStyle='#'+colorHex.toString(16).padStart(6,'0'); g.fillText(l2,220,86);
+  const tex=new THREE.CanvasTexture(cv); tex.anisotropy=4;
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false}));
+  sp.scale.set(3.6,3.6*120/440,1); sp.renderOrder=8; return sp;
+}
+
+/* ===== 上方:真实架构面板(直立 2D 忠实渲染) ===== */
+const PS=0.0072, PANEL_Z=-7.5, PANEL_CY=8.4;
+const panelPos=(cx,cy)=>new THREE.Vector3((cx-G.width/2)*PS, PANEL_CY+(G.height/2-cy)*PS, PANEL_Z);
+const panelMesh=new Map();   // id -> {mesh, label, base}
+// clusters(虚线框)
+G.clusters.forEach(c=>{
+  const x0=c.x, y0=c.y;                  // cluster 用左上角
+  const p=panelPos(x0+c.width/2, y0+c.height/2);
+  const w=c.width*PS, h=c.height*PS;
+  const col=colorForNode(c);
+  const geo=new THREE.EdgesGeometry(new THREE.BoxGeometry(w,h,0.02));
+  const box=new THREE.LineSegments(geo,new THREE.LineDashedMaterial({color:col,dashSize:0.1,gapSize:0.07,transparent:true,opacity:0.4}));
+  box.computeLineDistances(); box.position.copy(p); scene.add(box);
+  const lab=makeSprite(c.label, col, Math.min(5,w*0.9)); lab.position.set(p.x, p.y+h/2-0.12, PANEL_Z+0.05); scene.add(lab);
+});
+// nodes
+G.nodes.forEach(n=>{
+  const p=panelPos(n.x,n.y);             // node 用中心
+  const w=n.width*PS, h=n.height*PS;
+  const col=colorForNode(n);
+  const isParam=n.kind!=='op';
+  const mat=new THREE.MeshStandardMaterial({color:col,emissive:col,
+    emissiveIntensity:isParam?0.04:0.12,transparent:true,opacity:isParam?0.16:0.34,metalness:0.2,roughness:0.5});
+  const box=new THREE.Mesh(new THREE.BoxGeometry(w,h,0.12),mat);
+  box.position.copy(p); box.userData={panel:true,id:n.id,desc:n.desc||'',label:n.label};
+  scene.add(box);
+  const lab=makeTextPlane(n.label,w*0.96,h*0.8,0xffffff); lab.position.set(p.x,p.y,PANEL_Z+0.08); scene.add(lab);
+  panelMesh.set(n.id,{mesh:box,base:{op:isParam?0.04:0.12,opa:isParam?0.16:0.34},col});
+});
+// edges(忠实,细线 + tag)
+const EDGE_COL={activation:0x4369ef,communication:0x10b981,parameter:0xf59e0b,gradient:0xef4444};
+G.edges.forEach(e=>{
+  const s=byId.get(e.source), t=byId.get(e.target); if(!s||!t)return;
+  const a=panelPos(s.x,s.y), b=panelPos(t.x,t.y);
+  const col=EDGE_COL[e.edgeType]||0x4369ef;
+  const m=new THREE.LineBasicMaterial({color:col,transparent:true,opacity:e.dashed?0.3:0.5});
+  scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([a,b]),m));
+});
+// 通信覆盖标记(All-Reduce / PP send-recv —— 渲染层,不入架构数据)
+function commChip(text,colorHex,refId,dx){
+  const n=byId.get(refId); if(!n)return;
+  const p=panelPos(n.x,n.y);
+  const sp=makeSprite(text,colorHex,2.2); sp.position.set(p.x+(n.width/2*PS)+1.0*dx, p.y, PANEL_Z+0.1); scene.add(sp);
+  // 小连接线
+  scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(
+    [p.clone().add(new THREE.Vector3(n.width/2*PS,0,0.05)), new THREE.Vector3(p.x+(n.width/2*PS)+0.3,p.y,PANEL_Z+0.05)]),
+    new THREE.LineBasicMaterial({color:colorHex,transparent:true,opacity:0.5})));
+}
+['embedding','dense_block','mla','lm_head'].forEach(id=>commChip('All-Reduce(TP)',LINE.tp,id,1));
+commChip('→ PP send/recv',LINE.pp,'moe_residual',1);
+
+/* ===== 下方:32 卡 UB-fabric 卡阵 ===== */
+const SC=1.7, BASE_Y=0.06*SC, COL_PITCH=0.56*SC, ROW_PITCH=0.42*SC;
+const NODE_DEFS=[
+  {id:0, dp:0, stage:0, label:'D0·P0', x:-1.05*SC, z:-1.2*SC},
+  {id:1, dp:0, stage:1, label:'D0·P1', x: 1.05*SC, z:-1.2*SC},
+  {id:2, dp:1, stage:0, label:'D1·P0', x:-1.05*SC, z: 1.2*SC},
+  {id:3, dp:1, stage:1, label:'D1·P1', x: 1.05*SC, z: 1.2*SC},
+];
+const nodeByDS=(dp,stage)=>NODE_DEFS.find(n=>n.dp===dp&&n.stage===stage);
+const boardGeo=new THREE.BoxGeometry(0.42*SC,0.04*SC,0.3*SC);
+const pkgGeo=new THREE.BoxGeometry(0.2*SC,0.02*SC,0.16*SC);
+const boardEdge=new THREE.EdgesGeometry(boardGeo), pkgEdge=new THREE.EdgesGeometry(pkgGeo);
+const boardMeshes=[], nodeCards=[[],[],[],[]], nodeCenter=[];
+function cardWorld(node,t){const col=t%2,row=Math.floor(t/2);
+  return new THREE.Vector3(node.x+(col-0.5)*COL_PITCH, BASE_Y, node.z+(row-1.5)*ROW_PITCH);}
+NODE_DEFS.forEach(node=>{
+  for(let t=0;t<8;t++){
+    const p=cardWorld(node,t);
+    const board=new THREE.Mesh(boardGeo,new THREE.MeshStandardMaterial({color:TH.board,emissive:0x000000,metalness:0.02,roughness:0.7}));
+    board.position.copy(p);
+    board.add(new THREE.LineSegments(boardEdge,new THREE.LineBasicMaterial({color:TH.outline,transparent:true,opacity:0.6})));
+    const pkg=new THREE.Mesh(pkgGeo,new THREE.MeshStandardMaterial({color:TH.pkg,metalness:0.02,roughness:0.66}));
+    pkg.position.set(0,0.03*SC,0); board.add(pkg);
+    const rank=(node.dp*2+node.stage)*8+t;
+    board.userData={card:true,node:node.id,nodeLabel:node.label,dp:node.dp,stage:node.stage,t,rank,role:null,active:false,focus:false};
+    scene.add(board); boardMeshes.push(board); nodeCards[node.id].push(board);
+  }
+  const hx=0.62*SC,hz=0.92*SC,y=BASE_Y-0.03*SC;
+  const pts=[[node.x-hx,y,node.z-hz],[node.x+hx,y,node.z-hz],[node.x+hx,y,node.z+hz],[node.x-hx,y,node.z+hz],[node.x-hx,y,node.z-hz]].map(a=>new THREE.Vector3(...a));
+  scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),new THREE.LineBasicMaterial({color:TH.tray,transparent:true,opacity:0.8})));
+  const lab=makeSprite(node.label,0xaab2bd,2.0); lab.position.set(node.x,BASE_Y+0.25,node.z-hz-0.1); scene.add(lab);
+  nodeCenter[node.id]=new THREE.Vector3(node.x,BASE_Y,node.z);
+});
+const grid=new THREE.GridHelper(13,26,TH.grid,0x161d2c); grid.position.y=BASE_Y-0.06*SC; scene.add(grid);
+
+/* ===== 动态层(光柱 + 通信连线) ===== */
+const dyn=new THREE.Group(); scene.add(dyn);
+function clearDyn(){while(dyn.children.length){const o=dyn.children.pop();o.geometry?.dispose();o.material?.dispose();}}
+const addLine=(a,b,c,op,y)=>{const pa=y==null?a:new THREE.Vector3(a.x,y,a.z),pb=y==null?b:new THREE.Vector3(b.x,y,b.z);
+  dyn.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([pa,pb]),new THREE.LineBasicMaterial({color:c,transparent:true,opacity:op})));};
+const addArc=(a,b,c,op,lift)=>{const mid=a.clone().add(b).multiplyScalar(0.5);mid.y+=lift;
+  const pts=new THREE.QuadraticBezierCurve3(a.clone(),mid,b.clone()).getPoints(28);
+  dyn.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),new THREE.LineBasicMaterial({color:c,transparent:true,opacity:op})));
+  return mid;};
+
+/* ===== 1F1B 调度 ===== */
+const P0R=[1,31], P1R=[32,61];
+function buildCycle(prog){
+  if(prog.range[1]===61) return prog.layer===61?[...LAYER_STEPS,'final_norm','lm_head']:[...LAYER_STEPS];
+  return prog.layer===1?['embedding','dense',...LAYER_STEPS]:[...LAYER_STEPS];
+}
+function mkProg(range,layer,micro,idx){const p={range,layer,micro,idx};p.cycle=buildCycle(p);return p;}
+let progP0=mkProg(P0R,3,2,0), progP1=mkProg(P1R,40,1,3);  // 起步即稳态(都在忙)
+function stepFwd(p){p.idx++; if(p.idx>=p.cycle.length){p.idx=0;p.layer++;
+  if(p.layer>p.range[1]){p.layer=p.range[0];p.micro++;} p.cycle=buildCycle(p);}}
+function stepBack(p){p.idx--; if(p.idx<0){p.layer--; if(p.layer<p.range[0]){p.layer=p.range[1];p.micro=Math.max(0,p.micro-1);}
+  p.cycle=buildCycle(p); p.idx=p.cycle.length-1;}}
+const progOf=stage=>stage===0?progP0:progP1;
+const curStep=p=>p.cycle[p.idx];
+
+/* ===== 渲染当前帧 ===== */
+let focusNode=0;   // 聚焦哪个硬件 node
+function roleText(step,t){
+  const L=STEP_META[step].label, comm=STEP_META[step].comm;
+  if(step==='experts') return `专家 ${32*t}–${32*t+31} · EP rank ${t}/8`;
+  if(comm==='tp') return `All-Reduce 参与 · TP shard ${t}/8`;
+  if(comm==='ep') return `All-to-All 参与 · EP rank ${t}/8`;
+  if(['moe_prenorm','gate','moe_residual','final_norm'].includes(step)) return `${L} · 逐卡本地`;
+  return `${L} · TP shard ${t}/8`;
+}
+function groupHalo(node,c,op,label){
+  const hx=0.72*SC,hz=1.02*SC,y=BASE_Y+0.02;
+  const pts=[[node.x-hx,y,node.z-hz],[node.x+hx,y,node.z-hz],[node.x+hx,y,node.z+hz],[node.x-hx,y,node.z+hz],[node.x-hx,y,node.z-hz]].map(a=>new THREE.Vector3(...a));
+  dyn.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),new THREE.LineBasicMaterial({color:c,transparent:true,opacity:op})));
+  if(label){const sp=makeSprite(label,c,2.2);sp.position.set(node.x,BASE_Y+0.55,node.z+hz);dyn.add(sp);}
+}
+function commLines(node,step,bright){
+  const cards=nodeCards[node.id], yL=BASE_Y+0.32, comm=STEP_META[step].comm;
+  if(comm==='tp'){  // All-Reduce:TP 组内(8 卡)
+    for(let t=0;t<8;t++)addLine(cards[t].position,cards[(t+1)%8].position,LINE.tp,bright?0.85:0.3,yL);
+    groupHalo(node,LINE.tp,bright?0.65:0.22, bright?'TP 组 · 8 卡 All-Reduce':null);
+  }
+  if(comm==='ep'){  // All-to-All:EP 组内(8 卡)全互联
+    for(let i=0;i<8;i++)for(let j=i+1;j<8;j++)addLine(cards[i].position,cards[j].position,LINE.ep,bright?0.4:0.12,yL+0.03);
+    groupHalo(node,LINE.ep,bright?0.65:0.22, bright?'EP 组 · 8 卡全互联':null);
+  }
+}
+function redraw(){
+  clearDyn();
+  // 复位卡 + 面板
+  boardMeshes.forEach(b=>{b.material.color.setHex(TH.board);b.material.emissive.setHex(0x000000);
+    b.material.emissiveIntensity=0;b.position.y=BASE_Y;b.userData.role=null;b.userData.active=false;b.userData.focus=false;});
+  panelMesh.forEach(v=>{v.mesh.material.emissiveIntensity=v.base.op;v.mesh.material.opacity=v.base.opa;v.mesh.scale.setScalar(1);});
+
+  // 每个硬件 node 都在忙:按它当前算子着色
+  NODE_DEFS.forEach(node=>{
+    const prog=progOf(node.stage), step=curStep(prog);
+    const col=semColor(step), isFocus=node.id===focusNode;
+    nodeCards[node.id].forEach((b,t)=>{
+      b.userData.active=true; b.userData.role=roleText(step,t); b.userData.focus=isFocus;
+      b.material.color.setHex(col); b.material.emissive.setHex(col);
+      b.material.emissiveIntensity=isFocus?0.85:0.4; b.position.y=BASE_Y+(isFocus?0.14*SC:0.05*SC);
+    });
+    commLines(node,step,isFocus);
+    // 每个 node 头顶实时状态:它此刻在算什么
+    const sp=makeStatusLabel(`${node.label} · L${prog.layer} · m${prog.micro}`, SHORT[step], col);
+    sp.position.set(node.x, BASE_Y+1.5, node.z); if(isFocus)sp.scale.multiplyScalar(1.12); dyn.add(sp);
+  });
+
+  // PP send/recv:每个 DP 副本的 P0→P1 画成明显绿色拱桥(稳态持续传递)
+  [0,1].forEach(dp=>{
+    const a=nodeCenter[nodeByDS(dp,0).id].clone(); a.y=BASE_Y+0.3;
+    const b=nodeCenter[nodeByDS(dp,1).id].clone(); b.y=BASE_Y+0.3;
+    const mid=addArc(a,b,LINE.pp,0.9,1.4);
+    if(dp===0){const sp=makeSprite('PP send/recv',LINE.pp,2.2);sp.position.copy(mid);sp.position.y+=0.35;dyn.add(sp);}
+  });
+
+  // 聚焦:面板高亮该 node 当前算子 + 光柱
+  const fn=NODE_DEFS[focusNode], fstep=curStep(progOf(fn.stage)), fcol=semColor(fstep);
+  STEP_META[fstep].nodes.forEach(id=>{const v=panelMesh.get(id); if(v){v.mesh.material.emissiveIntensity=0.7;v.mesh.material.opacity=0.6;v.mesh.scale.setScalar(1.04);}});
+  // 光柱:面板算子(取首节点) → 聚焦 node 卡区四角+中心
+  const primId=STEP_META[fstep].nodes[0], pv=panelMesh.get(primId);
+  if(pv){const src=pv.mesh.position;
+    const cs=nodeCards[focusNode];
+    [cs[0],cs[1],cs[6],cs[7]].forEach(c=>addLine(src,c.position,fcol,0.45));
+    addLine(src,nodeCenter[focusNode],fcol,0.5);
+  }
+
+  // HUD
+  const p=progOf(fn.stage);
+  document.getElementById('fWho').textContent=`${fn.label} · global rank ${(fn.dp*2+fn.stage)*8}–${(fn.dp*2+fn.stage)*8+7}`;
+  document.getElementById('fMeta').innerHTML=`micro-batch <b>m${p.micro}</b> · <b>Layer ${p.layer}/61</b> · PP stage ${fn.stage} · DP${fn.dp}`;
+  document.getElementById('fOp').textContent=STEP_META[fstep].label;
+  document.getElementById('fDesc').innerHTML=descOf(fstep);
+  const tag=document.getElementById('fTag'), comm=STEP_META[fstep].comm;
+  const cx='#'+(comm?LINE[comm]:fcol).toString(16).padStart(6,'0');
+  tag.textContent=comm?(comm==='tp'?'TP 组内 8 卡 · All-Reduce':'EP 组内 8 卡 · All-to-All'):'逐卡本地 · 无通信';
+  tag.style.color=cx; tag.style.borderColor=cx;
+  renderGantt();
+}
+
+/* ===== 甘特(1F1B,前向) ===== */
+function renderGantt(){
+  const tab=document.getElementById('gtab'); const cols=10;
+  const base=progP0.micro-6;  // 滑动窗
+  let html='';
+  [['PP0',0],['PP1',1]].forEach(([lab,st])=>{
+    html+='<tr><td class="lab">'+lab+'</td>';
+    for(let c=0;c<cols;c++){
+      const macro=base+c;
+      // P0 在 macro 步处理 micro=macro;P1 落后 1
+      const m = st===0? macro : macro-1;
+      const cur=(st===0?progP0.micro:progP1.micro)===m && c=== (st===0?6:6);
+      if(macro<0||m<0){html+='<td class="bub">·</td>';continue;}
+      const isCur=(st===0?progP0.micro:progP1.micro)===m;
+      const hue=(m*47)%360;
+      html+=`<td class="fwd${isCur?' cur':''}" style="background:hsl(${hue} 55% 60%)">m${m}</td>`;
+    }
+    html+='</tr>';
+  });
+  tab.innerHTML=html;
+}
+
+/* ===== 播放 ===== */
+let playing=false,timer=null;
+function tick(){stepFwd(progP0);stepFwd(progP1);redraw();}
+function back(){stepBack(progP0);stepBack(progP1);redraw();}
+function setPlay(p){playing=p;document.getElementById('playBtn').textContent=p?'❚❚ 暂停':'▶ 播放';
+  clearInterval(timer); if(p)timer=setInterval(tick,+document.getElementById('speed').value);}
+document.getElementById('playBtn').onclick=()=>setPlay(!playing);
+document.getElementById('nextBtn').onclick=()=>{setPlay(false);tick();};
+document.getElementById('prevBtn').onclick=()=>{setPlay(false);back();};
+document.getElementById('speed').oninput=()=>{if(playing)setPlay(true);};
+
+/* ===== 交互 ===== */
+let dragging=false,lx=0,ly=0,moved=false;
+renderer.domElement.addEventListener('pointerdown',e=>{dragging=true;moved=false;lx=e.clientX;ly=e.clientY;});
+addEventListener('pointerup',e=>{if(dragging&&!moved)pick(e);dragging=false;});
+addEventListener('pointermove',e=>{
+  if(dragging){if(Math.abs(e.clientX-lx)+Math.abs(e.clientY-ly)>3)moved=true;
+    cam.theta-=(e.clientX-lx)*0.006; cam.phi=Math.max(0.18,Math.min(1.5,cam.phi-(e.clientY-ly)*0.006));
+    lx=e.clientX;ly=e.clientY;updateCam();}
+  onHover(e);
+});
+renderer.domElement.addEventListener('wheel',e=>{e.preventDefault();cam.r=Math.max(14,Math.min(70,cam.r+e.deltaY*0.02));updateCam();},{passive:false});
+
+const ray=new THREE.Raycaster(),mouse=new THREE.Vector2(),tip=document.getElementById('tip');
+function setMouse(e){mouse.x=(e.clientX/innerWidth)*2-1;mouse.y=-(e.clientY/innerHeight)*2+1;ray.setFromCamera(mouse,camera);}
+function pick(e){setMouse(e);const hit=ray.intersectObjects(boardMeshes,false)[0];
+  if(hit){focusNode=hit.object.userData.node;redraw();}}
+function onHover(e){
+  setMouse(e);
+  const hb=ray.intersectObjects(boardMeshes,false)[0];
+  if(hb){const d=hb.object.userData;
+    tip.style.display='block';tip.style.left=(e.clientX+14)+'px';tip.style.top=(e.clientY+14)+'px';
+    tip.querySelector('.t-id').textContent=`${d.nodeLabel} · TP rank ${d.t} · global rank ${d.rank}`;
+    tip.querySelector('.t-body').innerHTML=d.role?`<div class="t-task">▸ ${d.role}</div>`:`<div class="t-idle">▸ 空闲</div>`;
+    return;
+  }
+  const panelObjs=[...panelMesh.values()].map(v=>v.mesh);
+  const hp=ray.intersectObjects(panelObjs,false)[0];
+  if(hp&&hp.object.userData.desc){
+    tip.style.display='block';tip.style.left=(e.clientX+14)+'px';tip.style.top=(e.clientY+14)+'px';
+    tip.querySelector('.t-id').textContent=hp.object.userData.label;
+    tip.querySelector('.t-body').innerHTML=`<div class="t-task">${hp.object.userData.desc}</div>`;
+    return;
+  }
+  tip.style.display='none';
+}
+
+/* ===== 循环 ===== */
+function loop(now){
+  const pulse=0.6+Math.sin(now*0.004)*0.28;
+  boardMeshes.forEach(b=>{if(b.userData.focus)b.material.emissiveIntensity=pulse;});
+  renderer.render(scene,camera); requestAnimationFrame(loop);
+}
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+redraw(); requestAnimationFrame(loop);
+</script>
+</body>
+</html>

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TrainScope · Z Axis Comparison</title>
+  <script>
+    (() => {
+      const stored = window.localStorage && window.localStorage.getItem('z-depth-operator-theme');
+      if (stored === 'light' || stored === 'dark') document.documentElement.dataset.theme = stored;
+      window.addEventListener('error', (event) => {
+        document.body && document.body.setAttribute('data-render-status', `error: ${event.message || 'unknown'}`);
+      });
+      window.addEventListener('unhandledrejection', (event) => {
+        document.body && document.body.setAttribute('data-render-status', `error: ${event.reason && event.reason.message ? event.reason.message : 'promise rejection'}`);
+      });
+    })();
+  </script>
+  <link rel="stylesheet" href="../vendor/pto-design-system/tokens/foundation.css">
+  <link rel="stylesheet" href="../vendor/pto-design-system/tokens/semantic.css">
+  <link rel="stylesheet" href="../vendor/pto-design-system/tokens/components.css">
+  <link rel="stylesheet" href="../vendor/pto-design-system/css/style.css">
+  <link rel="stylesheet" href="css/z-depth-operator-experiments.css">
+</head>
+<body class="zdo-page" data-selected="placement">
+  <div class="zdo-app">
+    <header class="layout-header zdo-header">
+      <div class="layout-header-left">
+        <div class="layout-header-brand zdo-brand">
+          <span class="layout-header-dot" aria-hidden="true"></span>
+          <span>Z Axis Comparison</span>
+        </div>
+        <div class="zdo-title-copy">
+          <strong>openPangu-Ultra-MoE-718B · rank grid × block/operator/runtime</strong>
+          <span>Two candidates: Z as model depth vs Z as runtime operator stream · Anime.js v4.4.1 motion</span>
+        </div>
+      </div>
+      <div class="layout-header-right zdo-actions">
+        <div class="segmented-control segmented-control-muted" role="group" aria-label="场景控制">
+          <button class="btn btn-ghost is-selected" type="button" id="autoRotateBtn" aria-pressed="true">Auto rotate</button>
+          <button class="btn btn-ghost" type="button" id="resetViewsBtn">Reset</button>
+        </div>
+        <button class="btn btn-ghost" type="button" id="themeBtn">Light</button>
+      </div>
+    </header>
+    <div class="zdo-status" id="renderStatus">Loading 3D scenes...</div>
+
+    <main class="zdo-main">
+      <section class="zdo-gallery zdo-gallery-two" aria-label="两种 Z 轴 3D 语义方案对比">
+        <article class="panel-shell zdo-option is-selected" data-option="placement">
+          <div class="zdo-option-head">
+            <div>
+              <div class="panel-shell-meta">Scheme A · Placement Mode</div>
+              <h2>Rank Tower + Operator Deck</h2>
+            </div>
+            <span class="stat-chip">Z = model block depth</span>
+          </div>
+          <div class="zdo-canvas-host" id="scene-placement" aria-label="Placement rank tower 3D preview"></div>
+        </article>
+
+        <article class="panel-shell zdo-option" data-option="runtime">
+          <div class="zdo-option-head">
+            <div>
+              <div class="panel-shell-meta">Scheme B · Runtime Mode</div>
+              <h2>Operator Stream + Communication</h2>
+            </div>
+            <span class="stat-chip">Z = runtime sequence</span>
+          </div>
+          <div class="zdo-canvas-host" id="scene-runtime" aria-label="Runtime operator stream 3D preview"></div>
+        </article>
+      </section>
+
+      <aside class="panel-shell zdo-inspector" aria-label="方案对比说明">
+        <div class="panel-shell-header">
+          <div>
+            <div class="panel-shell-meta">comparison</div>
+            <div class="panel-shell-title" id="selectedTitle">Scheme A · Placement Mode</div>
+          </div>
+        </div>
+        <div class="panel-shell-body zdo-inspector-body">
+          <div class="zdo-readout" id="selectedSummary"></div>
+
+          <div class="zdo-compare-grid" aria-label="核心差异">
+            <div>
+              <dt>Scheme A</dt>
+              <dd>XY 是 rank，Z 是模型 block depth；每个 rank tower 展示自己负责的 block 和 operator deck。</dd>
+            </div>
+            <div>
+              <dt>Scheme B</dt>
+              <dd>XY 是 rank，Z 是 runtime time；operator event 从 rank 上穿过，通信在同一时间高度连接 rank。</dd>
+            </div>
+          </div>
+
+          <div class="zdo-legend" aria-label="operator legend">
+            <div><i style="--swatch: var(--zdo-attn)"></i><span>Attention / MLA</span></div>
+            <div><i style="--swatch: var(--zdo-router)"></i><span>Router / Gate</span></div>
+            <div><i style="--swatch: var(--zdo-dispatch)"></i><span>Dispatch / Combine / PP</span></div>
+            <div><i style="--swatch: var(--zdo-expert)"></i><span>Expert / EP All-to-All</span></div>
+            <div><i style="--swatch: var(--zdo-weight)"></i><span>Weight shard / DP sync</span></div>
+          </div>
+
+          <div class="zdo-note">
+            <strong>推荐产品结构</strong>
+            <span>默认用 Scheme A 解释静态 mapping；点击播放或切换 runtime lens 后用 Scheme B 解释算子过程和通信。</span>
+          </div>
+          <div class="zdo-note">
+            <strong>Motion source</strong>
+            <span>动效使用官方 juliangarnier/anime 仓库 v4.4.1 的 ESM 源码，本页 vendored 到本地。</span>
+          </div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <div class="zdo-tip" id="zdoTip" role="tooltip">
+    <strong id="zdoTipTitle"></strong>
+    <span id="zdoTipBody"></span>
+  </div>
+
+  <script type="module" src="js/z-depth-operator-experiments.js"></script>
+</body>
+</html>

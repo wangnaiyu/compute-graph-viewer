@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Scheme B · 交错映射 (rank=XY · 算子=Z)</title>
+<style>
+  :root{
+    --bg:#070a12; --panel:rgba(14,18,28,.82); --line:rgba(255,255,255,.08);
+    --txt:#e7ecf5; --dim:#8b95a8; --accent:#a78bfa;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);
+    font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+  #app{position:fixed;inset:0}
+  canvas{display:block}
+
+  .hud{position:fixed;z-index:10;backdrop-filter:blur(10px);
+    background:var(--panel);border:1px solid var(--line);border-radius:14px}
+
+  /* top-left title */
+  #title{top:18px;left:18px;padding:14px 16px;max-width:340px}
+  #title h1{font-size:13px;letter-spacing:.08em;font-weight:600}
+  #title h1 b{color:var(--accent)}
+  #title p{margin-top:6px;font-size:11px;line-height:1.6;color:var(--dim)}
+  #title .axes{margin-top:10px;display:flex;flex-direction:column;gap:4px;font-size:10.5px}
+  #title .axes span{color:var(--txt)}
+  #title .axes i{display:inline-block;width:42px;color:var(--accent);font-style:normal}
+
+  /* bottom transport */
+  #transport{left:50%;transform:translateX(-50%);bottom:20px;padding:12px 16px;
+    display:flex;align-items:center;gap:14px}
+  #transport button{cursor:pointer;border:1px solid var(--line);background:rgba(255,255,255,.04);
+    color:var(--txt);border-radius:9px;padding:8px 12px;font:inherit;font-size:12px;transition:.15s}
+  #transport button:hover{background:rgba(167,139,250,.16);border-color:rgba(167,139,250,.4)}
+  #playBtn{min-width:84px}
+  #stepLine{font-size:11px;color:var(--dim);min-width:230px;text-align:left}
+  #stepLine b{color:var(--txt)}
+  #stepLine em{font-style:normal;color:var(--accent)}
+  input[type=range]{accent-color:var(--accent);width:150px}
+
+  /* right now-panel */
+  #now{top:18px;right:18px;padding:14px 16px;width:280px}
+  #now .k{font-size:10px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase}
+  #now .opname{margin-top:4px;font-size:15px;font-weight:600}
+  #now .opdesc{margin-top:8px;font-size:11px;line-height:1.6;color:var(--dim)}
+  #now .opdesc b{color:var(--txt);font-weight:600}
+  #now .maptag{display:inline-block;margin-top:10px;font-size:10.5px;padding:4px 9px;
+    border-radius:999px;border:1px solid var(--line)}
+
+  /* legend bottom-left */
+  #legend{left:18px;bottom:20px;padding:12px 14px;font-size:10.5px}
+  #legend .row{display:flex;align-items:center;gap:8px;margin:5px 0;color:var(--dim)}
+  #legend .dot{width:10px;height:10px;border-radius:3px;flex:none}
+
+  /* tooltip */
+  #tip{position:fixed;z-index:20;pointer-events:none;display:none;
+    background:rgba(10,13,20,.94);border:1px solid var(--line);border-radius:9px;
+    padding:8px 10px;font-size:11px;line-height:1.5;max-width:230px}
+  #tip .t-id{color:var(--accent);font-weight:600}
+  #tip .t-task{color:var(--txt);margin-top:3px}
+  #tip .t-idle{color:var(--dim)}
+  .hint{position:fixed;bottom:62px;left:50%;transform:translateX(-50%);
+    font-size:10px;color:var(--dim);z-index:9}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<div id="title" class="hud">
+  <h1>Scheme B · <b>交错映射</b></h1>
+  <p>算子(Z 轴)被 TP / EP 切散，铺到卡阵(XY 平面)上——光束斜着穿插，不是直上直下的列。</p>
+  <div class="axes">
+    <span><i>XY 平面</i> 卡阵 · 8 TP(列) × 8 EP·节点(行) = 64 卡</span>
+    <span><i>Z ↑ 轴</i> 算子计算流程 Embedding → MoE → Head</span>
+    <span><i>光束</i> 当前算子 → 执行它的那组卡</span>
+  </div>
+</div>
+
+<div id="now" class="hud">
+  <div class="k">当前算子 / current op</div>
+  <div class="opname" id="opName">—</div>
+  <div class="opdesc" id="opDesc">—</div>
+  <span class="maptag" id="opMap">—</span>
+</div>
+
+<div id="legend" class="hud">
+  <div class="row"><span class="dot" style="background:#2dd4bf"></span>Embedding / 输入</div>
+  <div class="row"><span class="dot" style="background:#38bdf8"></span>MLA 注意力</div>
+  <div class="row"><span class="dot" style="background:#fbbf24"></span>Router 门控</div>
+  <div class="row"><span class="dot" style="background:#a78bfa"></span>Expert FFN (MoE)</div>
+  <div class="row"><span class="dot" style="background:#f59e0b"></span>All-Reduce (TP)</div>
+  <div class="row"><span class="dot" style="background:#f472b6"></span>All-to-All (EP)</div>
+</div>
+
+<div id="transport" class="hud">
+  <button id="prevBtn">◀ 上一步</button>
+  <button id="playBtn">▶ 播放</button>
+  <button id="nextBtn">下一步 ▶</button>
+  <div id="stepLine"><b id="stepIdx">1</b>/<span id="stepTot">9</span> · <em id="stepName">—</em></div>
+  <label style="font-size:10.5px;color:var(--dim)">速度<input id="speed" type="range" min="500" max="2600" value="1500" step="100"></label>
+</div>
+<div class="hint">拖拽旋转 · 滚轮缩放 · 悬停卡片看它在算什么</div>
+
+<div id="tip"><div class="t-id"></div><div class="t-body"></div></div>
+
+<script type="importmap">
+{ "imports": { "three": "../hpc-topology-viewer-main/node_modules/three/build/three.module.min.js" } }
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+
+/* ---------- 配置 ---------- */
+const TP = 8, EP = 8;                 // 列 = TP rank, 行 = EP 桶/节点
+const SP = 1.5;                       // 卡间距
+const SEM = {
+  input:0x2dd4bf, attention:0x38bdf8, router:0xfbbf24, moe:0xa78bfa,
+  comm_tp:0xf59e0b, comm_ep:0xf472b6, head:0x94a3b8,
+};
+// Top-8 激活专家落在交错的 (tp,ep) 格子上
+const EXPERT_CELLS = [[0,2],[3,5],[6,1],[1,7],[4,4],[7,3],[2,6],[5,0]];
+
+const OPS = [
+  { name:'Parallel Embedding', sem:'input', map:'tp', tag:'TP 切分',
+    desc:'词表沿 <b>TP</b> 切到 8 列卡；EP/DP 行间复制。' },
+  { name:'MLA · Down / QKV Proj', sem:'attention', map:'tp', tag:'TP 切分',
+    desc:'注意力头沿 <b>TP</b> 切分，每列卡持有一份头。' },
+  { name:'MLA · Attention Core', sem:'attention', map:'tp', tag:'TP 切分',
+    desc:'各卡在本地算自己那部分注意力。' },
+  { name:'MLA · Out Proj + All-Reduce', sem:'comm_tp', map:'tp', comm:'tp', tag:'TP 通信',
+    desc:'输出投影后 <b>TP 组内 8 卡 All-Reduce</b> 拼回（行内、节点内、带宽最高）。' },
+  { name:'MoE Router / Gating', sem:'router', map:'router', tag:'复制',
+    desc:'<b>Top-8</b> 选专家；门控很小、在各卡复制。' },
+  { name:'All-to-All · Dispatch', sem:'comm_ep', map:'router', comm:'a2a_out', tag:'EP 通信',
+    desc:'把 token 按路由 <b>All-to-All</b> 发往专家所在的卡（跨节点）。' },
+  { name:'Expert FFN (MoE)', sem:'moe', map:'experts', tag:'EP × TP 交错',
+    desc:'8 个激活专家<b>分散</b>在 EP×TP 网格 —— 这就是<b>交错映射</b>。' },
+  { name:'All-to-All · Combine', sem:'comm_ep', map:'experts', comm:'a2a_in', tag:'EP 通信',
+    desc:'专家结果再 <b>All-to-All</b> 送回原 token 所在的卡。' },
+  { name:'Final Norm + LM Head', sem:'head', map:'tp', tag:'TP 切分',
+    desc:'输出层沿 <b>TP</b> 切分到 8 列卡。' },
+];
+
+/* ---------- 场景 ---------- */
+const app = document.getElementById('app');
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x070a12, 0.018);
+const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(innerWidth, innerHeight);
+app.appendChild(renderer.domElement);
+
+const camera = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 0.1, 200);
+const target = new THREE.Vector3(0, 4.2, 0);
+const cam = { r:26, theta:-0.62, phi:1.02 };
+function updateCam(){
+  camera.position.set(
+    target.x + cam.r*Math.sin(cam.phi)*Math.sin(cam.theta),
+    target.y + cam.r*Math.cos(cam.phi),
+    target.z + cam.r*Math.sin(cam.phi)*Math.cos(cam.theta)
+  );
+  camera.lookAt(target);
+}
+updateCam();
+
+scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+const key = new THREE.DirectionalLight(0xffffff, 0.9); key.position.set(8,16,10); scene.add(key);
+const rim = new THREE.PointLight(0xa78bfa, 0.6, 60); rim.position.set(-10,8,-8); scene.add(rim);
+
+/* ---------- 卡阵 (XY 平面) ---------- */
+const cards = [];
+const cardKey = (tp,ep)=>`${tp}-${ep}`;
+const cardGeo = new THREE.BoxGeometry(SP*0.78, 0.16, SP*0.78);
+const px = tp => (tp-(TP-1)/2)*SP;
+const pz = ep => (ep-(EP-1)/2)*SP;
+for(let ep=0; ep<EP; ep++){
+  for(let tp=0; tp<TP; tp++){
+    const mat = new THREE.MeshStandardMaterial({
+      color:0x1b2233, emissive:0x000000, metalness:0.2, roughness:0.65 });
+    const m = new THREE.Mesh(cardGeo, mat);
+    m.position.set(px(tp), 0, pz(ep));
+    m.userData = { tp, ep, node:ep, role:null };
+    scene.add(m); cards.push(m);
+  }
+}
+// 行高亮底板（节点底色，弱）
+const floorGrid = new THREE.GridHelper(TP*SP+1.2, TP, 0x2a3550, 0x161d2c);
+floorGrid.position.y = -0.12; scene.add(floorGrid);
+
+/* ---------- 算子塔 (Z 轴) ---------- */
+const slabY = i => 3.0 + i*1.0;
+const slabGeo = new THREE.BoxGeometry(4.6, 0.26, 4.6);
+const slabs = [];
+OPS.forEach((op,i)=>{
+  const col = SEM[op.sem];
+  const mat = new THREE.MeshStandardMaterial({
+    color:col, emissive:col, emissiveIntensity:0.06, transparent:true,
+    opacity:0.16, metalness:0.3, roughness:0.5 });
+  const m = new THREE.Mesh(slabGeo, mat);
+  m.position.set(0, slabY(i), 0);
+  scene.add(m); slabs.push(m);
+  scene.add(makeLabel(op.name, col, 0, slabY(i), 2.7));
+});
+// 中轴引导线
+const axisMat = new THREE.LineBasicMaterial({ color:0x2a3550, transparent:true, opacity:0.5 });
+scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(
+  [new THREE.Vector3(0,0,0), new THREE.Vector3(0, slabY(OPS.length-1)+0.6, 0)]), axisMat));
+
+function makeLabel(text, color, x,y,z){
+  const c = document.createElement('canvas'); c.width=512; c.height=64;
+  const g = c.getContext('2d');
+  g.font='600 30px "JetBrains Mono",monospace'; g.textBaseline='middle';
+  g.fillStyle='#'+color.toString(16).padStart(6,'0');
+  g.fillText(text, 8, 34);
+  const tex = new THREE.CanvasTexture(c); tex.anisotropy=4;
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map:tex, transparent:true }));
+  sp.scale.set(5.2, 0.65, 1); sp.position.set(x+3.6, y, z);
+  return sp;
+}
+
+/* ---------- 光束 / 通信层 (动态) ---------- */
+const beamGroup = new THREE.Group(); scene.add(beamGroup);
+const commDots = [];   // {mesh, a, b, t, speed}
+
+function clearDynamic(){
+  while(beamGroup.children.length){
+    const o=beamGroup.children.pop(); o.geometry?.dispose(); o.material?.dispose();
+  }
+  commDots.forEach(d=>{ scene.remove(d.mesh); d.mesh.geometry.dispose(); d.mesh.material.dispose(); });
+  commDots.length=0;
+}
+
+function activeCardsFor(op){
+  // 返回 Map(key -> roleText)
+  const m = new Map();
+  if(op.map==='tp'){
+    for(let ep=0; ep<EP; ep++) for(let tp=0; tp<TP; tp++)
+      m.set(cardKey(tp,ep), `${op.name.split('·')[0].trim()} · TP shard ${tp}/8`);
+  } else if(op.map==='router'){
+    for(let ep=0; ep<EP; ep++) for(let tp=0; tp<TP; tp++)
+      m.set(cardKey(tp,ep), `Router 门控(复制) · 计算 Top-8 路由`);
+  } else if(op.map==='experts'){
+    EXPERT_CELLS.forEach(([tp,ep],i)=> m.set(cardKey(tp,ep), `Expert #${i} FFN · 节点${ep} TP${tp}`));
+  }
+  return m;
+}
+
+function commPairsFor(op){
+  const pairs=[];
+  if(op.comm==='tp'){            // 行内 all-reduce：相邻卡
+    for(let ep=0; ep<EP; ep++) for(let tp=0; tp<TP-1; tp++)
+      pairs.push({ a:[tp,ep], b:[tp+1,ep], col:SEM.comm_tp, bi:true });
+  } else if(op.comm==='a2a_out'){ // dispatch：代表源 → 专家格
+    const src=[[0,0],[7,0],[0,7],[7,7]];
+    EXPERT_CELLS.forEach(c=> src.forEach(s=> pairs.push({ a:s, b:c, col:SEM.comm_ep })));
+  } else if(op.comm==='a2a_in'){  // combine：专家格 → 代表源
+    const dst=[[0,0],[7,0],[0,7],[7,7]];
+    EXPERT_CELLS.forEach(c=> dst.forEach(d=> pairs.push({ a:c, b:d, col:SEM.comm_ep })));
+  }
+  return pairs;
+}
+
+const cardPos = (tp,ep)=> new THREE.Vector3(px(tp), 0.12, pz(ep));
+
+function renderStep(idx){
+  clearDynamic();
+  const op = OPS[idx];
+  const col = SEM[op.sem];
+  const slabPos = new THREE.Vector3(0, slabY(idx), 0);
+
+  // 重置卡 + 算子塔
+  cards.forEach(c=>{
+    c.material.emissive.setHex(0x000000); c.material.color.setHex(0x1b2233);
+    c.scale.set(1,1,1); c.userData.role=null;
+  });
+  slabs.forEach((s,i)=>{ s.material.opacity = i===idx?0.34:0.12;
+    s.material.emissiveIntensity = i===idx?0.5:0.06; });
+
+  // 高亮命中卡 + 光束（算子 → 卡，交错）
+  const act = activeCardsFor(op);
+  act.forEach((role,key)=>{
+    const [tp,ep] = key.split('-').map(Number);
+    const c = cards[ep*TP+tp];
+    c.material.color.setHex(col); c.material.emissive.setHex(col);
+    c.material.emissiveIntensity = 0.8; c.scale.set(1,1.8,1); c.userData.role=role;
+    const g = new THREE.BufferGeometry().setFromPoints([slabPos, cardPos(tp,ep)]);
+    beamGroup.add(new THREE.Line(g, new THREE.LineBasicMaterial({
+      color:col, transparent:true, opacity:0.5 })));
+  });
+
+  // 通信脉冲 + 流动小球
+  const dotGeo = new THREE.SphereGeometry(0.09, 10, 10);
+  commPairsFor(op).forEach(p=>{
+    const a=cardPos(...p.a), b=cardPos(...p.b);
+    beamGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([a,b]),
+      new THREE.LineBasicMaterial({ color:p.col, transparent:true, opacity:0.28 })));
+    const mesh = new THREE.Mesh(dotGeo, new THREE.MeshBasicMaterial({ color:p.col }));
+    scene.add(mesh);
+    commDots.push({ mesh, a, b, t:Math.random(), speed:0.6+Math.random()*0.7, bi:p.bi });
+  });
+
+  // HUD
+  document.getElementById('opName').textContent = op.name;
+  document.getElementById('opDesc').innerHTML = op.desc;
+  const mapEl = document.getElementById('opMap');
+  mapEl.textContent = op.tag; mapEl.style.color='#'+col.toString(16).padStart(6,'0');
+  mapEl.style.borderColor = mapEl.style.color;
+  document.getElementById('stepIdx').textContent = idx+1;
+  document.getElementById('stepName').textContent = op.name;
+}
+
+/* ---------- 播放控制 ---------- */
+let cur=0, playing=false, timer=null;
+document.getElementById('stepTot').textContent = OPS.length;
+function go(i){ cur=(i+OPS.length)%OPS.length; renderStep(cur); }
+function setPlay(p){
+  playing=p; document.getElementById('playBtn').textContent = p?'❚❚ 暂停':'▶ 播放';
+  clearInterval(timer);
+  if(p) timer=setInterval(()=>go(cur+1), +document.getElementById('speed').value);
+}
+document.getElementById('playBtn').onclick=()=>setPlay(!playing);
+document.getElementById('nextBtn').onclick=()=>{ setPlay(false); go(cur+1); };
+document.getElementById('prevBtn').onclick=()=>{ setPlay(false); go(cur-1); };
+document.getElementById('speed').oninput=()=>{ if(playing) setPlay(true); };
+
+/* ---------- 交互：拖拽 / 缩放 / 悬停 ---------- */
+let dragging=false, lx=0, ly=0;
+renderer.domElement.addEventListener('pointerdown', e=>{ dragging=true; lx=e.clientX; ly=e.clientY; });
+addEventListener('pointerup', ()=> dragging=false);
+addEventListener('pointermove', e=>{
+  if(dragging){
+    cam.theta -= (e.clientX-lx)*0.006;
+    cam.phi = Math.max(0.25, Math.min(1.45, cam.phi-(e.clientY-ly)*0.006));
+    lx=e.clientX; ly=e.clientY; updateCam();
+  }
+  onHover(e);
+});
+renderer.domElement.addEventListener('wheel', e=>{
+  e.preventDefault(); cam.r=Math.max(12, Math.min(48, cam.r+e.deltaY*0.02)); updateCam();
+}, { passive:false });
+
+const ray = new THREE.Raycaster(), mouse = new THREE.Vector2();
+const tip = document.getElementById('tip');
+function onHover(e){
+  mouse.x=(e.clientX/innerWidth)*2-1; mouse.y=-(e.clientY/innerHeight)*2+1;
+  ray.setFromCamera(mouse, camera);
+  const hit = ray.intersectObjects(cards)[0];
+  if(hit){
+    const d=hit.object.userData;
+    tip.style.display='block'; tip.style.left=(e.clientX+14)+'px'; tip.style.top=(e.clientY+14)+'px';
+    tip.querySelector('.t-id').textContent=`节点 ${d.node} · TP rank ${d.tp}  (EP桶 ${d.ep})`;
+    tip.querySelector('.t-body').innerHTML = d.role
+      ? `<div class="t-task">▸ ${d.role}</div>`
+      : `<div class="t-idle">▸ 空闲 / 等待上游激活</div>`;
+  } else tip.style.display='none';
+}
+
+/* ---------- 循环 ---------- */
+let last=performance.now();
+function loop(now){
+  const dt=(now-last)/1000; last=now;
+  commDots.forEach(d=>{
+    d.t += dt*d.speed; if(d.t>1) d.t -= 1;
+    const t = d.bi ? (d.t<0.5? d.t*2 : (1-d.t)*2) : d.t;
+    d.mesh.position.lerpVectors(d.a, d.b, t);
+  });
+  // 激活卡呼吸
+  const pulse = 0.7 + Math.sin(now*0.004)*0.25;
+  cards.forEach(c=>{ if(c.userData.role) c.material.emissiveIntensity = pulse; });
+  renderer.render(scene, camera);
+  requestAnimationFrame(loop);
+}
+addEventListener('resize', ()=>{
+  camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+renderStep(0);
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

@@ -21,15 +21,17 @@
   canvas{display:block}
 
   /* 框架铺满视口（页面级取舍：覆盖 ide-frame 默认 4:3 框中窗，让 3D 舞台更大） */
-  .pto-ide-frame{width:100vw;height:100vh;aspect-ratio:auto;border-radius:0;box-shadow:none;--floating-playback-expanded-width:880px}
+  .pto-ide-frame{
+    width:100vw;height:100vh;aspect-ratio:auto;border-radius:0;box-shadow:none;--floating-playback-expanded-width:880px;
+    --ide-gradient-left-alpha:.30;--ide-gradient-right-alpha:.28;--ide-gradient-center-alpha:.18;--ide-gradient-lower-alpha:.15;
+    --ide-aura-left-alpha:.38;--ide-aura-right-alpha:.34;--ide-aura-center-alpha:.22;--ide-aura-lower-alpha:.18;--ide-aura-bottom-alpha:.18;
+  }
+  :root[data-theme='light'] .pto-ide-frame{
+    --ide-gradient-left-alpha:.26;--ide-gradient-right-alpha:.22;--ide-gradient-center-alpha:.14;--ide-gradient-lower-alpha:.12;
+    --ide-aura-left-alpha:.32;--ide-aura-right-alpha:.28;--ide-aura-center-alpha:.17;--ide-aura-lower-alpha:.14;--ide-aura-bottom-alpha:.13;
+  }
   /* 播放条：加宽（见上 expanded-width）+ 整体下移 20px（默认 bottom:38px → 18px） */
   .pto-ide-frame__floating-playback-mount{bottom:18px}
-  :root[data-theme='light']{
-    --ide-frame-page-bg:#f8f8f8;
-    --ide-frame-bg:#f8f8f8;
-    --ide-frame-pane-bg:#fff;
-  }
-
   /* 顶栏 */
   .pto-ide-frame__host-chip span{font:var(--ide-frame-title-font);color:var(--foreground)}
   .pto-ide-frame__host-chip b{color:var(--accent)}
@@ -41,9 +43,35 @@
   .opv-icon-btn:hover{background:var(--state-hover);color:var(--foreground-secondary)}
   .opv-icon-btn.is-active{background:var(--ide-frame-control-bg);border-color:var(--ide-frame-control-border);color:var(--foreground)}
   .opv-icon-btn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .ide-status{min-width:0;width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;color:var(--foreground-muted);font:600 12px/1 var(--font-sans)}
+  .ide-status__group{min-width:0;display:flex;align-items:center;gap:14px}
+  .ide-status__group--left{flex:1 1 auto;overflow:hidden}
+  .ide-status__group--right{flex:0 1 auto;justify-content:flex-end;overflow:hidden}
+  .ide-status__item{min-width:0;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;color:var(--foreground-muted)}
+  .ide-status__item--dynamic{overflow:hidden;text-overflow:ellipsis}
+  .ide-status__icon{width:16px;height:16px;flex:0 0 16px;display:block;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .ide-status__icon--solid{fill:currentColor;stroke:none}
+  .ide-status__item--disabled{opacity:.55;text-decoration:line-through;text-decoration-thickness:1px}
+  .opv-explorer{padding:10px 8px 12px;display:flex;flex-direction:column;gap:8px;overflow:auto;font:600 12px/1.2 var(--font-sans)}
+  .opv-explorer-root{height:24px;display:flex;align-items:center;padding:0 7px;border-radius:var(--radius-sm);color:var(--foreground);font:800 11px/1 var(--font-sans);letter-spacing:.04em}
+  .opv-tree{display:flex;flex-direction:column;gap:1px}
+  .opv-tree-row{--depth:0;min-width:0;min-height:24px;display:grid;grid-template-columns:12px 16px minmax(0,1fr) auto;align-items:center;gap:6px;
+    padding:0 7px 0 calc(7px + (var(--depth) * 14px));border-radius:var(--radius-sm);color:var(--foreground-secondary)}
+  .opv-tree-row.is-active{background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--foreground)}
+  .opv-tree-row.is-muted{color:var(--foreground-muted)}
+  .opv-tree-caret{width:0;height:0;border-top:4px solid transparent;border-bottom:4px solid transparent;border-left:5px solid currentColor;opacity:.72}
+  .opv-tree-row.is-open>.opv-tree-caret{transform:rotate(90deg)}
+  .opv-tree-spacer{width:12px}
+  .opv-tree-icon{position:relative;width:16px;height:16px;color:var(--foreground-muted)}
+  .opv-tree-icon--folder::before{content:"";position:absolute;left:1px;top:5px;width:14px;height:9px;border:1.5px solid currentColor;border-radius:2px;background:color-mix(in srgb,var(--foreground) 5%,transparent)}
+  .opv-tree-icon--folder::after{content:"";position:absolute;left:2px;top:3px;width:6px;height:4px;border:1.5px solid currentColor;border-bottom:0;border-radius:2px 2px 0 0}
+  .opv-tree-icon--file::before{content:"";position:absolute;left:3px;top:2px;width:10px;height:13px;border:1.5px solid currentColor;border-radius:2px}
+  .opv-tree-icon--file::after{content:"";position:absolute;right:3px;top:2px;width:4px;height:4px;border-left:1.5px solid currentColor;border-bottom:1.5px solid currentColor;background:var(--ide-frame-pane-bg)}
+  .opv-tree-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .opv-tree-badge{font:700 10px/1 var(--font-mono);color:var(--foreground-muted)}
   .pto-ide-frame[data-inspector-open="false"] [data-ide-pane="inspector"]{display:none}
-  .pto-ide-frame[data-inspector-open="false"] [data-ide-split="standalone-main"]>[data-ide-pane="editor-preview"]{flex:1 1 100%!important;width:100%!important}
-  .pto-ide-frame[data-inspector-open="false"] [data-ide-split="standalone-main"]>[data-split-direction="horizontal"].pto-workbench-shell__split-gutter{display:none}
+  .pto-ide-frame[data-inspector-open="false"] [data-ide-split="standalone-main"]>[data-ide-pane="editor-preview"]{flex:1 1 0%!important;width:auto!important}
+  .pto-ide-frame[data-inspector-open="false"] [data-ide-split="standalone-main"]>.pto-workbench-shell__split-gutter:has(+ [data-ide-pane="inspector"]){display:none}
   .pto-ide-frame[data-analysis-open="false"] [data-ide-pane="analysis-dock"]{display:none}
   .pto-ide-frame[data-analysis-open="false"] [data-ide-split="op-rank-vertical"]>[data-ide-pane="stage-row"]{flex:1 1 100%!important;height:100%!important}
   .pto-ide-frame[data-analysis-open="false"] [data-ide-split="op-rank-vertical"]>[data-split-direction="vertical"].pto-workbench-shell__split-gutter{display:none}
@@ -51,8 +79,8 @@
   /* 说明/图例/坐标系 弹窗（右上角 info icon 打开） */
   .opv-popup{position:fixed;top:52px;right:14px;z-index:150;width:340px;max-height:calc(100vh - 96px);overflow:auto;
     padding:14px;display:flex;flex-direction:column;gap:16px;
-    background:var(--ide-frame-pane-bg);border:1px solid var(--ide-frame-pane-border);border-radius:var(--radius-md);
-    box-shadow:0 18px 54px rgba(0,0,0,.34);backdrop-filter:var(--surface-backdrop-filter-soft)}
+    background:var(--ide-frame-pane-fill);border:1px solid var(--ide-frame-pane-border);border-radius:var(--radius-md);
+    box-shadow:var(--ide-frame-pane-shadow);backdrop-filter:var(--ide-frame-pane-backdrop-filter);-webkit-backdrop-filter:var(--ide-frame-pane-backdrop-filter)}
   .opv-popup[hidden]{display:none}
   .opv-popup__head{display:flex;align-items:center;justify-content:space-between}
   .opv-popup__title{font:var(--ide-frame-title-font);color:var(--foreground)}
@@ -91,7 +119,6 @@
 
   /* 3D 舞台（中间面板） */
   [data-ide-pane="editor-preview"]>.pto-ide-frame__pane-header{background:transparent;border-bottom-color:transparent;box-shadow:none}
-  :root[data-theme='light'] [data-ide-pane="editor-preview"]>.pto-ide-frame__pane-header{background:#fff}
   :root[data-theme='light'] [data-ide-pane="editor-preview"]>.pto-ide-frame__pane-header .pto-ide-frame__pane-title,
   :root[data-theme='light'] [data-ide-pane="editor-preview"]>.pto-ide-frame__pane-header .pto-ide-frame__pane-meta,
   :root[data-theme='light'] .opv-focus .meta,
@@ -451,12 +478,12 @@
 </head>
 <body>
 
-<section class="pto-ide-frame" data-ide-frame data-host="standalone" data-hide-activity-rail="true" data-inspector-open="true" data-analysis-open="true" aria-label="openPangu MoE 训练透视">
+<section class="pto-ide-frame" id="opRankIdeFrame" data-ide-frame data-host="standalone" data-cursor-dots="true" data-inspector-open="true" data-analysis-open="true" data-explorer-collapsed="false" aria-label="Pangu MoE TrainViz IDE frame">
   <header class="pto-ide-frame__topbar pto-ide-frame__standalone-chrome">
     <div class="pto-ide-frame__topbar-left">
       <div class="pto-ide-frame__host-chip">
         <svg class="pto-ide-frame__host-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="m7 9 3 3-3 3"></path><path d="M12 15h5"></path></svg>
-        <span>openPangu-R-72B-MoE · <b>算子 × 硬件 × 时间</b></span>
+        <span>Pangu MoE TrainViz</span>
       </div>
     </div>
     <div class="pto-ide-frame__topbar-center">
@@ -481,11 +508,48 @@
   </header>
 
   <div class="pto-ide-frame__body">
+    <nav class="pto-ide-frame__activity-rail pto-ide-frame__standalone-chrome" data-ide-slot="activity-rail" aria-label="Activity rail">
+      <button class="btn btn-icon btn-ghost pto-ide-frame__rail-button is-selected" type="button" data-ide-toggle="explorer" aria-label="Toggle file explorer" aria-controls="pangu-explorer-pane" aria-expanded="true" aria-pressed="true" title="Explorer">
+        <svg class="pto-ide-frame__rail-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9l-.81-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"></path></svg>
+      </button>
+      <button class="btn btn-icon btn-ghost pto-ide-frame__rail-button" type="button" aria-label="Search" title="Search">
+        <svg class="pto-ide-frame__rail-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+      </button>
+      <button class="btn btn-icon btn-ghost pto-ide-frame__rail-button" type="button" aria-label="Source control" title="Source control">
+        <svg class="pto-ide-frame__rail-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="18" r="3"></circle><circle cx="6" cy="6" r="3"></circle><path d="M13 6h3a2 2 0 0 1 2 2v7"></path><path d="M6 9v12"></path></svg>
+      </button>
+      <button class="btn btn-icon btn-ghost pto-ide-frame__rail-button" type="button" aria-label="Terminal" title="Terminal">
+        <svg class="pto-ide-frame__rail-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="m7 9 3 3-3 3"></path><path d="M12 15h5"></path></svg>
+      </button>
+    </nav>
     <div class="pto-ide-frame__workarea">
-      <div class="pto-ide-frame__split" data-ide-split="op-rank-vertical" data-split-direction="vertical" data-sizes="60,40" data-min-size="280,200">
+      <div class="pto-ide-frame__split" data-ide-split="op-rank-vertical" data-storage-key="pangu-moe-trainviz-vertical-v1" data-split-direction="vertical" data-sizes="60,40" data-min-size="280,200">
 
         <section class="pto-ide-frame__pane pto-ide-frame__pane--stack" data-ide-pane="stage-row">
-          <div class="pto-ide-frame__split" data-ide-split="standalone-main" data-split-direction="horizontal" data-sizes="72,28" data-min-size="380,260">
+          <div class="pto-ide-frame__split" data-ide-split="standalone-main" data-storage-key="pangu-moe-trainviz-main-v1" data-split-direction="horizontal" data-sizes="18,56,26" data-pixel-sizes="280" data-min-size="220,380,260">
+
+            <aside id="pangu-explorer-pane" class="pto-ide-frame__pane pto-ide-frame__explorer" data-ide-pane="explorer" aria-hidden="false">
+              <header class="pto-ide-frame__pane-header">
+                <span class="pto-ide-frame__pane-title">Explorer</span>
+                <span class="pto-ide-frame__pane-meta">PANGU</span>
+              </header>
+              <div class="pto-ide-frame__pane-body opv-explorer">
+                <div class="opv-explorer-root">PANGU-MOE-TRAINVIZ</div>
+                <div class="opv-tree" aria-label="Pangu model files">
+                  <div class="opv-tree-row is-open" style="--depth:0"><span class="opv-tree-caret"></span><span class="opv-tree-icon opv-tree-icon--folder"></span><span class="opv-tree-name">data</span></div>
+                  <div class="opv-tree-row" style="--depth:1"><span class="opv-tree-spacer"></span><span class="opv-tree-icon opv-tree-icon--file"></span><span class="opv-tree-name">graph-ultramoe-718b.js</span><span class="opv-tree-badge">JS</span></div>
+                  <div class="opv-tree-row" style="--depth:1"><span class="opv-tree-spacer"></span><span class="opv-tree-icon opv-tree-icon--file"></span><span class="opv-tree-name">strict-1f1b-trace-sim.json</span><span class="opv-tree-badge">JSON</span></div>
+                  <div class="opv-tree-row" style="--depth:1"><span class="opv-tree-spacer"></span><span class="opv-tree-icon opv-tree-icon--file"></span><span class="opv-tree-name">timeseries.js</span><span class="opv-tree-badge">JS</span></div>
+                  <div class="opv-tree-row is-open" style="--depth:0"><span class="opv-tree-caret"></span><span class="opv-tree-icon opv-tree-icon--folder"></span><span class="opv-tree-name">js</span></div>
+                  <div class="opv-tree-row" style="--depth:1"><span class="opv-tree-spacer"></span><span class="opv-tree-icon opv-tree-icon--file"></span><span class="opv-tree-name">analysis-data.js</span><span class="opv-tree-badge">JS</span></div>
+                  <div class="opv-tree-row" style="--depth:1"><span class="opv-tree-spacer"></span><span class="opv-tree-icon opv-tree-icon--file"></span><span class="opv-tree-name">analysis-dock.js</span><span class="opv-tree-badge">JS</span></div>
+                  <div class="opv-tree-row" style="--depth:1"><span class="opv-tree-spacer"></span><span class="opv-tree-icon opv-tree-icon--file"></span><span class="opv-tree-name">training-metrics-chart.js</span><span class="opv-tree-badge">JS</span></div>
+                  <div class="opv-tree-row is-active" style="--depth:0"><span class="opv-tree-spacer"></span><span class="opv-tree-icon opv-tree-icon--file"></span><span class="opv-tree-name">op-rank-time.html</span><span class="opv-tree-badge">HTML</span></div>
+                  <div class="opv-tree-row" style="--depth:0"><span class="opv-tree-spacer"></span><span class="opv-tree-icon opv-tree-icon--file"></span><span class="opv-tree-name">pangu-palette.js</span><span class="opv-tree-badge">JS</span></div>
+                  <div class="opv-tree-row is-muted" style="--depth:0"><span class="opv-tree-spacer"></span><span class="opv-tree-icon opv-tree-icon--file"></span><span class="opv-tree-name">SPEC-op-rank-time-A.md</span><span class="opv-tree-badge">MD</span></div>
+                </div>
+              </div>
+            </aside>
 
             <section class="pto-ide-frame__pane" data-ide-pane="editor-preview">
               <div class="pto-ide-frame__pane-body opv-stage">
@@ -634,9 +698,32 @@
         </section>
 
       </div>
-      <footer class="pto-ide-frame__status-strip">
-        <span id="statusLeft">—</span>
-        <span id="statusRight">—</span>
+      <footer class="pto-ide-frame__status-strip pto-ide-frame__standalone-chrome" data-ide-slot="status" aria-label="IDE status">
+        <div class="ide-status">
+          <div class="ide-status__group ide-status__group--left">
+            <span class="ide-status__item" title="Errors">
+              <svg class="ide-status__icon ide-status__icon--solid" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m15 9-6 6" stroke="var(--ide-frame-bg)" stroke-width="2.4" stroke-linecap="round"></path><path d="m9 9 6 6" stroke="var(--ide-frame-bg)" stroke-width="2.4" stroke-linecap="round"></path></svg>
+              <span>0</span>
+            </span>
+            <span class="ide-status__item" title="Warnings">
+              <svg class="ide-status__icon ide-status__icon--solid" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 22 20H2L12 3Z"></path><path d="M12 8v6" stroke="var(--ide-frame-bg)" stroke-width="2.2" stroke-linecap="round"></path><path d="M12 17.2h.01" stroke="var(--ide-frame-bg)" stroke-width="3" stroke-linecap="round"></path></svg>
+              <span>0</span>
+            </span>
+            <span class="ide-status__item" title="IDE Panel">
+              <svg class="ide-status__icon ide-status__icon--solid" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v13H4z"></path><path d="M8 8v5" stroke="var(--ide-frame-bg)" stroke-width="2" stroke-linecap="round"></path><path d="M12 10v3" stroke="var(--ide-frame-bg)" stroke-width="2" stroke-linecap="round"></path><path d="M16 6v7" stroke="var(--ide-frame-bg)" stroke-width="2" stroke-linecap="round"></path><path d="M8 21h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg>
+            </span>
+            <span class="ide-status__item ide-status__item--dynamic" id="statusLeft">—</span>
+          </div>
+          <div class="ide-status__group ide-status__group--right">
+            <span class="ide-status__item ide-status__item--dynamic" id="statusRight">—</span>
+            <span class="ide-status__item">UTF-8</span>
+            <span class="ide-status__item">LF</span>
+            <span class="ide-status__item" title="Language tools">{ }</span>
+            <span class="ide-status__item">Markdown</span>
+            <span class="ide-status__item ide-status__item--disabled">CUE</span>
+            <span class="ide-status__item" title="Notifications"><svg class="ide-status__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg></span>
+          </div>
+        </div>
       </footer>
     </div>
   </div>
@@ -767,6 +854,7 @@ try{
     {id:'d1p3',dp:1,stage:3,label:'D1 · PP3',rankRange:'28-31'}
   ],ticks:[{tick:0,region:'steady',stages:{0:{phase:'F',micro:0,layerRange:[0,12],opFocus:{layer:4,step:'mla'},stepIndex:1,stepTotal:13,label:'F m0 · L0-L12',dependsOn:['input'],produces:['hidden'],explain:'Fallback simulated frame.'},1:{phase:'F',micro:0,layerRange:[13,25],opFocus:{layer:13,step:'gate'},stepIndex:1,stepTotal:13,label:'F m0 · L13-L25',dependsOn:['hidden'],produces:['hidden'],explain:'Fallback simulated frame.'},2:{phase:'F',micro:0,layerRange:[26,37],opFocus:{layer:26,step:'experts'},stepIndex:1,stepTotal:12,label:'F m0 · L26-L37',dependsOn:['hidden'],produces:['hidden'],explain:'Fallback simulated frame.'},3:{phase:'B',micro:0,layerRange:[38,49],opFocus:{layer:49,step:'lm_head'},stepIndex:12,stepTotal:12,label:'B m0 · L49-L38',dependsOn:['loss'],produces:['grad'],explain:'Fallback simulated frame.'}}}]};
 }
+document.getElementById('traceMeta').textContent=`${TRACE.fidelity} · ${TRACE.config.schedule||'simulated schedule'} · ${TRACE.ticks.length} ticks`;
 
 /* 播放控制 / 状态条 DOM 引用（在 IDE frame 段赋值，此处先声明避免 TDZ） */
 let pbOpname=null,pbCounter=null,pbScrubber=null,statusLeft=null,statusRight=null;
@@ -796,9 +884,9 @@ function refreshAfterInspectorToggle(){
   requestAnimationFrame(()=>{
     if(threeSceneReady&&typeof sizeRenderer==='function')sizeRenderer();
     if(threeSceneReady&&typeof resizeAxisRenderer==='function')resizeAxisRenderer();
-    if(typeof renderSwimlane==='function')renderSwimlane();
+    if(threeSceneReady&&typeof renderSwimlane==='function')renderSwimlane();
     analysisDockController?.resize?.();
-    if(typeof redraw==='function')redraw();
+    if(threeSceneReady&&typeof redraw==='function')redraw();
   });
 }
 function setAnalysisDockOpen(open){
@@ -898,108 +986,11 @@ const MODEL_CONFIG={
   demoParallel:{dp:2,pp:4,tp:2,ep:2,cp:1,vpp:1},
 };
 const DEMO=MODEL_CONFIG.demoParallel;
+const DEMO_STAGE_RANGES=Array.from(
+  {length:DEMO.pp},
+  (_,stage)=>TRACE.config.stageRanges?.[stage]||TRACE.config.stageRanges?.[String(stage)]||[0,0]
+);
 const rankOf=(dp,stage,tp,ep=0)=>(((dp*DEMO.pp+stage)*DEMO.tp+tp)*DEMO.ep+ep);
-function buildDemoStageRanges(totalLayers,pp){
-  const base=Math.floor(totalLayers/pp);
-  const extra=totalLayers%pp;
-  let lo=0;
-  return Array.from({length:pp},(_,stage)=>{
-    const span=base+(stage<extra?1:0);
-    const range=[lo,lo+span-1];
-    lo+=span;
-    return range;
-  });
-}
-const DEMO_STAGE_RANGES=buildDemoStageRanges(MODEL_CONFIG.hiddenLayers,DEMO.pp);
-function traceStageRangesMatchDemo(trace){
-  const cfg=trace?.config||{};
-  const ranges=cfg.stageRanges||{};
-  return cfg.dp===DEMO.dp&&cfg.pp===DEMO.pp&&cfg.tp===DEMO.tp&&(cfg.ep??DEMO.ep)===DEMO.ep&&
-    DEMO_STAGE_RANGES.every(([lo,hi],stage)=>{
-      const r=ranges[stage]||ranges[String(stage)];
-      return Array.isArray(r)&&r[0]===lo&&r[1]===hi;
-    });
-}
-function demoStepForLayer(layer,stage,tickIndex){
-  if(layer<MODEL_CONFIG.firstMoeLayer)return 'dense';
-  const steps=['mla','gate','a2a_dispatch','experts','a2a_combine','moe_residual'];
-  return steps[(tickIndex+stage)%steps.length];
-}
-function makeDemoStageCell(stage,tickIndex,region='steady'){
-  const [lo,hi]=DEMO_STAGE_RANGES[stage]||[0,0];
-  const span=Math.max(1,hi-lo+1);
-  const phase=(tickIndex+stage)%4===3?'B':'F';
-  const offset=(tickIndex+stage*3)%span;
-  const layer=phase==='B'?hi-offset:lo+offset;
-  const step=stage===DEMO.pp-1&&phase==='B'&&offset===0?'lm_head':demoStepForLayer(layer,stage,tickIndex);
-  const micro=tickIndex%(TRACE?.config?.microbatches||8);
-  const label=`${phase} m${micro} · ${phase==='B'?`L${hi}-L${lo}`:`L${lo}-L${hi}`}`;
-  const comm=stage>0&&phase==='F'?'pp':(stage<DEMO.pp-1&&phase==='B'?'pp':undefined);
-  return {
-    phase,micro,layerRange:[lo,hi],
-    opFocus:{layer,step},
-    stepIndex:Math.min(span,offset+1),
-    stepTotal:span,
-    label,
-    ...(comm?{comm}:{}),
-    dependsOn:stage>0&&phase==='F'?[`hidden:D*:m${micro}:PP${stage-1}_to_PP${stage}`]:['input'],
-    produces:stage<DEMO.pp-1?[`hidden:D*:m${micro}:PP${stage}_to_PP${stage+1}`]:['loss'],
-    explain:`Demo trace normalized for ${MODEL_CONFIG.displayName}: PP${stage} owns L${lo}-L${hi}.`
-  };
-}
-function normalizeDemoStageCell(raw,stage,tickIndex,forceSynthetic){
-  if(forceSynthetic||!raw||raw.phase==='bubble')return makeDemoStageCell(stage,tickIndex);
-  const [lo,hi]=DEMO_STAGE_RANGES[stage]||[0,0];
-  const next={...raw,layerRange:[lo,hi]};
-  const rawLayer=raw.opFocus?.layer;
-  const layer=typeof rawLayer==='number'?Math.min(hi,Math.max(lo,rawLayer)):lo;
-  const step=raw.opFocus?.step||demoStepForLayer(layer,stage,tickIndex);
-  next.opFocus={...(raw.opFocus||{}),layer,step};
-  next.stepTotal=Math.max(1,hi-lo+1);
-  if(!next.label||/L\d+-L\d+/.test(next.label)){
-    next.label=`${next.phase||'F'} m${next.micro??0} · L${lo}-L${hi}`;
-  }
-  return next;
-}
-function normalizeTraceForDemo(trace){
-  const forceSynthetic=!traceStageRangesMatchDemo(trace);
-  const sourceTicks=Array.isArray(trace?.ticks)&&trace.ticks.length?trace.ticks:[{tick:0,region:'steady',stages:{}}];
-  const stageRanges=Object.fromEntries(DEMO_STAGE_RANGES.map((range,stage)=>[stage,range]));
-  const lanes=[];
-  for(let dp=0;dp<DEMO.dp;dp++){
-    for(let stage=0;stage<DEMO.pp;stage++){
-      lanes.push({
-        id:`d${dp}p${stage}`,
-        dp,stage,
-        label:`D${dp} · PP${stage}`,
-        rankRange:`${rankOf(dp,stage,0,0)}-${rankOf(dp,stage,DEMO.tp-1,DEMO.ep-1)}`
-      });
-    }
-  }
-  const ticks=sourceTicks.map((tick,tickIndex)=>{
-    const stages={};
-    for(let stage=0;stage<DEMO.pp;stage++){
-      const raw=tick.stages?.[String(stage)]||tick.stages?.[stage];
-      stages[stage]=normalizeDemoStageCell(raw,stage,tickIndex,forceSynthetic);
-    }
-    return {...tick,stages};
-  });
-  return {
-    ...trace,
-    fidelity:forceSynthetic?`${trace?.fidelity||'schedule-simulated'} · normalized-to-72B-PP4`:trace?.fidelity,
-    config:{
-      ...(trace?.config||{}),
-      dp:DEMO.dp,pp:DEMO.pp,tp:DEMO.tp,ep:DEMO.ep,cp:DEMO.cp,
-      schedule:forceSynthetic?'normalized demo 1F1B schedule':(trace?.config?.schedule||'simulated schedule'),
-      stageRanges
-    },
-    lanes,
-    ticks,
-    defaultTick:Math.max(0,Math.min(ticks.length-1,trace?.defaultTick??0))
-  };
-}
-TRACE=normalizeTraceForDemo(TRACE);
-document.getElementById('traceMeta').textContent=`${TRACE.fidelity} · ${TRACE.config.schedule||'simulated schedule'} · ${TRACE.ticks.length} ticks`;
 const localRankOf=(tp,ep=0)=>tp*DEMO.ep+ep;
 const epLabel=ep=>`EP${ep} (${ep+1}/${DEMO.ep})`;
 const tpLabel=tp=>`TP${tp} (${tp+1}/${DEMO.tp})`;
@@ -4184,7 +4175,24 @@ function syncPlaybackToStep(){
 }
 
 const frameEl=document.querySelector('[data-ide-frame]');
+function initIdeCursorTracking(frame){
+  if(!frame)return;
+  const resetCursor=()=>{
+    frame.style.setProperty('--ide-cursor-alpha','0');
+    frame.style.setProperty('--ide-dot-opacity','0');
+  };
+  frame.addEventListener('pointermove',event=>{
+    const rect=frame.getBoundingClientRect();
+    frame.style.setProperty('--ide-cursor-x',`${Math.max(0,event.clientX-rect.left)}px`);
+    frame.style.setProperty('--ide-cursor-y',`${Math.max(0,event.clientY-rect.top)}px`);
+    frame.style.setProperty('--ide-cursor-alpha','0.14');
+    frame.style.setProperty('--ide-dot-opacity','0.5');
+  });
+  frame.addEventListener('pointerleave',resetCursor);
+  resetCursor();
+}
 window.PtoIdeFrame?.init?.(frameEl);
+initIdeCursorTracking(frameEl);
 
 const FPC=window.PtoFloatingPlaybackControl;
 const pbMount=document.getElementById('playbackMount');
@@ -4242,6 +4250,7 @@ if(window.ResizeObserver){
 }
 sizeRenderer();
 threeSceneReady=true;
+refreshAfterInspectorToggle();
 
 /* ===== 交互 ===== */
 let dragging=false,lx=0,ly=0,moved=false;

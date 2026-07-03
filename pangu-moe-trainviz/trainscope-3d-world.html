@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TrainScope 3D World · Rank Grid 与模型映射</title>
+  <script>
+    (() => {
+      const stored = window.localStorage && window.localStorage.getItem('trainscope-3d-world-theme');
+      if (stored === 'light' || stored === 'dark') document.documentElement.dataset.theme = stored;
+    })();
+  </script>
+  <link rel="stylesheet" href="../vendor/pto-design-system/tokens/foundation.css">
+  <link rel="stylesheet" href="../vendor/pto-design-system/tokens/semantic.css">
+  <link rel="stylesheet" href="../vendor/pto-design-system/tokens/components.css">
+  <link rel="stylesheet" href="../vendor/pto-design-system/css/style.css">
+  <link rel="stylesheet" href="../vendor/pto-design-system/patterns/floating-playback-control/pattern.css">
+  <link rel="stylesheet" href="css/3d-world.css">
+</head>
+<body class="ts3d-page pto-floating-playback-pattern-page" data-inspector="open" data-phase="forward">
+  <div class="ts3d-app">
+    <header class="layout-header ts3d-header">
+      <div class="layout-header-left">
+        <div class="layout-header-brand ts3d-brand">
+          <span class="layout-header-dot" aria-hidden="true"></span>
+          <span>TrainScope 3D World</span>
+        </div>
+        <div class="ts3d-title-copy">
+          <strong>openPangu-Ultra-MoE-718B</strong>
+          <span>XY rank placement · Z model block depth · runtime trace playback</span>
+        </div>
+      </div>
+      <div class="layout-header-right ts3d-actions">
+        <button class="btn btn-ghost btn-icon" type="button" id="infoBtn" aria-label="打开信息面板" title="信息">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+        </button>
+        <button class="btn btn-ghost btn-icon" type="button" id="settingsBtn" aria-label="打开设置面板" title="设置">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 15.5A3.5 3.5 0 1 0 12 8a3.5 3.5 0 0 0 0 7.5Z"></path><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06A2 2 0 1 1 7.04 4.3l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.08a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.12.37.39.68.73.86.23.1.48.14.73.14H21a2 2 0 1 1 0 4h-.09c-.63 0-1.2.36-1.51 1Z"></path></svg>
+        </button>
+        <div class="segmented-control segmented-control-muted" role="group" aria-label="视角">
+          <button class="btn btn-ghost is-selected" type="button" data-view="world">World</button>
+          <button class="btn btn-ghost" type="button" data-view="top">Top</button>
+          <button class="btn btn-ghost" type="button" data-view="front">Front</button>
+          <button class="btn btn-ghost" type="button" data-view="right">Right</button>
+        </div>
+        <button class="btn btn-ghost btn-icon" type="button" id="themeBtn" aria-label="切换明暗主题" title="明暗主题">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9Z"></path></svg>
+        </button>
+      </div>
+    </header>
+
+    <main class="ts3d-main">
+      <aside class="panel-shell panel-shell-quiet ts3d-model-rail" aria-label="模型结构与参数轴">
+        <div class="panel-shell-header">
+          <div>
+            <div class="panel-shell-meta">logical model</div>
+            <div class="panel-shell-title">模型结构轴</div>
+          </div>
+          <a class="btn btn-ghost btn-sm" href="architecture-718b.html" target="_blank" rel="noreferrer">2D DAG</a>
+        </div>
+        <div class="panel-shell-body ts3d-model-body">
+          <section class="ts3d-metric-grid" aria-label="模型配置">
+            <div><strong>61</strong><span>blocks</span></div>
+            <div><strong>58</strong><span>MoE</span></div>
+            <div><strong>256</strong><span>experts</span></div>
+            <div><strong>top-8</strong><span>routing</span></div>
+          </section>
+
+          <section class="ts3d-block-section">
+            <div class="ts3d-section-kicker">Z axis · block depth</div>
+            <div class="ts3d-block-lattice" id="blockLattice" aria-label="61 个模型 block"></div>
+            <div class="ts3d-block-legend">
+              <span><i class="is-dense"></i>Dense 0-2</span>
+              <span><i class="is-moe"></i>MoE 3-60</span>
+              <span><i class="is-selected"></i>selected PP range</span>
+            </div>
+          </section>
+
+          <section class="ts3d-map-card" id="placementSummary">
+            <div class="ts3d-section-kicker">placement map</div>
+            <h2>rank_299</h2>
+            <p>DP2 / PP5 / TP3 / CP0 / EP19</p>
+            <dl>
+              <div><dt>PP stage</dt><dd>Blocks 20-23</dd></div>
+              <div><dt>TP shard</dt><dd>4 / 8</dd></div>
+              <div><dt>EP bucket</dt><dd>E152-E159</dd></div>
+            </dl>
+          </section>
+
+          <section class="ts3d-map-card ts3d-map-card-soft">
+            <div class="ts3d-section-kicker">static vs runtime</div>
+            <p>Weight / parameter ownership 是静态驻留；activation、gradient、token routing、通信 bytes 是 runtime trace。</p>
+          </section>
+        </div>
+      </aside>
+
+      <section class="ts3d-stage" aria-label="3D rank placement world">
+        <div class="ts3d-stage-bar">
+          <div class="ts3d-stage-title">
+            <strong>Rank Grid Top View · sample window</strong>
+            <span>full config DP32 / PP16 / CP1 / TP8 / EP32；当前窗口显示 DP2-3 × PP5-6 × TP0-7</span>
+          </div>
+          <div class="ts3d-stage-controls">
+            <div class="segmented-control segmented-control-muted" role="group" aria-label="overlay toggles">
+              <button class="btn btn-ghost is-selected" type="button" data-overlay="tp">TP</button>
+              <button class="btn btn-ghost is-selected" type="button" data-overlay="dp">DP</button>
+              <button class="btn btn-ghost is-selected" type="button" data-overlay="pp">PP</button>
+              <button class="btn btn-ghost is-selected" type="button" data-overlay="ep">EP</button>
+              <button class="btn btn-ghost is-selected" type="button" data-overlay="runtime">Runtime</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="ts3d-world-shell">
+          <div class="ts3d-world-hud">
+            <span class="stat-chip">rank tile = runtime process</span>
+            <span class="stat-chip">node slab = aggregated traffic</span>
+            <span class="stat-chip">Z stack = blocks 0-60</span>
+          </div>
+          <div class="ts3d-world-camera" id="worldCamera">
+            <div class="ts3d-world-plane" id="worldPlane" aria-label="可拖拽旋转的 rank grid">
+              <svg class="ts3d-world-links" id="worldLinks" viewBox="0 0 900 570" aria-hidden="true"></svg>
+              <div class="ts3d-axis ts3d-axis-x" data-tip-title="X axis · TP / PP lens" data-tip-body="当前窗口横向放置 PP5 到 PP6，并在每个 node 内展开 TP0-7 rank tiles。X 不是固定物理轴，而是当前 placement lens。">
+                <span>X · PP / TP</span>
+              </div>
+              <div class="ts3d-axis ts3d-axis-y" data-tip-title="Y axis · DP replica lens" data-tip-body="纵向放置 DP2 到 DP3。DP replica 拥有同构模型 shard，处理不同 batch shard，并在 backward 中做梯度同步。">
+                <span>Y · DP replica</span>
+              </div>
+              <div class="ts3d-z-stack" id="zStack" data-tip-title="Z axis · model block depth" data-tip-body="Z 轴表达模型 block 深度。PP stage 是 Z 上连续 block range；rank tile 只覆盖自己 PP stage 对应的 blocks。"></div>
+              <div id="nodeLayer" class="ts3d-node-layer"></div>
+              <div id="rankLayer" class="ts3d-rank-layer"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ts3d-projections">
+          <section class="panel-shell panel-shell-quiet ts3d-projection-card" data-projection="front">
+            <div class="ts3d-projection-head">
+              <strong>Front View · X/Z</strong>
+              <span>fixed DP slice, TP × PP stage</span>
+            </div>
+            <svg id="frontView" viewBox="0 0 520 210" role="img" aria-label="正视图 X/Z wireframe"></svg>
+          </section>
+          <section class="panel-shell panel-shell-quiet ts3d-projection-card" data-projection="right">
+            <div class="ts3d-projection-head">
+              <strong>Right View · Y/Z</strong>
+              <span>DP replicas × PP stage</span>
+            </div>
+            <svg id="rightView" viewBox="0 0 520 210" role="img" aria-label="右视图 Y/Z wireframe"></svg>
+          </section>
+        </div>
+      </section>
+
+      <aside class="panel-shell ts3d-inspector" id="inspectorPanel" aria-label="Inspector">
+        <div class="panel-shell-header">
+          <div>
+            <div class="panel-shell-meta">selection</div>
+            <div class="panel-shell-title">Inspector</div>
+          </div>
+          <button class="btn btn-ghost btn-icon panel-shell-close" type="button" id="closeInspector" aria-label="关闭 Inspector">
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+          </button>
+        </div>
+        <div class="panel-shell-body ts3d-inspector-body" id="inspectorBody"></div>
+      </aside>
+    </main>
+  </div>
+
+  <section class="panel-shell ts3d-popover ts3d-info-panel" id="infoPanel" hidden>
+    <div class="panel-shell-header">
+      <div>
+        <div class="panel-shell-meta">source boundary</div>
+        <div class="panel-shell-title">页面语义</div>
+      </div>
+      <button class="btn btn-ghost btn-icon panel-shell-close" type="button" data-close-panel="infoPanel" aria-label="关闭信息面板">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+      </button>
+    </div>
+    <div class="panel-shell-body ts3d-popover-body">
+      <p>这个页面把 `ub-fabric-reference` 的 node/card 分层方式改成 rank placement 视图：方块是 rank，node slab 聚合跨节点通信，Z stack 表达模型 block 深度。</p>
+      <p>Runtime 需要播放按钮。播放控制代表 step / micro-batch 中动态发生的 activation、MoE dispatch、expert compute、backward、DP sync；静态 topology 不随播放改变。</p>
+      <div class="ts3d-source-list">
+        <span>official config: 61 blocks, Dense×3 + MoE×58, 256 routed experts, top-8</span>
+        <span>demo placement: DP32 / PP16 / CP1 / TP8 / EP32</span>
+        <span>runtime trace: synthetic overlay for interaction prototype</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel-shell ts3d-popover ts3d-settings-panel" id="settingsPanel" hidden>
+    <div class="panel-shell-header">
+      <div>
+        <div class="panel-shell-meta">camera</div>
+        <div class="panel-shell-title">视角设置</div>
+      </div>
+      <button class="btn btn-ghost btn-icon panel-shell-close" type="button" data-close-panel="settingsPanel" aria-label="关闭设置面板">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+      </button>
+    </div>
+    <div class="panel-shell-body ts3d-popover-body">
+      <label class="ts3d-slider">Yaw <input id="yawSlider" type="range" min="-90" max="10" value="-36"></label>
+      <label class="ts3d-slider">Pitch <input id="pitchSlider" type="range" min="38" max="72" value="58"></label>
+      <label class="ts3d-slider">Zoom <input id="zoomSlider" type="range" min="70" max="128" value="96"></label>
+      <button class="btn btn-ghost" type="button" id="resetCameraBtn">Reset camera</button>
+    </div>
+  </section>
+
+  <div class="ts3d-tip" id="tip" role="tooltip">
+    <strong id="tipTitle"></strong>
+    <span id="tipBody"></span>
+  </div>
+
+  <div id="playbackMount"></div>
+
+  <script src="../vendor/pto-design-system/patterns/floating-playback-control/pattern.js"></script>
+  <script src="js/3d-world.js"></script>
+</body>
+</html>

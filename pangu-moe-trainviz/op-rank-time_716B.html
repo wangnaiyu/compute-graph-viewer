@@ -156,10 +156,6 @@
   .opv-object-btn.is-active{background:#4f6df6;border-color:#4f6df6;color:#fff}
   [data-ide-pane="analysis-dock"]>.pto-ide-frame__pane-header{display:flex;align-items:center;gap:8px}
   .opv-comm-toggle{margin-left:auto;flex:none}
-  /* Monitor 抽屉右上角：smoothing 滑条 */
-  .opv-smooth{display:inline-flex;align-items:center;gap:8px;font:var(--text-label);color:var(--foreground-muted);white-space:nowrap}
-  .opv-smooth input[type=range]{width:120px;height:18px;margin:0;accent-color:#4f6df6;cursor:pointer}
-  .opv-smooth output{min-width:30px;text-align:right;font-family:var(--font-mono);font-size:11px;color:var(--foreground-secondary)}
   :root[data-theme='light'] .opv-zoom-control{background:rgba(255,255,255,.86);border-color:rgba(15,15,16,.14)}
   :root[data-theme='light'] .opv-zoom-btn{color:#0f0f10;background:rgba(15,15,16,.06)}
   :root[data-theme='light'] .opv-zoom-value{color:#0f0f10}
@@ -187,7 +183,7 @@
   .opv-analysis-panel{position:absolute;inset:0;min-height:0}
   .opv-analysis-panel[hidden]{display:none}
   .opv-analysis-view{height:100%;display:flex;flex-direction:column;gap:8px;padding:8px 10px;min-height:0}
-  .opv-analysis-stats{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;flex:none}
+  .opv-analysis-stats{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;flex:none}
   .opv-analysis-stat{min-width:0;border:1px solid var(--border-subtle);border-radius:var(--radius-md);
     background:color-mix(in srgb,var(--foreground) 4%,transparent);padding:7px 9px}
   .opv-analysis-stat span{display:block;font:var(--text-label);color:var(--foreground-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -198,31 +194,6 @@
   .opv-analysis-chip.is-active{background:var(--state-selected);border-color:var(--primary);color:var(--foreground)}
   .opv-analysis-grid-wrap{position:relative;display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:8px;min-height:0;flex:1}
   .opv-moe-heatmap,.opv-load-bars{display:block;width:100%;height:100%;border:1px solid var(--border-subtle);
-    border-radius:var(--radius-md);background:color-mix(in srgb,var(--foreground) 2.5%,transparent)}
-  /* MoE Load · Distribution 面积堆叠图 */
-  .opv-analysis-tooltip.opv-dist-tip{width:auto;max-width:340px}
-  .opv-dist-tip-grid{display:grid;grid-template-columns:repeat(4,auto);gap:2px 10px;margin-top:5px}
-  .opv-dist-tip-grid span{display:inline-flex;align-items:center;gap:4px;font:10px/1.35 var(--font-mono);color:var(--foreground-secondary);white-space:nowrap}
-  .opv-dist-tip-grid i{width:8px;height:8px;border-radius:2px;flex:none}
-  .opv-moe-dist-wrap{position:relative;flex:1;min-height:0;display:flex;flex-direction:column}
-  .opv-chart-body{position:relative;flex:1;min-height:0}
-  /* 标题浮在图表卡片内左上角（不占布局，画布已预留顶部留白） */
-  .opv-chart-head{position:absolute;top:8px;left:12px;z-index:6;display:flex;align-items:center;gap:6px}
-  .opv-chart-title{font:var(--text-label);color:var(--foreground-secondary);white-space:nowrap}
-  .opv-chart-help{flex:none;width:16px;height:16px;display:grid;place-items:center;padding:0;
-    border:1px solid var(--border-subtle);border-radius:50%;background:var(--surface-3);color:var(--foreground-muted);
-    font:700 10px/1 var(--font-sans);cursor:pointer;transition:color var(--duration-fast),border-color var(--duration-fast)}
-  .opv-chart-help:hover{color:var(--foreground);border-color:var(--border-strong)}
-  /* 说明气泡：fixed + portal 到 body（避开抽屉堆叠上下文，压过 play 悬浮栏）+ JS 钳制在视口内 */
-  .opv-chart-pop{position:fixed;z-index:1000;width:340px;
-    padding:12px 13px;border:1px solid var(--border-strong);border-radius:var(--radius-md);background:var(--surface-3);box-shadow:var(--shadow-md)}
-  .opv-chart-pop[hidden]{display:none}
-  .opv-chart-pop h4{margin:0 0 7px;font:var(--text-title-2);font-size:13px;color:var(--foreground)}
-  .opv-chart-pop h5{margin:9px 0 3px;font:800 11px/1.3 var(--font-sans);color:var(--foreground)}
-  .opv-chart-pop p{margin:0 0 6px;font:var(--text-body-sm);color:var(--foreground-secondary);line-height:1.5}
-  .opv-chart-pop code{font:var(--text-mono);font-size:11px;color:var(--foreground)}
-  .opv-chart-pop b{color:var(--foreground)}
-  .opv-moe-dist{display:block;width:100%;height:100%;border:1px solid var(--border-subtle);
     border-radius:var(--radius-md);background:color-mix(in srgb,var(--foreground) 2.5%,transparent)}
   .opv-analysis-detail{border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:color-mix(in srgb,var(--foreground) 3.5%,transparent);padding:10px;overflow:auto}
   .opv-analysis-detail-title{font:var(--text-title-2);font-size:13px;color:var(--foreground);margin-bottom:8px}
@@ -365,7 +336,7 @@
   #tip .t-desc{color:var(--foreground);margin-top:6px}
 
   /* Loss 趋势 tab：复用 training-metrics-chart pattern（scope .pto-tmchart*） */
-  .opv-loss-view{height:100%;display:flex;flex-direction:column;gap:10px;padding:16px var(--space-6) var(--space-4);min-height:0;overflow:auto}
+  .opv-loss-view{height:100%;display:flex;flex-direction:column;gap:10px;padding:var(--space-5) var(--space-6) var(--space-4);min-height:0;overflow:auto}
   .opv-loss-readout{flex:none;display:flex;align-items:center;gap:10px;font:var(--text-body-sm);color:var(--foreground-secondary)}
   .opv-loss-readout b{color:var(--foreground);font-family:var(--font-mono)}
   .opv-loss-readout .regime{height:20px;padding:0 9px;display:inline-flex;align-items:center;border-radius:var(--radius-pill);
@@ -374,36 +345,13 @@
   .opv-loss-readout .regime[data-regime="fault"]{background:#d08312}
   .opv-loss-readout .regime[data-regime="collapse"]{background:var(--danger)}
   .opv-loss-chart-wrap{flex:1;min-height:0;width:100%}
-  /* Monitor 视图：左 1/4 train/val loss 图 + 右 3 个指标卡片 */
-  :root{--monitor-valacc:#ec4899}  /* val acc 专用色（玫红），与 train acc 的绿色及其它指标都不同 */
-  .opv-monitor-row{display:flex;gap:10px;flex:1;min-height:0}
-  .opv-monitor-chart{flex:0 0 25%;max-width:25%;min-width:0;min-height:0;display:flex;flex-direction:column}
-  .opv-monitor-cards{flex:1;min-width:0;min-height:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
-  .opv-monitor-card{display:flex;flex-direction:column;gap:6px;min-width:0;min-height:0;padding:10px;overflow:hidden;
-    border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:color-mix(in srgb,var(--foreground) 3%,transparent)}
-  /* 卡片内自绘图例（loss / acc）：紧凑一行，固定在卡片头部下方 */
-  .opv-monitor-legend{flex:none;display:flex;flex-wrap:wrap;gap:3px 10px}
-  .opv-monitor-legend span{display:inline-flex;align-items:center;gap:5px;font:var(--text-label);color:var(--foreground-secondary);white-space:nowrap}
-  .opv-monitor-legend i{width:12px;height:3px;border-radius:2px;flex:none}
-  .opv-monitor-card__head{display:flex;align-items:baseline;gap:6px}
-  .opv-monitor-card__name{font:var(--text-label);color:var(--foreground-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  /* 标题下方一行：左=结果值，右=图例 */
-  .opv-monitor-card__sub{flex:none;display:flex;align-items:baseline;justify-content:space-between;gap:8px}
-  .opv-monitor-card__val{font:var(--text-mono);font-size:13px;font-weight:700;color:var(--foreground);flex:none}
-  .opv-monitor-card__note{font:var(--text-label);font-size:9px;color:var(--foreground-muted);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .opv-monitor-card__chart{flex:1;min-height:0;width:100%}
-  @media (max-width:920px){
-    .opv-monitor-row{flex-direction:column}
-    .opv-monitor-chart{flex:0 0 auto;max-width:100%;height:160px}
-    .opv-monitor-cards{grid-template-columns:1fr}
-  }
   .pto-tmchart{position:relative;width:100%;font-family:var(--font-sans);user-select:none}
   .pto-tmchart__svg{display:block;width:100%;height:auto;overflow:visible}
   .pto-tmchart__grid line{stroke:var(--border-subtle);stroke-width:1}
   .pto-tmchart__axis line{stroke:var(--border-default);stroke-width:1}
   .pto-tmchart__axis text,.pto-tmchart__tick text{font-family:var(--font-mono);font-size:10px;fill:var(--foreground-muted)}
-  .pto-tmchart__line{fill:none;stroke-width:1;stroke-linejoin:round;stroke-linecap:round}
-  .pto-tmchart__line--emph{stroke-width:1.3}
+  .pto-tmchart__line{fill:none;stroke-width:1.75;stroke-linejoin:round;stroke-linecap:round}
+  .pto-tmchart__line--emph{stroke-width:2.25}
   .pto-tmchart__anomaly-band{fill:var(--danger);opacity:.10}
   .pto-tmchart__anomaly-dot{fill:var(--danger);stroke:var(--ide-frame-pane-bg);stroke-width:1.5}
   .pto-tmchart__brush{fill:var(--primary);opacity:.10}
@@ -411,11 +359,6 @@
   .pto-tmchart__cursor{stroke:var(--foreground-secondary);stroke-width:1;stroke-dasharray:3 3}
   .pto-tmchart__cursor-chip{fill:var(--surface-4);stroke:var(--border-strong);stroke-width:1}
   .pto-tmchart__cursor-chip-text{font-family:var(--font-mono);font-size:10px;fill:var(--foreground)}
-  .pto-tmchart__cursor-tip-bg{fill:var(--surface-4);stroke:var(--border-strong);stroke-width:1;filter:drop-shadow(0 4px 12px rgba(0,0,0,.28))}
-  .pto-tmchart__cursor-tip-step{font-family:var(--font-mono);font-size:10px;font-weight:700;fill:var(--foreground)}
-  .pto-tmchart__cursor-tip-val{font-family:var(--font-mono);font-size:10px;fill:var(--foreground-secondary)}
-  .pto-tmchart__cursor-tip-tag-bg{fill:var(--danger)}
-  .pto-tmchart__cursor-tip-tag{font-family:var(--font-sans);font-size:9px;font-weight:700;fill:#fff}
   .pto-tmchart__plot-hit{fill:transparent;cursor:crosshair}
   .pto-tmchart__legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:8px}
   .pto-tmchart__legend-item{display:inline-flex;align-items:center;gap:6px;font:var(--text-body-sm);color:var(--foreground-secondary)}
@@ -2525,96 +2468,13 @@ function dispatch(intent={}){
 const LOSS_SERIES=[
   {id:'train_loss',label:'train loss',key:'train_loss',colorVar:'--highlight-copy-blue-source',axis:'left'},
   {id:'val_loss',label:'val loss',key:'val_loss',colorVar:'--highlight-l0a-violet-source',axis:'left',emphasis:true},
+  {id:'eval_mmlu',label:'eval MMLU',key:'eval_mmlu',colorVar:'--highlight-ub-green-source',axis:'right'},
+  {id:'grad_norm',label:'grad norm',key:'grad_norm',colorVar:'--highlight-accum-orange-source',axis:'right'},
+  {id:'load_balance_loss',label:'load-balance loss',key:'load_balance_loss',colorVar:'--highlight-mte-amber-source',axis:'left'},
 ];
-/* Monitor 四图数据（副本内合成，不改共享 timeseries.js）：
-   健康区平稳趋势；进入路由坍缩区（s>=collapse）按需求做“先平稳→逐渐震荡→剧烈抖动→后期长期高/低位”。 */
-const EPOCH=50;  // 假设 1 epoch = 500 step；因本 demo 窗口仅 200 step，按比例缩到 50 step/epoch，使 val 在窗口内有 5 个点
-const MONITOR_DATA=(function(){
-  const steps=TS.steps, col=TS.collapseStep, s0=steps[0];
-  const rnd=(seed=>()=>(seed=(seed*9301+49297)%233280)/233280)(7919);
-  const train_loss=[],val_loss=[],train_acc=[],val_acc=[],mfu=[];
-  // 抖动包络：随 k 增大而增强（剧烈抖动）；ramp 饱和后进入“长期高/低位”
-  const N=(v)=>(rnd()-0.5)*2*v;
-  const r4=v=>+v.toFixed(4);
-  steps.forEach(s=>{
-    const t=s-s0;
-    const isEpoch=(s%EPOCH===0);   // val 仅在 epoch 边界（每 EPOCH step）评估一次
-    let tl,vl,ta,va;
-    if(s<col){
-      // 健康区：平稳趋势 + 每 step 小抖动（横向平稳带小波动）
-      const base=2.05-t*0.0015;
-      tl=base+N(0.020);
-      vl=base+0.06+N(0.025);
-      ta=Math.min(0.99,0.620+t*0.0010+N(0.004));
-      va=Math.min(0.99,0.600+t*0.0009+N(0.004));
-      mfu.push(r4(0.470+t*0.00015+N(0.012)));
-    }else{
-      const k=s-col;
-      const ramp=1-Math.exp(-k/22);   // 0→1 饱和：前期渐变、后期长期高/低位
-      // 抖动用“每 step 随机”而非平滑正弦 → 200 点逐点锯齿、细密剧烈
-      // loss：逐渐走高 + 每 step 剧烈抖动 → 后期长期高位
-      tl=Math.max(0.1,(2.00+2.6*ramp)+N(0.10+1.05*ramp));
-      vl=Math.max(0.1,(2.06+3.0*ramp)+N(0.12+1.35*ramp));
-      // acc：逐渐走低 + 每 step 剧烈抖动 → 后期长期低位
-      ta=Math.min(0.99,Math.max(0.05,(0.660-0.360*ramp)+N(0.020+0.13*ramp)));
-      va=Math.min(0.99,Math.max(0.04,(0.640-0.380*ramp)+N(0.025+0.16*ramp)));
-      // MFU：先小幅提升，后续持续走低 + 每 step 剧烈抖动
-      mfu.push(r4(Math.min(0.6,Math.max(0.03,(0.470+0.06*Math.exp(-k/3)-0.40*ramp)+N(0.020+0.14*ramp)))));
-    }
-    train_loss.push(r4(tl));
-    train_acc.push(r4(ta));
-    // val 仅在 epoch 边界有数据点，其余为 null（图表/气泡会跳过 null）
-    val_loss.push(isEpoch?r4(vl):null);
-    val_acc.push(isEpoch?r4(va):null);
-  });
-  return {train_loss,val_loss,train_acc,val_acc,mfu};
-})();
-// 路由坍缩区（四图统一的红色底色区间；label 用于悬浮气泡角标）
-const COLLAPSE_REGION=[{start:TS.collapseStep,end:TS.steps[TS.steps.length-1],label:'路由坍缩'}];
-const fmtPct=v=>v==null?'—':(v*100).toFixed(1)+'%';
-const MONITOR_CARDS=[
-  {id:'acc',name:'acc',legend:true,series:[
-    {id:'train_acc',label:'train acc',key:'train_acc',colorVar:'--highlight-ub-green-source'},
-    {id:'val_acc',label:'val acc',key:'val_acc',colorVar:'--monitor-valacc',emphasis:true},
-  ]},
-  {id:'mfu',name:'MFU',legend:false,note:'Ascend 950 | FP8 | 峰值864 TFLOPS',series:[
-    {id:'mfu',label:'MFU',key:'mfu',colorVar:'--highlight-accum-orange-source',emphasis:true},
-  ]},
-];
-// NPU 显存利用率：独立卡片，横轴=时间（每 5s 采样一次），不与 step 联动、自有悬浮气泡
-const NPU_SAMPLE_SEC=5;
-const NPU=(function(){
-  const n=TS.steps.length;
-  const colIdx=TS.collapseStep-TS.steps[0];   // 坍缩点在采样序列中的下标（与 step 对应）
-  const rnd=(seed=>()=>(seed=(seed*9301+49297)%233280)/233280)(4242);
-  const time=[],mem=[];
-  for(let i=0;i<n;i++){
-    time.push(i*NPU_SAMPLE_SEC);
-    let v;
-    if(i<colIdx){
-      // 进入红区前：横向平稳 + 每个采样点小波动
-      v=0.840+(rnd()-0.5)*2*0.012;
-    }else{
-      // 进入红区后：每个采样点剧烈抖动并升高
-      const k=i-colIdx;
-      const ramp=1-Math.exp(-k/22);
-      const amp=0.015+0.075*ramp;
-      v=(0.840+0.135*ramp)+(rnd()-0.5)*2*amp;
-    }
-    mem.push(+Math.min(0.995,Math.max(0.5,v)).toFixed(4));
-  }
-  return {time,mem,collapseTime:colIdx*NPU_SAMPLE_SEC};
-})();
-// NPU 时间轴上的红色路由坍缩区（与 step 坍缩点对应位置往后）
-const NPU_REGION=[{start:NPU.collapseTime,end:NPU.time[NPU.time.length-1],label:'路由坍缩'}];
-const NPU_CARD={id:'npu_mem',name:'NPU 显存利用率',note:'Ascend 950 | 单卡128 GB',
-  series:[{id:'npu_mem',label:'NPU 显存利用率',key:'mem',colorVar:'--highlight-l0a-violet-source',axis:'left',emphasis:true}]};
-let npuCard=null;  // {cfg,valEl,wrap,ctrl,size}
-let monitorCards=[];  // [{cfg,valEl,wrap,ctrl,size:{w,h}}]
-let monitorHovering=false;  // 鼠标是否悬浮在 Monitor 任一图表上 → 控制四图气泡显隐
-let monitorSmoothing=0;     // smoothing 滑条（0=不平滑；>0 原曲线淡化 + 叠加平滑曲线）
 const REGIME_LABEL={healthy:'健康区',fault:'根因 · 写越界',collapse:'路由坍缩'};
-let lossCtrl=null,lossReadoutEl=null,lossWrap=null,lossCardValEl=null,lossSize={w:0,h:0};
+let lossCtrl=null,lossReadoutEl=null,lossWrap=null,lossSize={w:0,h:0};
+const LOSS_LEGEND_RESERVE=34;  // 给图例留高，避免 svg 顶满后图例溢出
 // 按容器真实像素尺寸渲染（1 viewBox 单位 = 1px），避免 preserveAspectRatio 把文字/线放大
 function syncLossChart(force){
   if(!lossWrap)return;
@@ -2623,153 +2483,50 @@ function syncLossChart(force){
   if(!force&&lossCtrl&&w===lossSize.w&&h===lossSize.h){lossCtrl.setCursor(focusContext.step);return;}
   lossSize={w,h};
   lossCtrl=window.PtoTrainingMetricsChart.render(lossWrap,{
-    steps:TS.steps,series:LOSS_SERIES,data:MONITOR_DATA,
-    regions:COLLAPSE_REGION,smoothing:monitorSmoothing,
+    steps:TS.steps,series:LOSS_SERIES,data:TS.series,
+    anomalies:[].concat(TS.anomalies.val_loss||[],TS.anomalies.grad_norm||[],TS.anomalies.load_balance_loss||[]),
     cursor:focusContext.step,
-    cursorTooltip:true,tipCarryForward:true,formatValue:v=>v.toFixed(3),
-    options:{width:w,height:h,pad:{t:14,r:14,b:26,l:46},xTicks:4},
-    onCursorHover:step=>{monitorHovering=true;dispatch({source:'loss',step});},
-    onCursorLeave:()=>setMonitorTooltips(false),
+    options:{width:w,height:Math.max(120,h-LOSS_LEGEND_RESERVE),pad:{t:14,r:52,b:26,l:52}},
+    onCursorHover:step=>dispatch({source:'loss',step}),
     onBrush:win=>dispatch({source:'loss',window:win}),
-    legend:false,
   });
-}
-/* Monitor 指标卡片：每张一个 compact mini chart（单序列）+ 当前 step 读数 */
-function syncMonitorCard(card,force){
-  const w=Math.round(card.wrap.clientWidth||0), h=Math.round(card.wrap.clientHeight||0);
-  if(w<2||h<2)return;
-  if(!force&&card.ctrl&&w===card.size.w&&h===card.size.h){card.ctrl.setCursor(focusContext.step);return;}
-  card.size={w,h};
-  card.ctrl=window.PtoTrainingMetricsChart.render(card.wrap,{
-    steps:TS.steps,
-    series:card.cfg.series.map(s=>({axis:'left',...s})),
-    data:MONITOR_DATA,
-    regions:COLLAPSE_REGION,smoothing:monitorSmoothing,
-    cursor:focusContext.step,
-    cursorTooltip:true,tipCarryForward:true,formatValue:fmtPct,
-    options:{width:w,height:h,pad:{t:18,r:10,b:20,l:38},xTicks:4},
-    onCursorHover:step=>{monitorHovering=true;dispatch({source:'loss',step});},
-    onCursorLeave:()=>setMonitorTooltips(false),
-    onBrush:false,legend:false,
-  });
-}
-function syncMonitorCards(force){monitorCards.forEach(c=>syncMonitorCard(c,force));}
-// NPU 显存利用率：独立时间轴图，不联动 step；hover 由图表自身处理（独立气泡）
-function syncNpuCard(force){
-  if(!npuCard)return;
-  const w=Math.round(npuCard.wrap.clientWidth||0), h=Math.round(npuCard.wrap.clientHeight||0);
-  if(w<2||h<2)return;
-  if(!force&&npuCard.ctrl&&w===npuCard.size.w&&h===npuCard.size.h)return;
-  npuCard.size={w,h};
-  npuCard.ctrl=window.PtoTrainingMetricsChart.render(npuCard.wrap,{
-    steps:NPU.time,
-    series:NPU_CARD.series,
-    data:{mem:NPU.mem},
-    regions:NPU_REGION,
-    smoothing:monitorSmoothing,
-    cursorTooltip:true,formatValue:fmtPct,formatCursor:t=>`${t}s`,
-    options:{width:w,height:h,pad:{t:18,r:10,b:20,l:38},xTicks:4},
-    onBrush:false,legend:false,
-  });
-  npuCard.valEl.textContent=fmtPct(NPU.mem[NPU.mem.length-1]);
-}
-// 统一控制四个图表（loss + 三卡）气泡显隐
-function setMonitorTooltips(v){
-  monitorHovering=v;
-  if(lossCtrl)lossCtrl.setTooltip(v);
-  monitorCards.forEach(c=>c.ctrl&&c.ctrl.setTooltip(v));
-}
-function renderMonitorReadouts(){
-  const i=TS.steps.length-1;  // 固定显示最新 step 的值，不随鼠标变化
-  monitorCards.forEach(c=>{c.valEl.textContent=fmtPct(MONITOR_DATA[c.cfg.series[0].key][i]);});
-}
-// 抽屉右上角 smoothing 滑条：拉动后四图原曲线淡化 + 叠加平滑曲线
-function buildSmoothingControl(){
-  const wrap=document.createElement('div');wrap.className='opv-smooth';
-  const lab=document.createElement('span');lab.textContent='smoothing';
-  const range=document.createElement('input');range.type='range';range.min='0';range.max='95';range.step='1';
-  range.value=String(Math.round(monitorSmoothing*100));range.setAttribute('aria-label','曲线平滑度');
-  const out=document.createElement('output');out.textContent=monitorSmoothing.toFixed(2);
-  range.addEventListener('input',()=>{
-    monitorSmoothing=(+range.value)/100;out.textContent=monitorSmoothing.toFixed(2);
-    syncLossChart(true);syncMonitorCards(true);syncNpuCard(true);
-  });
-  wrap.appendChild(lab);wrap.appendChild(range);wrap.appendChild(out);
-  return wrap;
-}
-// 卡片内自绘图例（不依赖图表内置 legend，确保始终落在卡片里）
-function buildMonitorLegend(series){
-  const el=document.createElement('div');el.className='opv-monitor-legend';
-  series.forEach(s=>{
-    const it=document.createElement('span');
-    const sw=document.createElement('i');sw.style.background=`var(${s.colorVar})`;
-    it.appendChild(sw);it.appendChild(document.createTextNode(s.label));
-    el.appendChild(it);
-  });
-  return el;
-}
-// 构建一张指标卡片（标题 / 子行[值+图例或注记] / 图表容器）；返回 DOM 引用
-function buildCard(cfg){
-  const card=document.createElement('div');card.className='opv-monitor-card';
-  const head=document.createElement('div');head.className='opv-monitor-card__head';
-  const name=document.createElement('span');name.className='opv-monitor-card__name';name.textContent=cfg.name;
-  head.appendChild(name);
-  const sub=document.createElement('div');sub.className='opv-monitor-card__sub';
-  const val=document.createElement('span');val.className='opv-monitor-card__val';val.textContent='—';
-  sub.appendChild(val);
-  if(cfg.legend)sub.appendChild(buildMonitorLegend(cfg.series));
-  else if(cfg.note){const note=document.createElement('span');note.className='opv-monitor-card__note';note.textContent=cfg.note;sub.appendChild(note);}
-  const wrap=document.createElement('div');wrap.className='opv-monitor-card__chart';
-  card.appendChild(head);card.appendChild(sub);card.appendChild(wrap);
-  return {card,valEl:val,wrap};
 }
 function renderLossReadout(){
-  // 卡头数值固定显示最新 step 的值，不随鼠标 hover 变化（变化值看气泡）
-  const i=TS.steps.length-1;
-  const tl=MONITOR_DATA.train_loss[i];
-  if(lossCardValEl)lossCardValEl.textContent=(tl==null?'—':tl.toFixed(3));
-  renderMonitorReadouts();
+  if(!lossReadoutEl)return;
+  const i=TS.steps.indexOf(focusContext.step);
+  const vl=TS.series.val_loss[i],gn=TS.series.grad_norm[i],lb=TS.series.load_balance_loss[i];
+  const fmt=(v,d)=>v==null?'—':v.toFixed(d);
+  const regime=regimeOfStep(focusContext.step);
+  const clk=regime!=='healthy';  // 异常区：regime 徽标可点 → 选中 loss 域异常
+  lossReadoutEl.innerHTML=
+    `<span class="regime${clk?' is-clickable':''}" data-regime="${regime}"${clk?' data-anomaly="loss-collapse"':''}>${REGIME_LABEL[regime]}</span>`+
+    `<span>step <b>${focusContext.step}</b></span>`+
+    `<span>val_loss <b>${fmt(vl,3)}</b></span>`+
+    `<span>grad_norm <b>${fmt(gn,2)}</b></span>`+
+    `<span>load_balance <b>${fmt(lb,3)}</b></span>`;
 }
 const lossView={
   id:'loss',
-  label:'Monitor',
-  title:'训练监控',
-  meta:()=>'',  // 抽屉右上角改放 smoothing 滑条（见 onViewChange）
+  label:'Loss',
+  title:'训练效果趋势',
+  meta:()=>`step ${STEP_MIN}–${STEP_MAX} · 迭代级主时间 · 框选定兴趣窗口 / 移动游标定 step`,
   panel:analysisPanels.loss,
   mount(){
     const v=document.createElement('div');v.className='opv-loss-view';
-    const row=document.createElement('div');row.className='opv-monitor-row';
-    // 左 1/4：train/val loss 趋势图（与右侧卡片同款灰色卡片）
-    const chartCol=document.createElement('div');chartCol.className='opv-monitor-chart opv-monitor-card';
-    const lossHead=document.createElement('div');lossHead.className='opv-monitor-card__head';
-    const lossName=document.createElement('span');lossName.className='opv-monitor-card__name';lossName.textContent='loss';
-    lossHead.appendChild(lossName);
-    const lossSub=document.createElement('div');lossSub.className='opv-monitor-card__sub';
-    lossCardValEl=document.createElement('span');lossCardValEl.className='opv-monitor-card__val';lossCardValEl.textContent='—';
-    lossSub.appendChild(lossCardValEl);lossSub.appendChild(buildMonitorLegend(LOSS_SERIES));
-    lossWrap=document.createElement('div');lossWrap.className='opv-loss-chart-wrap opv-monitor-card__chart';
-    chartCol.appendChild(lossHead);chartCol.appendChild(lossSub);chartCol.appendChild(lossWrap);
-    // 右 3/4：acc / MFU（step 联动）+ NPU 显存利用率（独立时间轴）
-    const cardsWrap=document.createElement('div');cardsWrap.className='opv-monitor-cards';
-    monitorCards=MONITOR_CARDS.map(cfg=>{
-      const b=buildCard(cfg);cardsWrap.appendChild(b.card);
-      return {cfg,valEl:b.valEl,wrap:b.wrap,ctrl:null,size:{w:0,h:0}};
-    });
-    // NPU 显存利用率：独立卡片（不进 monitorCards 联动循环）
-    const nb=buildCard(NPU_CARD);cardsWrap.appendChild(nb.card);
-    npuCard={cfg:NPU_CARD,valEl:nb.valEl,wrap:nb.wrap,ctrl:null,size:{w:0,h:0}};
-    row.appendChild(chartCol);row.appendChild(cardsWrap);
-    v.appendChild(row);
+    lossReadoutEl=document.createElement('div');lossReadoutEl.className='opv-loss-readout';
+    lossReadoutEl.addEventListener('click',ev=>{const t=ev.target.closest('[data-anomaly]');if(t)selectAnomalyById(t.dataset.anomaly);});
+    lossWrap=document.createElement('div');lossWrap.className='opv-loss-chart-wrap';
+    v.appendChild(lossReadoutEl);v.appendChild(lossWrap);
     analysisPanels.loss.appendChild(v);
-    syncLossChart(true);syncMonitorCards(true);syncNpuCard(true);
-    requestAnimationFrame(()=>{syncLossChart(true);syncMonitorCards(true);syncNpuCard(true);renderLossReadout();});  // 等布局定尺寸后再渲染一次
+    syncLossChart(true);
+    requestAnimationFrame(()=>{syncLossChart(true);renderLossReadout();});  // 等布局定尺寸后再渲染一次
     renderLossReadout();
   },
-  render(){syncLossChart(false);syncMonitorCards(false);syncNpuCard(false);renderLossReadout();},
-  resize(){syncLossChart(false);syncMonitorCards(false);syncNpuCard(false);}
+  render(){syncLossChart(false);renderLossReadout();},
+  resize(){syncLossChart(false);}
 };
 // Loss 游标变化 → 同步游标 + readout（trace tick / MoE 重算在后续步骤订阅此处）
-onContext(()=>{if(lossCtrl){lossCtrl.setCursor(focusContext.step);lossCtrl.setTooltip(monitorHovering);monitorCards.forEach(c=>{if(c.ctrl){c.ctrl.setCursor(focusContext.step);c.ctrl.setTooltip(monitorHovering);}});renderLossReadout();}});
+onContext(()=>{if(lossCtrl){lossCtrl.setCursor(focusContext.step);renderLossReadout();}});
 
 function handleAnalysisSelection(selection){
   if(selection?.type==='expert')dispatch({source:'moe',layer:selection.layer,op:'experts',metric:selection.metricId});
@@ -2790,78 +2547,7 @@ function handleAnalysisSelection(selection){
     document.getElementById('statusRight').textContent=`Hardware focus · rank ${selection.rank} · D${selection.dp} P${selection.stage} TP${selection.tp}`;
   }
 }
-// Distribution 面积堆叠图数据：32 个专家的 token 占比（每 step 合计=1）。
-// step2000 路由坍缩后，2 个热点专家流量逐步提升并最终恒定占 ~92%。
-const MOE_DIST=(function(){
-  const steps=TS.steps.slice(), n=steps.length, experts=32, col=TS.collapseStep, hot=[7,20], dead=[2,13,25,29];
-  const rnd=(seed=>()=>(seed=(seed*9301+49297)%233280)/233280)(2025);
-  const series=Array.from({length:experts},()=>new Array(n));
-  for(let i=0;i<n;i++){
-    const s=steps[i];
-    // 2 个热点专家合计占比 H：坍缩前≈2/32，坍缩后按 ramp 升至 0.92 并恒定
-    const H=s<col ? (2/experts)*(1+(rnd()-0.5)*0.08)
-                  : (2/experts)+(0.92-2/experts)*(1-Math.exp(-(s-col)/22));
-    // 死专家衰减 dr：坍缩后期(col+25 起)线性降到 0 流量，col+80 后彻底变 0（死专家）
-    const dr=s>col+25 ? Math.min(1,(s-col-25)/55) : 0;
-    const restW=new Array(experts).fill(0); let restSum=0;
-    for(let e=0;e<experts;e++){
-      if(e===hot[0]||e===hot[1])continue;
-      const r0=0.7+rnd()*0.6;
-      const r=dead.includes(e) ? r0*(1-dr) : r0;   // 死专家权重趋于 0 → 占比趋于 0
-      restW[e]=r; restSum+=r;
-    }
-    for(let e=0;e<experts;e++){
-      const v=(e===hot[0]||e===hot[1]) ? H/2 : (1-H)*(restW[e]/restSum);
-      series[e][i]=+v.toFixed(5);
-    }
-  }
-  return {steps,experts,series,hot,dead,collapseStep:col,title:'专家 token 占比'};
-})();
-// A2A Tail 数据：EP All-to-All 每 step 的分位延迟(µs) + 逐 rank 掉队者快照。
-// 业务：A2A 是 barrier 型 collective，整组节拍 = 最慢 rank；均值会骗人，P99 才逼近真实阻塞。
-// 剧情：坍缩后热点专家(MOE_DIST hot=[7,20] → EP rank 4/7)宿主 rank 收到成倍 token → 该 rank A2A 最慢
-//       → P99 相对 P50 张开(尾比↑)。Rank2 黑洞：0 token，在 barrier 上是别人等它(单独硬告警)。
-const A2A_TAIL=(function(){
-  const steps=TS.steps.slice(), n=steps.length, col=TS.collapseStep;
-  const RANKS=8, base=120, blackHole=2, hotRanks=[4,7];
-  const rnd=(seed=>()=>(seed=(seed*9301+49297)%233280)/233280)(4099);
-  const q=(arr,p)=>{const a=arr.slice().sort((x,y)=>x-y);const idx=(a.length-1)*p,lo=Math.floor(idx),hi=Math.ceil(idx);return lo===hi?a[lo]:a[lo]+(a[hi]-a[lo])*(idx-lo);};
-  const lat=[], p50=[], p95=[], p99=[], iter=[];
-  for(let i=0;i<n;i++){
-    const s=steps[i];
-    const skew=s<col?0:(1-Math.exp(-(s-col)/22));           // 坍缩后 0→1 ramp
-    const row=new Array(RANKS);
-    for(let r=0;r<RANKS;r++){
-      let l=base*(0.95+rnd()*0.12);                          // 健康抖动
-      if(hotRanks.includes(r))l=base*(1+3.0*skew)*(0.97+rnd()*0.08);  // 热点宿主 rank 变慢
-      if(r===blackHole&&s>=col)l=base*(0.2+rnd()*0.1);       // 黑洞：几乎不收发(0 token)
-      row[r]=+l.toFixed(1);
-    }
-    lat.push(row);
-    const eff=row.filter((_,r)=>!(r===blackHole&&s>=col));   // 分位在有效参与 barrier 的 rank 上算
-    p50[i]=+q(eff,0.5).toFixed(1); p95[i]=+q(eff,0.95).toFixed(1); p99[i]=+q(eff,0.99).toFixed(1);
-    iter[i]=Math.round(1400+(rnd()-0.5)*60);                 // 单 step 墙钟(µs 量级示意) → 气泡占比
-  }
-  const worstStep=steps[p99.indexOf(Math.max(...p99))];
-  const help=`
-    <h4>A2A 尾延迟 · 为什么盯 P99</h4>
-    <p>MoE 每层两次 <b>All-to-All</b>（dispatch/combine）是 <b>barrier 型 collective</b>：下一段计算要等 EP 组内<b>所有</b> rank，整组节拍 = <b>最慢 rank</b>。均值会骗人（7×100µs + 1×300µs 均值仅 125µs，真实阻塞 300µs），<b>只有 P99 逼近真实成本</b>。</p>
-    <h5>主看比例：尾比 P99/P50</h5>
-    <p>绝对 µs 随 batch/模型漂移，硬阈值难定；尾比无量纲、跨配置稳定。阈值 <b>&lt;1.2</b> 健康 · <b>1.2–1.5</b> warn · <b>&gt;1.5</b> alert。</p>
-    <h5>气泡占比</h5>
-    <p><code>(P99 − P50) / 单 step 墙钟</code> = 因等待掉队者浪费的 step 时间 → 掉的吞吐 / MFU。</p>
-    <h5>读图</h5>
-    <p><b>上·分位带</b>：带越厚尾巴越长；整体抬升 = 一起变慢，上沿翘起 = 出现掉队者。</p>
-    <p><b>下·掉队者条</b>：逐 rank 延迟，P99 说"有掉队者"，条形回答"是谁"。</p>
-    <p><b>灰色矮柱</b> = 收到 0 token（死专家）的 rank：自己很快做完，在 barrier 上空等那几根高柱热点 rank。它是尾延迟的<b>症状不是根因</b>，真正拖慢全组的是冲到 P99 的高柱。</p>`;
-  return {steps,collapseStep:col,ranks:RANKS,hotRanks,blackHole,lat,p50,p95,p99,iter,worstStep,ratioWarn:1.2,ratioAlert:1.5,
-    title:'A2A 尾延迟',help};
-})();
-// MoE Load 第 7 张指标卡：A2A 尾比（P99/P50，随 step 变化）——数据源在 A2A_TAIL，故在此注入
-function a2aTailRatioAt(step){const i=A2A_TAIL.steps.indexOf(step);return i<0||!A2A_TAIL.p50[i]?null:A2A_TAIL.p99[i]/A2A_TAIL.p50[i];}
-function augmentMoeStats(vm,step){const r=a2aTailRatioAt(step);if(r!=null)vm.stats=[...vm.stats,{label:'A2A 尾比',value:`${r.toFixed(2)}×`}];return vm;}
-augmentMoeStats(moeLoadViewModel,focusContext.step);
-const moeView=createMoeLoadView({panel:analysisPanels.moe,viewModel:moeLoadViewModel,onSelect:handleAnalysisSelection,distribution:MOE_DIST,a2aTail:A2A_TAIL});
+const moeView=createMoeLoadView({panel:analysisPanels.moe,viewModel:moeLoadViewModel,onSelect:handleAnalysisSelection});
 const cardView=createCardLoadView({panel:analysisPanels.card,viewModel:cardLoadViewModel,onSelect:handleAnalysisSelection});
 // step(主时间) → MoE 热力/异常派生：loop 内按帧合并，重 DOM 重挂只在 MoE tab 活动时做
 let moeStepPending=focusContext.step, moeStepApplied=null, moeViewDirty=false;
@@ -2876,7 +2562,6 @@ function applyMoeStep(){
   moeStepApplied=moeStepPending;
   moeMetrics=buildMoeRuntimeMetrics({firstMoeLayer:FIRST_MOE_LAYER,lastMoeLayer:LAST_MOE_LAYER,expertsPerLayer:256,step:moeStepPending,collapse:collapseIntensity(moeStepPending)});
   moeLoadViewModel=buildMoeLoadViewModel(moeMetrics);
-  augmentMoeStats(moeLoadViewModel,moeStepPending);
   if(!selectedAnomalyId)buildAnomalyBadges();                 // 选中时不重建，保持诊断卡/选中态
   renderInspectorDiagnostics();
   if(activeAnalysisView==='moe-load')moeView.setViewModel(moeLoadViewModel);
@@ -2923,9 +2608,6 @@ analysisDockController=createAnalysisDock({
     activeAnalysisView=id;
     if(commToggleBtn)commToggleBtn.hidden=id!=='timeline';
     if(id==='moe-load'&&moeViewDirty){moeView.setViewModel(moeLoadViewModel);moeViewDirty=false;}
-    // Monitor：抽屉右上角 meta 区放 smoothing 滑条（其它视图由 dock 写回各自 meta 文本）
-    const metaEl=document.getElementById('analysisMeta');
-    if(metaEl&&id==='loss'){metaEl.textContent='';metaEl.appendChild(buildSmoothingControl());}
   }
 });
 

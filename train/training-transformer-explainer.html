@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Training Transformer Explainer</title>
+  <script>
+    (() => {
+      document.documentElement.dataset.theme = "light";
+    })();
+  </script>
+  <link rel="stylesheet" href="../../pto-design-system/tokens/foundation.css">
+  <link rel="stylesheet" href="../../pto-design-system/tokens/semantic.css">
+  <link rel="stylesheet" href="../../pto-design-system/tokens/components.css">
+  <link rel="stylesheet" href="../../pto-design-system/css/style.css">
+  <link rel="stylesheet" href="../../pto-design-system/patterns/model-graphviz/pattern.css">
+  <link rel="stylesheet" href="../../pto-design-system/patterns/model-training-graphviz/pattern.css">
+  <link rel="stylesheet" href="./training-transformer-explainer.css?v=20260609-decoder-flip">
+</head>
+<body class="training-transformer-page" data-phase="tokens" data-model="qwen7b">
+  <main class="tte-shell">
+    <section class="tte-control-strip" aria-label="模型和镜头选择">
+      <div class="segmented-control segmented-control-muted tte-model-tabs" id="modelTabs">
+        <button class="btn btn-sm is-selected" type="button" data-model="qwen7b">Qwen7B</button>
+        <button class="btn btn-sm" type="button" data-model="qwen3">Qwen3-8B</button>
+        <button class="btn btn-sm" type="button" data-model="qwenmoe">Qwen3-MoE</button>
+        <button class="btn btn-sm" type="button" data-model="deepseek">DeepSeek V3.2</button>
+      </div>
+      <div class="tte-run-metadata" aria-label="当前训练配置">
+        <span id="metaSeq">SEQ 8192</span>
+        <span id="metaParallel">TP1 · PP1</span>
+        <span id="metaBatch">MBS1 · GBS64</span>
+        <span id="metaMode">Stable canvas · textbook pages</span>
+      </div>
+    </section>
+
+    <section class="tte-workspace" aria-label="Transformer 架构解释画布">
+      <div class="tte-canvas-toolbar" aria-label="当前阶段摘要">
+        <div>
+          <strong id="phaseTitle">Tokens · 样本进入模型</strong>
+          <span id="phaseCopy">主图保持稳定，翻页只改变当前讲解状态、高亮节点和展开信息。</span>
+        </div>
+        <div class="tte-pager-actions">
+          <button class="btn btn-sm btn-ghost" type="button" id="prevLayer">上一页</button>
+          <button class="btn btn-sm btn-ghost" type="button" id="nextLayer">下一页</button>
+        </div>
+      </div>
+
+      <div class="tte-graph-viewport" id="graphViewport" tabindex="0" aria-label="Transformer training explainer canvas">
+        <div id="trainingGraphStage" class="tte-graph-stage" aria-label="训练版模型架构图"></div>
+        <div class="tte-decoder-flip" id="decoderFlip" aria-hidden="true">
+          <div class="tte-decoder-page" id="decoderPage">
+            <span id="decoderPageKicker">Decoder Block</span>
+            <strong id="decoderPageLabel">01 / 32</strong>
+            <small id="decoderPageNote">31 more identical blocks</small>
+          </div>
+        </div>
+
+        <div class="tte-block-controller" aria-label="Transformer block layer selector">
+          <button class="btn btn-sm btn-ghost" type="button" id="prevBlock">‹</button>
+          <div>
+            <span>Transformer Block</span>
+            <strong id="blockLabel">01 / 32</strong>
+          </div>
+          <button class="btn btn-sm btn-ghost" type="button" id="nextBlock">›</button>
+        </div>
+
+        <article class="tte-textbook-card" aria-label="当前讲解页">
+          <div class="tte-textbook-head">
+            <span id="lessonCounter">01 / 07</span>
+            <strong id="lessonTitle">Tokens · 样本进入模型</strong>
+          </div>
+          <div class="tte-textbook-body" id="lessonBody"></div>
+          <div class="tte-textbook-widget" id="lessonWidget"></div>
+          <div class="tte-textbook-nav" aria-label="讲解页导航">
+            <button class="btn btn-sm btn-ghost" type="button" id="lessonPrev">‹</button>
+            <button class="tte-progress-bar" type="button" id="lessonProgress" aria-label="拖动或点击选择讲解页">
+              <i id="lessonProgressFill"></i>
+            </button>
+            <button class="btn btn-sm btn-ghost" type="button" id="lessonNext">›</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="tte-bottom-dock" aria-label="阶段时间轴">
+      <div class="tte-phase-rail" id="phaseRail"></div>
+      <div class="tte-evidence-row">
+        <article>
+          <span>当前节点</span>
+          <strong id="nodeLabel">Scaled Attention</strong>
+        </article>
+        <article>
+          <span>训练含义</span>
+          <strong id="trainMeaning">长上下文会放大 attention 计算、KV 状态和激活重算压力。</strong>
+        </article>
+        <article>
+          <span>操作判断</span>
+          <strong id="operatorAction">如果 MFU 低且 HBM 高，优先检查重算、TP 切分和 attention kernel。</strong>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <script src="../../pto-design-system/patterns/model-graphviz/pattern.js"></script>
+  <script src="../../pto-design-system/patterns/model-training-graphviz/pattern.js"></script>
+  <script src="./training-transformer-explainer.js?v=20260609-decoder-flip"></script>
+</body>
+</html>

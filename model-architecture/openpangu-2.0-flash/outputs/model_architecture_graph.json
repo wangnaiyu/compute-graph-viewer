@@ -1,0 +1,781 @@
+{
+  "width": 1280,
+  "height": 2588,
+  "clusters": [
+    {
+      "id": "model-core",
+      "label": "Causal LM",
+      "colorKey": "module:model",
+      "parentCluster": null,
+      "repeat": false,
+      "x": 0.0,
+      "y": 94.0,
+      "width": 1149.0,
+      "height": 2448.0
+    },
+    {
+      "id": "decoder-stack",
+      "label": "Decoder Layer Template",
+      "colorKey": "module:decoder",
+      "parentCluster": "model-core",
+      "repeat": true,
+      "x": 34.0,
+      "y": 194.0,
+      "width": 960.0,
+      "height": 2060.0
+    },
+    {
+      "id": "attention-block",
+      "label": "Sparse MLA Attention",
+      "colorKey": "sem:attention",
+      "parentCluster": "decoder-stack",
+      "repeat": false,
+      "x": 68.0,
+      "y": 392.0,
+      "width": 892.0,
+      "height": 984.0
+    },
+    {
+      "id": "ffn-block",
+      "label": "Dense + MoE FFN",
+      "colorKey": "module:ffn",
+      "parentCluster": "decoder-stack",
+      "repeat": false,
+      "x": 387.0,
+      "y": 1636.0,
+      "width": 499.0,
+      "height": 422.0
+    }
+  ],
+  "nodes": [
+    {
+      "id": "input_tokens",
+      "label": "Token IDs",
+      "kind": "tensor",
+      "typeLabel": "Input",
+      "x": 640,
+      "y": 72.0,
+      "width": 170,
+      "height": 48,
+      "colorKey": "io:input",
+      "parent": null,
+      "collapsed": false
+    },
+    {
+      "id": "positions",
+      "label": "Position IDs",
+      "kind": "tensor",
+      "typeLabel": "Input",
+      "x": 190,
+      "y": 938.0,
+      "width": 164,
+      "height": 48,
+      "colorKey": "io:input",
+      "parent": null,
+      "collapsed": false
+    },
+    {
+      "id": "token_embedding",
+      "label": "Vocab Parallel Embedding",
+      "kind": "op",
+      "typeLabel": "Op",
+      "x": 640,
+      "y": 168.0,
+      "width": 260,
+      "height": 56,
+      "colorKey": "sem:embedding",
+      "parent": "model-core",
+      "collapsed": false
+    },
+    {
+      "id": "mhc_attention",
+      "label": "mHC Attention Branch",
+      "kind": "module",
+      "typeLabel": "Module",
+      "x": 640,
+      "y": 268.0,
+      "width": 246,
+      "height": 56,
+      "colorKey": "module:mhc",
+      "parent": "decoder-stack",
+      "collapsed": false
+    },
+    {
+      "id": "input_layernorm",
+      "label": "Input RMSNorm",
+      "kind": "op",
+      "typeLabel": "Op",
+      "x": 640,
+      "y": 367.0,
+      "width": 204,
+      "height": 54,
+      "colorKey": "sem:norm",
+      "parent": "decoder-stack",
+      "collapsed": false
+    },
+    {
+      "id": "q_a_proj",
+      "label": "Q Latent Linear",
+      "kind": "op",
+      "typeLabel": "Op",
+      "x": 465,
+      "y": 464.0,
+      "width": 210,
+      "height": 52,
+      "colorKey": "sem:linear",
+      "parent": "attention-block",
+      "collapsed": false
+    },
+    {
+      "id": "q_causal_conv",
+      "label": "Q Causal Conv1D",
+      "kind": "op",
+      "typeLabel": "Op",
+      "x": 465,
+      "y": 560.0,
+      "width": 212,
+      "height": 52,
+      "colorKey": "sem:act",
+      "parent": "attention-block",
+      "collapsed": false
+    },
+    {
+      "id": "q_residual_add",
+      "label": "Q Add",
+      "kind": "op",
+      "typeLabel": "Op",
+      "x": 465,
+      "y": 653.0,
+      "width": 102,
+      "height": 46,
+      "colorKey": "sem:comm",
+      "parent": "attention-block",
+      "collapsed": false
+    },
+    {
+      "id": "q_a_norm",
+      "label": "Q LayerNorm",
+      "kind": "op",
+      "typeLabel": "Op",
+      "x": 465,
+      "y": 746.0,
+      "width": 190,
+      "height": 52,
+      "colorKey": "sem:norm",
+      "parent": "attention-block",
+      "collapsed": false
+    },
+    {
+      "id": "q_b_proj",
+      "label": "Q Up Linear",
+      "kind": "op",
+      "typeLabel": "Op",
+      "x": 465,
+      "y": 842.0,
+      "width": 178,
+      "height": 52,
+      "colorKey": "sem:linear",
+      "parent": "attention-block",
+      "collapsed": false
+    },
+    {
+      "id": "kv_a_proj",
+      "label": "KV Latent Linear",
+      "kind": "op",
+      "typeLabel": "Op",
+      "x": 815,
+      "y": 464.0,
+      "width": 220,
+      "height": 52,
+      "colorKey": "sem:linear",
+      "parent": "attention-block",
+      "collapsed": false
+    },
+    {
+      "id": "kv_causal_conv",
+      "label": "KV Causal Conv1D",
+      "kind": "op",
+      "typeLabel": "Op",
+      "x": 815,
+      "y": 560.0,
+      "width": 222,
+      "height": 52,
+      "colorKey": "sem:act",
+      "parent": "attention-block",
+      "collapsed": false
+    },
+    {
+      "id": "kv_residual_add",
+      "label": "KV Add",
+      "kind": "op",
+      "typeLabel": "Op",
+      "x": 815,
+      "y": 653.0,
+      "width": 110,
+      "height": 46,
+      "colorKey": "sem:comm",
+      "parent": "attention-block",
+      "collapsed": false
+    },
+    {
+      "id": "kv_a_norm",
+      "label": "KV LayerNorm",
+      "kind": "op",
+      "typeLabel": "Op",
+      "x": 815,
+      "y": 746.0,
+      "width": 196,
+      "height": 52,
+      "colorKey": "sem:norm",
+      "parent": "attention-block",
+      "collapsed": false
+    },
+    {
+      "id": "kv_b_proj",
+      "label": "KV Up Linear",
+      "kind": "op",
+      "typeLabel": "Op",
+      "x": 815,
+      "y": 842.0,
+      "width": 188,
+      "height": 52,
+      "colorKey": "sem:linear",
+      "parent": "attention-block",
+      "collapsed": false
+    },
+    {
+      "id": "rope_apply",
+      "label": "Apply RoPE",
+      "kind": "op",
+      "typeLabel": "Op",
+      "x": 640,
+      "y": 938.0,
+      "width": 170,
+      "height": 52,
+      "colorKey": "sem:rope",
+      "parent": "attention-block",
+      "collapsed": false
+    },
+    {
+      "id": "dsa_indexer",
+      "label": "DSA Indexer",
+      "kind": "op",
+      "typeLabel": "Op",
+      "x": 390,
+      "y": 938.0,
+      "width": 176,
+      "height": 52,
+      "colorKey": "sem:gate",
+      "parent": "attention-block",
+      "collapsed": false
+    },
+    {
+      "id": "attention_core",
+      "label": "Sparse FlashAttention",
+      "kind": "op",
+      "typeLabel": "Op",
+      "x": 640,
+      "y": 1034.0,
+      "width": 226,
+      "height": 52,
+      "colorKey": "sem:attention",
+      "parent": "attention-block",
+      "collapsed": false
+    },
+    {
+      "id": "o_causal_conv",
+      "label": "Output Causal Conv1D",
+      "kind": "op",
+      "typeLabel": "Op",
+      "x": 640,
+      "y": 1130.0,
+      "width": 238,
+      "height": 52,
+      "colorKey": "sem:act",
+      "parent": "attention-block",
+      "collapsed": false
+    },
+    {
+      "id": "o_residual_add",
+      "label": "Output Add",
+      "kind": "op",
+      "typeLabel": "Op",
+      "x": 640,
+      "y": 1223.0,
+      "width": 126,
+      "height": 46,
+      "colorKey": "sem:comm",
+      "parent": "attention-block",
+      "collapsed": false
+    },
+    {
+      "id": "o_proj",
+      "label": "Output Projection",
+      "kind": "op",
+      "typeLabel": "Op",
+      "x": 640,
+      "y": 1316.0,
+      "width": 194,
+      "height": 52,
+      "colorKey": "sem:linear",
+      "parent": "attention-block",
+      "collapsed": false
+    },
+    {
+      "id": "post_attention_norm",
+      "label": "Post Attention RMSNorm",
+      "kind": "op",
+      "typeLabel": "Op",
+      "x": 640,
+      "y": 1413.0,
+      "width": 244,
+      "height": 54,
+      "colorKey": "sem:norm",
+      "parent": "decoder-stack",
+      "collapsed": false
+    },
+    {
+      "id": "mhc_attention_post",
+      "label": "mHC Attention Merge",
+      "kind": "module",
+      "typeLabel": "Module",
+      "x": 640,
+      "y": 1512.0,
+      "width": 244,
+      "height": 56,
+      "colorKey": "module:mhc",
+      "parent": "decoder-stack",
+      "collapsed": false
+    },
+    {
+      "id": "pre_mlp_norm",
+      "label": "Pre MLP RMSNorm",
+      "kind": "op",
+      "typeLabel": "Op",
+      "x": 640,
+      "y": 1611.0,
+      "width": 188,
+      "height": 54,
+      "colorKey": "sem:norm",
+      "parent": "decoder-stack",
+      "collapsed": false
+    },
+    {
+      "id": "dense_mlp",
+      "label": "Dense MLP",
+      "kind": "module",
+      "typeLabel": "Module",
+      "x": 520,
+      "y": 1709.0,
+      "width": 184,
+      "height": 54,
+      "colorKey": "sem:mlp",
+      "parent": "ffn-block",
+      "collapsed": false
+    },
+    {
+      "id": "dense_gate_up",
+      "label": "Gate Up Projection",
+      "kind": "op",
+      "typeLabel": "Op",
+      "x": 520,
+      "y": 1806.0,
+      "width": 198,
+      "height": 52,
+      "colorKey": "sem:linear",
+      "parent": "ffn-block",
+      "collapsed": false
+    },
+    {
+      "id": "dense_silu",
+      "label": "SiLU Multiply",
+      "kind": "op",
+      "typeLabel": "Op",
+      "x": 520,
+      "y": 1902.0,
+      "width": 172,
+      "height": 52,
+      "colorKey": "sem:act",
+      "parent": "ffn-block",
+      "collapsed": false
+    },
+    {
+      "id": "dense_down",
+      "label": "Dense Down Projection",
+      "kind": "op",
+      "typeLabel": "Op",
+      "x": 520,
+      "y": 1998.0,
+      "width": 192,
+      "height": 52,
+      "colorKey": "sem:linear",
+      "parent": "ffn-block",
+      "collapsed": false
+    },
+    {
+      "id": "moe_ffn",
+      "label": "MoE FFN",
+      "kind": "module",
+      "typeLabel": "Module",
+      "x": 765,
+      "y": 1709.0,
+      "width": 174,
+      "height": 54,
+      "colorKey": "sem:moe",
+      "parent": "ffn-block",
+      "collapsed": true
+    },
+    {
+      "id": "post_mlp_norm",
+      "label": "Post MLP RMSNorm",
+      "kind": "op",
+      "typeLabel": "Op",
+      "x": 640,
+      "y": 2095.0,
+      "width": 206,
+      "height": 54,
+      "colorKey": "sem:norm",
+      "parent": "decoder-stack",
+      "collapsed": false
+    },
+    {
+      "id": "block_post_norm",
+      "label": "Block Post RMSNorm",
+      "kind": "op",
+      "typeLabel": "Op",
+      "x": 640,
+      "y": 2193.0,
+      "width": 214,
+      "height": 54,
+      "colorKey": "sem:norm",
+      "parent": "decoder-stack",
+      "collapsed": false
+    },
+    {
+      "id": "final_norm",
+      "label": "Final RMSNorm",
+      "kind": "op",
+      "typeLabel": "Op",
+      "x": 640,
+      "y": 2291.0,
+      "width": 174,
+      "height": 54,
+      "colorKey": "sem:norm",
+      "parent": "model-core",
+      "collapsed": false
+    },
+    {
+      "id": "lm_head",
+      "label": "LM Head",
+      "kind": "op",
+      "typeLabel": "Op",
+      "x": 640,
+      "y": 2389.0,
+      "width": 168,
+      "height": 54,
+      "colorKey": "sem:head",
+      "parent": "model-core",
+      "collapsed": false
+    },
+    {
+      "id": "logits",
+      "label": "Logits",
+      "kind": "tensor",
+      "typeLabel": "Output",
+      "x": 640,
+      "y": 2484.0,
+      "width": 148,
+      "height": 48,
+      "colorKey": "io:output",
+      "parent": "model-core",
+      "collapsed": false
+    },
+    {
+      "id": "mtp_module",
+      "label": "Multi Token Predictor",
+      "kind": "module",
+      "typeLabel": "Module",
+      "x": 990,
+      "y": 2291.0,
+      "width": 250,
+      "height": 58,
+      "colorKey": "module:mtp",
+      "parent": "model-core",
+      "collapsed": true
+    },
+    {
+      "id": "rope_cache",
+      "label": "RoPE Cache",
+      "kind": "tensor",
+      "typeLabel": "State",
+      "x": 190,
+      "y": 986.0,
+      "width": 158,
+      "height": 48,
+      "colorKey": "io:state",
+      "parent": "attention-block",
+      "collapsed": false
+    },
+    {
+      "id": "kv_cache",
+      "label": "KV Cache",
+      "kind": "tensor",
+      "typeLabel": "State",
+      "x": 190,
+      "y": 1034.0,
+      "width": 144,
+      "height": 48,
+      "colorKey": "io:state",
+      "parent": "attention-block",
+      "collapsed": false
+    },
+    {
+      "id": "param_sink_state",
+      "label": "Parameter Sink",
+      "kind": "tensor",
+      "typeLabel": "State",
+      "x": 190,
+      "y": 1082.0,
+      "width": 176,
+      "height": 48,
+      "colorKey": "io:state",
+      "parent": "attention-block",
+      "collapsed": false
+    },
+    {
+      "id": "mome_state",
+      "label": "MoME State",
+      "kind": "tensor",
+      "typeLabel": "State",
+      "x": 190,
+      "y": 1130.0,
+      "width": 150,
+      "height": 48,
+      "colorKey": "io:state",
+      "parent": "attention-block",
+      "collapsed": false
+    }
+  ],
+  "edges": [
+    {
+      "source": "input_tokens",
+      "target": "token_embedding",
+      "dashed": false
+    },
+    {
+      "source": "positions",
+      "target": "rope_cache",
+      "dashed": true
+    },
+    {
+      "source": "token_embedding",
+      "target": "mhc_attention",
+      "dashed": false
+    },
+    {
+      "source": "mhc_attention",
+      "target": "input_layernorm",
+      "dashed": false
+    },
+    {
+      "source": "input_layernorm",
+      "target": "q_a_proj",
+      "dashed": false
+    },
+    {
+      "source": "input_layernorm",
+      "target": "kv_a_proj",
+      "dashed": false
+    },
+    {
+      "source": "q_a_proj",
+      "target": "q_causal_conv",
+      "dashed": false
+    },
+    {
+      "source": "q_a_proj",
+      "target": "q_residual_add",
+      "dashed": true
+    },
+    {
+      "source": "q_causal_conv",
+      "target": "q_residual_add",
+      "dashed": false
+    },
+    {
+      "source": "q_residual_add",
+      "target": "q_a_norm",
+      "dashed": false
+    },
+    {
+      "source": "q_a_norm",
+      "target": "q_b_proj",
+      "dashed": false
+    },
+    {
+      "source": "kv_a_proj",
+      "target": "kv_causal_conv",
+      "dashed": false
+    },
+    {
+      "source": "kv_a_proj",
+      "target": "kv_residual_add",
+      "dashed": true
+    },
+    {
+      "source": "kv_causal_conv",
+      "target": "kv_residual_add",
+      "dashed": false
+    },
+    {
+      "source": "kv_residual_add",
+      "target": "kv_a_norm",
+      "dashed": false
+    },
+    {
+      "source": "kv_a_norm",
+      "target": "kv_b_proj",
+      "dashed": false
+    },
+    {
+      "source": "q_b_proj",
+      "target": "rope_apply",
+      "dashed": false
+    },
+    {
+      "source": "rope_cache",
+      "target": "rope_apply",
+      "dashed": true
+    },
+    {
+      "source": "rope_apply",
+      "target": "dsa_indexer",
+      "dashed": false
+    },
+    {
+      "source": "rope_apply",
+      "target": "attention_core",
+      "dashed": false
+    },
+    {
+      "source": "dsa_indexer",
+      "target": "attention_core",
+      "dashed": false
+    },
+    {
+      "source": "kv_b_proj",
+      "target": "attention_core",
+      "dashed": false
+    },
+    {
+      "source": "kv_cache",
+      "target": "attention_core",
+      "dashed": true
+    },
+    {
+      "source": "param_sink_state",
+      "target": "attention_core",
+      "dashed": true
+    },
+    {
+      "source": "mome_state",
+      "target": "attention_core",
+      "dashed": true
+    },
+    {
+      "source": "attention_core",
+      "target": "o_causal_conv",
+      "dashed": false
+    },
+    {
+      "source": "attention_core",
+      "target": "o_residual_add",
+      "dashed": true
+    },
+    {
+      "source": "o_causal_conv",
+      "target": "o_residual_add",
+      "dashed": false
+    },
+    {
+      "source": "o_residual_add",
+      "target": "o_proj",
+      "dashed": false
+    },
+    {
+      "source": "o_proj",
+      "target": "post_attention_norm",
+      "dashed": false
+    },
+    {
+      "source": "post_attention_norm",
+      "target": "mhc_attention_post",
+      "dashed": false
+    },
+    {
+      "source": "mhc_attention_post",
+      "target": "pre_mlp_norm",
+      "dashed": false
+    },
+    {
+      "source": "pre_mlp_norm",
+      "target": "dense_mlp",
+      "dashed": false
+    },
+    {
+      "source": "dense_mlp",
+      "target": "dense_gate_up",
+      "dashed": false
+    },
+    {
+      "source": "dense_gate_up",
+      "target": "dense_silu",
+      "dashed": false
+    },
+    {
+      "source": "dense_silu",
+      "target": "dense_down",
+      "dashed": false
+    },
+    {
+      "source": "dense_down",
+      "target": "post_mlp_norm",
+      "dashed": false
+    },
+    {
+      "source": "pre_mlp_norm",
+      "target": "moe_ffn",
+      "dashed": false
+    },
+    {
+      "source": "moe_ffn",
+      "target": "post_mlp_norm",
+      "dashed": false
+    },
+    {
+      "source": "post_mlp_norm",
+      "target": "block_post_norm",
+      "dashed": false
+    },
+    {
+      "source": "block_post_norm",
+      "target": "final_norm",
+      "dashed": false
+    },
+    {
+      "source": "final_norm",
+      "target": "lm_head",
+      "dashed": false
+    },
+    {
+      "source": "lm_head",
+      "target": "logits",
+      "dashed": false
+    },
+    {
+      "source": "final_norm",
+      "target": "mtp_module",
+      "dashed": true
+    }
+  ]
+}

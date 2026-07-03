@@ -1,0 +1,1347 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PTO Ascend/CANN UX 汇报</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/IKKI2000/harmonyos-fonts@master/css/harmonyos_sans_sc.css">
+  <style>
+    :root {
+      --paper: #e9ebee;
+      --card: rgba(255,255,255,.58);
+      --card-strong: rgba(255,255,255,.78);
+      --ink: #16191e;
+      --ink-2: #5e646e;
+      --ink-3: #929aa6;
+      --line: #d4d8df;
+      --accent: #5b5bd6;
+      --accent-2: #7c3aed;
+      --accent-soft: #ececfb;
+      --red: #e60012;
+      --dark: #06060a;
+      --g-ink: linear-gradient(140deg,#22262f,#14171c);
+      --g-accent: linear-gradient(135deg,#5b5bd6,#7c3aed);
+      --g-blue: linear-gradient(120deg,#667eea,#764ba2);
+      --g-teal: linear-gradient(120deg,#38c9d7,#4facfe);
+      --g-pink: linear-gradient(120deg,#ff6b9d,#ff8b53);
+      --g-green: linear-gradient(120deg,#23cfa0,#45d65a);
+      --g-amber: linear-gradient(120deg,#fbbf60,#f59e0b);
+      --fs-hero: clamp(48px, 7vw, 110px);
+      --fs-h1: clamp(26px, 2.05vw, 38px);
+      --fs-h2: clamp(18px, 1.3vw, 25px);
+      --fs-h3: clamp(14px, 1vw, 18px);
+      --fs-body: clamp(13px, .9vw, 16px);
+      --fs-sm: clamp(11px, .74vw, 13px);
+      --fs-xs: clamp(9px, .62vw, 11px);
+      --mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+      font-family: "HarmonyOS Sans SC", Inter, "Noto Sans SC", -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      overscroll-behavior: none;
+      background: #0a0a0c;
+      color: var(--ink);
+    }
+    body {
+      position: fixed;
+      inset: 0;
+      font-size: var(--fs-body);
+    }
+    a { color: inherit; text-decoration: none; }
+    strong { font-weight: 800; }
+
+    #deck {
+      position: fixed;
+      inset: 0 auto 0 0;
+      display: flex;
+      height: 100vh;
+      width: max-content;
+      transition: transform .55s cubic-bezier(.2,.8,.2,1);
+      will-change: transform;
+      transform: translate3d(0,0,0);
+    }
+
+    .slide {
+      position: relative;
+      flex: 0 0 var(--slide-w, 100vw);
+      width: var(--slide-w, 100vw);
+      height: 100vh;
+      padding: 6vh 5.4vw;
+      overflow: hidden;
+      background: var(--paper);
+    }
+
+    .analysis {
+      background-color: var(--paper);
+      background-image:
+        radial-gradient(ellipse at 15% 12%, rgba(255,255,255,.96), transparent 34%),
+        url("data:image/svg+xml,%3Csvg width='1440' height='400' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 400'%3E%3Cpath fill='%235B5BD6' fill-opacity='.06' d='M0 245c156-68 304-72 444-12 194 83 310 127 509 54 188-69 316-153 487-76v189H0z'/%3E%3Cpath fill='%237C3AED' fill-opacity='.05' d='M0 308c164-54 323-55 476-3 184 63 291 61 467 4 193-63 339-85 497-18v109H0z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: center, bottom;
+      background-size: cover, 100% 48%;
+    }
+
+    .cover {
+      color: #fff;
+      background:
+        linear-gradient(90deg, rgba(6,6,10,.92) 0%, rgba(6,6,10,.72) 42%, rgba(6,6,10,.25) 100%),
+        radial-gradient(circle at 72% 38%, rgba(91,91,214,.55), transparent 26%),
+        radial-gradient(circle at 88% 76%, rgba(230,0,18,.28), transparent 28%),
+        url("../assets/bg.png");
+      background-size: cover;
+      background-position: center;
+    }
+
+    .design {
+      color: #fff;
+      background: #06060a;
+    }
+
+    .design::before {
+      content: "";
+      position: absolute;
+      inset: auto -10vw 0 -10vw;
+      height: 38vh;
+      pointer-events: none;
+      background:
+        radial-gradient(ellipse 64% 112% at 18% 112%, hsla(var(--glow-a,250),95%,57%,.58), transparent 74%),
+        radial-gradient(ellipse 72% 108% at 78% 112%, hsla(var(--glow-b,310),92%,58%,.50), transparent 76%),
+        linear-gradient(180deg, transparent, rgba(255,255,255,.12));
+      mix-blend-mode: screen;
+      z-index: 0;
+    }
+
+    .head {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 2vw;
+      margin-bottom: 3.6vh;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: .85vw;
+      min-width: 16vw;
+      font-family: var(--mono);
+      font-size: var(--fs-xs);
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--ink-2);
+    }
+
+    .design .brand,
+    .cover .brand { color: rgba(255,255,255,.72); }
+
+    .brand img {
+      width: 32px;
+      height: 32px;
+      object-fit: contain;
+      filter: drop-shadow(0 12px 22px rgba(0,0,0,.16));
+    }
+
+    .page-title {
+      flex: 1;
+      margin: 0;
+      font-size: var(--fs-h1);
+      line-height: 1.12;
+      letter-spacing: 0;
+      font-weight: 800;
+      text-align: left;
+      color: var(--ink);
+    }
+
+    .design .page-title {
+      max-width: 62vw;
+      background: linear-gradient(100deg, hsl(var(--glow-a,250),95%,80%), hsl(var(--glow-b,310),95%,74%));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      color: #fff;
+    }
+
+    .page-sub {
+      margin-top: 1vh;
+      color: var(--ink-2);
+      font-size: var(--fs-sm);
+      line-height: 1.55;
+      max-width: 56vw;
+    }
+
+    .design .page-sub { color: rgba(255,255,255,.68); }
+
+    .pnum {
+      font-family: var(--mono);
+      font-size: var(--fs-xs);
+      color: var(--ink-3);
+      letter-spacing: .08em;
+      padding-top: .5vh;
+    }
+
+    .design .pnum { color: rgba(255,255,255,.45); }
+
+    .glass {
+      background: var(--card);
+      -webkit-backdrop-filter: blur(15px) saturate(1.4);
+      backdrop-filter: blur(15px) saturate(1.4);
+      border: 1px solid rgba(255,255,255,.72);
+      border-radius: 16px;
+      box-shadow: 0 10px 30px -16px rgba(30,40,70,.22), inset 0 1px 0 rgba(255,255,255,.86);
+    }
+
+    .dark-card {
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 16px;
+      box-shadow: 0 18px 50px rgba(0,0,0,.24), inset 0 1px 0 rgba(255,255,255,.08);
+      -webkit-backdrop-filter: blur(14px) saturate(1.3);
+      backdrop-filter: blur(14px) saturate(1.3);
+    }
+
+    .kicker {
+      font-family: var(--mono);
+      font-size: var(--fs-xs);
+      letter-spacing: .13em;
+      text-transform: uppercase;
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    .cover .kicker { color: rgba(255,255,255,.72); }
+
+    .cover-inner {
+      position: relative;
+      z-index: 1;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .cover-logo {
+      display: flex;
+      align-items: center;
+      gap: 1vw;
+      font-family: var(--mono);
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.8);
+      font-size: var(--fs-xs);
+    }
+
+    .cover-logo img {
+      width: 42px;
+      height: 42px;
+      filter: brightness(0) invert(1);
+    }
+
+    .hero-title {
+      margin: 0;
+      max-width: 78vw;
+      font-size: var(--fs-hero);
+      line-height: .98;
+      letter-spacing: 0;
+      font-weight: 900;
+    }
+
+    .hero-lead {
+      max-width: 54vw;
+      margin: 2.8vh 0 0;
+      font-size: clamp(18px, 1.45vw, 27px);
+      line-height: 1.42;
+      color: rgba(255,255,255,.8);
+    }
+
+    .cover-meta {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 1vw;
+      max-width: 72vw;
+    }
+
+    .meta-chip {
+      padding: 1.5vh 1.2vw;
+      border: 1px solid rgba(255,255,255,.17);
+      border-radius: 14px;
+      background: rgba(255,255,255,.08);
+      -webkit-backdrop-filter: blur(18px);
+      backdrop-filter: blur(18px);
+    }
+
+    .meta-chip b {
+      display: block;
+      font-size: var(--fs-h2);
+      line-height: 1.2;
+    }
+
+    .meta-chip span {
+      display: block;
+      margin-top: .6vh;
+      color: rgba(255,255,255,.62);
+      font-size: var(--fs-xs);
+      font-family: var(--mono);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.4vw; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.2vw; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1vw; }
+
+    .plan-card {
+      min-height: 28vh;
+      padding: 2.4vh 1.7vw;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .plan-card .idx {
+      width: 44px;
+      height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      color: #fff;
+      background: var(--g-accent);
+      font-family: var(--mono);
+      font-weight: 700;
+      box-shadow: 0 12px 30px rgba(91,91,214,.24);
+    }
+
+    .plan-card h3,
+    .framework-card h3,
+    .matrix-card h3 {
+      margin: 1.8vh 0 1vh;
+      font-size: var(--fs-h2);
+      line-height: 1.2;
+      color: var(--ink);
+    }
+
+    .plan-card p,
+    .framework-card p,
+    .matrix-card p {
+      margin: 0;
+      color: var(--ink-2);
+      line-height: 1.58;
+      font-size: var(--fs-sm);
+    }
+
+    .framework {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: .92fr 1.08fr;
+      gap: 1.6vw;
+      height: 68vh;
+    }
+
+    .framework-card {
+      padding: 2.1vh 1.5vw;
+    }
+
+    .stack-flow {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1vh;
+      padding: 1.5vh 0;
+    }
+
+    .flow-row {
+      display: grid;
+      grid-template-columns: 11vw 1fr;
+      align-items: center;
+      gap: 1vw;
+      min-height: 7.4vh;
+    }
+
+    .flow-label {
+      height: 100%;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: var(--fs-h3);
+      color: #fff;
+      background: var(--g-ink);
+    }
+
+    .flow-text {
+      height: 100%;
+      border: 1px solid rgba(0,0,0,.06);
+      border-radius: 12px;
+      background: rgba(255,255,255,.52);
+      padding: 1.2vh 1vw;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      color: var(--ink-2);
+      line-height: 1.4;
+    }
+
+    .flow-text b { color: var(--ink); }
+
+    .cap-row {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: .8vw;
+      margin-top: 2.4vh;
+    }
+
+    .cap {
+      padding: 1.4vh .9vw;
+      border-radius: 14px;
+      background: rgba(255,255,255,.6);
+      border: 1px solid rgba(255,255,255,.8);
+      min-height: 14vh;
+    }
+
+    .cap b {
+      display: block;
+      margin-bottom: .9vh;
+      font-size: var(--fs-h3);
+    }
+
+    .cap small {
+      color: var(--ink-2);
+      line-height: 1.45;
+      font-size: var(--fs-xs);
+    }
+
+    .definition {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: 1.05fr .95fr;
+      gap: 1.6vw;
+      align-items: stretch;
+      height: 67vh;
+    }
+
+    .formula {
+      padding: 4vh 3vw;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-height: 100%;
+    }
+
+    .formula-line {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: .75vw;
+      font-size: clamp(21px, 1.7vw, 32px);
+      line-height: 1.3;
+      font-weight: 850;
+      color: var(--ink);
+    }
+
+    .token {
+      padding: .72vh .92vw;
+      border-radius: 999px;
+      color: #fff;
+      background: var(--g-blue);
+      box-shadow: 0 12px 30px rgba(91,91,214,.18);
+      white-space: nowrap;
+    }
+
+    .token:nth-child(4) { background: var(--g-teal); }
+    .token:nth-child(6) { background: var(--g-pink); }
+    .token:nth-child(8) { background: var(--g-green); }
+    .token:nth-child(10) { background: var(--g-amber); }
+
+    .rule-list {
+      display: grid;
+      gap: 1vh;
+      padding: 2.4vh 1.6vw;
+    }
+
+    .rule {
+      display: grid;
+      grid-template-columns: 38px 1fr;
+      gap: .9vw;
+      align-items: start;
+      padding: 1.35vh 1vw;
+      border-radius: 12px;
+      background: rgba(255,255,255,.62);
+      border: 1px solid rgba(255,255,255,.78);
+    }
+
+    .rule i {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-style: normal;
+      font-weight: 900;
+      font-family: var(--mono);
+    }
+
+    .rule b { display: block; margin-bottom: .35vh; color: var(--ink); }
+    .rule span { color: var(--ink-2); font-size: var(--fs-sm); line-height: 1.45; }
+
+    .matrix {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 1vw;
+    }
+
+    .matrix-card {
+      min-height: 24vh;
+      padding: 1.8vh 1.25vw;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .score {
+      display: flex;
+      align-items: center;
+      gap: .35vw;
+      margin-top: 1.5vh;
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--accent);
+      opacity: .18;
+    }
+
+    .dot.on { opacity: 1; }
+
+    .design-layout {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: 32vw 1fr;
+      gap: 2vw;
+      height: 67vh;
+      align-items: stretch;
+    }
+
+    .point-panel {
+      padding: 2.6vh 2vw;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .point-panel .tag {
+      display: inline-flex;
+      width: fit-content;
+      align-items: center;
+      gap: .55vw;
+      padding: .7vh .9vw;
+      border-radius: 999px;
+      color: #fff;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.12);
+      font-family: var(--mono);
+      font-size: var(--fs-xs);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .point-panel h2 {
+      margin: 3vh 0 1.6vh;
+      font-size: clamp(30px, 3vw, 54px);
+      line-height: 1.03;
+      letter-spacing: 0;
+      background: linear-gradient(100deg, hsl(var(--glow-a,250),95%,80%), hsl(var(--glow-b,310),95%,74%));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .point-panel p {
+      margin: 0;
+      color: rgba(255,255,255,.72);
+      line-height: 1.62;
+      font-size: var(--fs-body);
+    }
+
+    .point-list {
+      display: grid;
+      gap: 1vh;
+      margin-top: 2.4vh;
+    }
+
+    .point-item {
+      display: grid;
+      grid-template-columns: 12px 1fr;
+      gap: .8vw;
+      align-items: start;
+      color: rgba(255,255,255,.78);
+      font-size: var(--fs-sm);
+      line-height: 1.48;
+    }
+
+    .point-item::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-top: .55em;
+      background: hsl(var(--glow-a,250),95%,66%);
+      box-shadow: 0 0 18px hsl(var(--glow-a,250),95%,66%);
+    }
+
+    .decision-box {
+      margin-top: 2vh;
+      padding: 1.4vh 1vw;
+      border-radius: 13px;
+      border: 1px solid rgba(255,255,255,.13);
+      background: rgba(255,255,255,.06);
+      color: rgba(255,255,255,.74);
+      font-size: var(--fs-sm);
+      line-height: 1.48;
+    }
+
+    .decision-box b { color: #fff; }
+
+    .iframe-card {
+      position: relative;
+      overflow: hidden;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 20px;
+      box-shadow: 0 28px 70px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.08);
+    }
+
+    .iframe-toolbar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 42px;
+      z-index: 4;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 14px;
+      color: rgba(255,255,255,.72);
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      background: rgba(4,4,6,.78);
+      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255,255,255,.1);
+    }
+
+    .lamp {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ff5f56;
+      box-shadow: 14px 0 #ffbd2e, 28px 0 #27c93f;
+      margin-right: 32px;
+      flex: none;
+    }
+
+    .iframe-card iframe {
+      position: absolute;
+      inset: 42px 0 0 0;
+      width: 100%;
+      height: calc(100% - 42px);
+      border: 0;
+      background: #111;
+    }
+
+    .roadmap-wrap {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: .9fr 1.1fr;
+      gap: 1.6vw;
+      height: 67vh;
+    }
+
+    .roadmap {
+      padding: 2vh 1.5vw;
+      display: grid;
+      gap: 1.2vh;
+    }
+
+    .rm-row {
+      display: grid;
+      grid-template-columns: 5.6vw 1fr;
+      gap: 1vw;
+      align-items: center;
+    }
+
+    .rm-phase {
+      border-radius: 12px;
+      padding: 1vh .7vw;
+      background: var(--g-ink);
+      color: #fff;
+      font-weight: 800;
+      text-align: center;
+      font-family: var(--mono);
+    }
+
+    .rm-bar {
+      min-height: 9vh;
+      border-radius: 15px;
+      padding: 1.4vh 1.2vw;
+      color: var(--ink);
+      background: rgba(255,255,255,.66);
+      border: 1px solid rgba(255,255,255,.8);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .rm-bar b { display: block; margin-bottom: .4vh; }
+    .rm-bar span { color: var(--ink-2); font-size: var(--fs-sm); line-height: 1.45; }
+
+    .ask-list {
+      padding: 2.5vh 1.8vw;
+      display: grid;
+      gap: 1.2vh;
+    }
+
+    .ask {
+      display: grid;
+      grid-template-columns: 42px 1fr;
+      gap: 1vw;
+      align-items: start;
+      padding: 1.6vh 1.1vw;
+      border-radius: 15px;
+      background: rgba(255,255,255,.7);
+      border: 1px solid rgba(255,255,255,.86);
+    }
+
+    .ask i {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--g-accent);
+      color: #fff;
+      font-style: normal;
+      font-family: var(--mono);
+      font-weight: 900;
+    }
+
+    .ask b { display: block; margin-bottom: .35vh; }
+    .ask span { color: var(--ink-2); font-size: var(--fs-sm); line-height: 1.45; }
+
+    .sources {
+      position: absolute;
+      left: 5.4vw;
+      right: 5.4vw;
+      bottom: 3.2vh;
+      z-index: 3;
+      display: flex;
+      gap: .6vw;
+      flex-wrap: wrap;
+      color: var(--ink-3);
+      font-size: var(--fs-xs);
+      font-family: var(--mono);
+    }
+
+    .sources a {
+      padding: .55vh .65vw;
+      border-radius: 999px;
+      background: rgba(255,255,255,.55);
+      border: 1px solid rgba(255,255,255,.72);
+    }
+
+    .design .sources {
+      color: rgba(255,255,255,.48);
+    }
+
+    .design .sources a {
+      background: rgba(255,255,255,.07);
+      border-color: rgba(255,255,255,.12);
+    }
+
+    #nav {
+      position: fixed;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%);
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(10,10,14,.56);
+      -webkit-backdrop-filter: blur(18px);
+      backdrop-filter: blur(18px);
+      border: 1px solid rgba(255,255,255,.12);
+    }
+
+    #nav button {
+      width: 8px;
+      height: 8px;
+      padding: 0;
+      border: 0;
+      border-radius: 50%;
+      background: rgba(255,255,255,.38);
+      cursor: pointer;
+    }
+
+    #nav button.active {
+      width: 28px;
+      border-radius: 999px;
+      background: #fff;
+    }
+
+    .hint {
+      position: fixed;
+      right: 22px;
+      bottom: 20px;
+      z-index: 21;
+      color: rgba(255,255,255,.52);
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    @media (max-width: 900px) {
+      .slide { padding: 5vh 4.5vw; }
+      .cover-meta, .grid-4, .cap-row, .matrix { grid-template-columns: repeat(2, minmax(0,1fr)); }
+      .framework, .definition, .design-layout, .roadmap-wrap { grid-template-columns: 1fr; height: auto; }
+      .iframe-card { min-height: 42vh; }
+      .hero-lead { max-width: 86vw; }
+    }
+  </style>
+</head>
+<body>
+  <main id="deck" aria-label="PTO Ascend CANN UX report deck">
+    <section class="slide cover">
+      <div class="cover-inner">
+        <div class="cover-logo">
+          <img src="../assets/logo-cann.svg" alt="CANN">
+          <span>PTO UX REPORT · 2026</span>
+        </div>
+        <div>
+          <div class="kicker">Ascend / CANN Developer Experience</div>
+          <h1 class="hero-title">从图编译到性能诊断</h1>
+          <p class="hero-lead">PTO 构建 Ascend/CANN 开发者证据工作台，把编译、Tiling、执行、内存、Profiling 和性能诊断组织成一条可验证的证据链。</p>
+        </div>
+        <div class="cover-meta">
+          <div class="meta-chip"><b>5</b><span>证据层</span></div>
+          <div class="meta-chip"><b>8</b><span>核心设计策略</span></div>
+          <div class="meta-chip"><b>16</b><span>汇报页</span></div>
+          <div class="meta-chip"><b>Live</b><span>真实成果对象</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide analysis">
+      <div class="head">
+        <div class="brand"><img src="../assets/logo-cann.svg" alt="">PTO REPORT</div>
+        <div>
+          <h2 class="page-title">PTO 的主线是把 Ascend/CANN 开发链路逐层证据化</h2>
+          <div class="page-sub">本材料围绕战略定位、官方锚点、产品能力、核心设计策略和产品化路径展开，说明 PTO 如何从原型集合收束为 Ascend/CANN 证据工作台。</div>
+        </div>
+        <div class="pnum">02 / 16</div>
+      </div>
+      <div class="grid-4">
+        <div class="glass plan-card"><div><span class="idx">01</span><h3>战略定位</h3><p>PTO 的价值从“页面可视化”升级为“开发者证据工作台”。</p></div></div>
+        <div class="glass plan-card"><div><span class="idx">02</span><h3>官方锚点</h3><p>CANN、Ascend C、Tiling、AI Core、Profiling 共同限定产品信息架构。</p></div></div>
+        <div class="glass plan-card"><div><span class="idx">03</span><h3>设计策略</h3><p>围绕八个核心策略，展示 PTO 如何把工程判断转化为可追溯证据。</p></div></div>
+        <div class="glass plan-card"><div><span class="idx">04</span><h3>产品化路径</h3><p>下一阶段收束统一数据模型、联动协议、pattern 库和 Evidence Workbench。</p></div></div>
+      </div>
+    </section>
+
+    <section class="slide analysis">
+      <div class="head">
+        <div class="brand"><img src="../assets/logo-cann.svg" alt="">OFFICIAL ANCHORS</div>
+        <div>
+          <h2 class="page-title">官方文档给 PTO 划出了 5 条证据链</h2>
+          <div class="page-sub">PTO 的设计方向必须服务官方开发流程，而不是用可视化反过来主导结构。</div>
+        </div>
+        <div class="pnum">03 / 16</div>
+      </div>
+      <div class="framework">
+        <div class="glass framework-card">
+          <div class="kicker">Official Flow</div>
+          <div class="stack-flow">
+            <div class="flow-row"><div class="flow-label">CANN / GE</div><div class="flow-text"><b>图编译与运行控制中心</b><span>图优化、图编译、图执行控制，提供统一图开发接口。</span></div></div>
+            <div class="flow-row"><div class="flow-label">Ascend C</div><div class="flow-text"><b>算子开发语言</b><span>从语言扩展 C API 到高阶 API，覆盖自定义算子开发。</span></div></div>
+            <div class="flow-row"><div class="flow-label">Tiling</div><div class="flow-text"><b>shape/attr 到运行参数</b><span>输出 TilingData、blockDim、TilingKey 和 workspace。</span></div></div>
+            <div class="flow-row"><div class="flow-label">AI Core</div><div class="flow-text"><b>计算、存储、搬运</b><span>Cube/Vector/Scalar、L1/L0/UB、MTE/FixPipe 共同形成硬件证据层。</span></div></div>
+            <div class="flow-row"><div class="flow-label">Profiling</div><div class="flow-text"><b>采集、解析、定位</b><span>从性能数据落盘到可视化分析，最终需要回到节点和时间线。</span></div></div>
+          </div>
+        </div>
+        <div class="glass framework-card">
+          <div class="kicker">Design Translation</div>
+          <h3>官方流程不是资料背景，而是 PTO 的信息架构</h3>
+          <p>每个 PTO 模块都要回答同一个问题：用户看到一个结果时，能不能追溯它来自哪个官方概念、哪个输入约束、哪个编译阶段、哪个硬件路径、哪条 profiling 证据。</p>
+          <div class="cap-row">
+            <div class="cap"><b>编译证据</b><small>Pass、PATH、snapshot、graph diff。</small></div>
+            <div class="cap"><b>参数证据</b><small>TilingData、blockDim、workspace。</small></div>
+            <div class="cap"><b>硬件证据</b><small>L1/L0/UB、MTE route、Cube/Vector。</small></div>
+            <div class="cap"><b>时间证据</b><small>step、stream、task、wait、overlap。</small></div>
+            <div class="cap"><b>修复证据</b><small>issue、action、verify metric。</small></div>
+          </div>
+        </div>
+      </div>
+      <div class="sources">
+        <a href="https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/850/devaids/atctool/atlasatc_16_0005.html">ATC / GE</a>
+        <a href="https://www.hiascend.com/document/redirect/CANNCommunityOpdevAscendc">Ascend C</a>
+        <a href="https://www.hiascend.com/document/detail/zh/canncommercial/80RC3/developmentguide/opdevg/Ascendcopdevg/atlas_ascendc_10_0068.html">Host Tiling</a>
+        <a href="https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/850alpha002/opdevg/Ascendcopdevg/atlas_ascendc_10_0008.html">AI Core</a>
+      </div>
+    </section>
+
+    <section class="slide analysis">
+      <div class="head">
+        <div class="brand"><img src="../assets/logo-cann.svg" alt="">PROJECT MAP</div>
+        <div>
+          <h2 class="page-title">PTO 现有成果覆盖从编译到调优的完整证据矩阵</h2>
+          <div class="page-sub">Launch v2 已经展示出项目不是单点原型，而是跨编译、执行、算子开发、Profiling 和设计系统的工具矩阵。</div>
+        </div>
+        <div class="pnum">04 / 16</div>
+      </div>
+      <div class="design-layout" style="grid-template-columns:26vw 1fr;height:66vh">
+        <div class="glass framework-card">
+          <div class="kicker">Five Capability Layers</div>
+          <h3>五类能力统一成一条证据链</h3>
+          <p>编译图证据层、执行与内存证据层、算子开发工作台、Profiling 与调优证据层、设计系统与启动台，分别对应用户从“看懂发生什么”到“决定下一步怎么改”的不同阶段。</p>
+          <div class="point-list" style="margin-top:2.4vh;color:var(--ink-2)">
+            <div class="rule"><i>1</i><span><b>图</b>Pass-IR / Graphviz / Model Architecture</span></div>
+            <div class="rule"><i>2</i><span><b>执行</b>Memory Viewer / Swimlane / PMU</span></div>
+            <div class="rule"><i>3</i><span><b>开发</b>Tiling / IDE Assistant / 950 Workbench</span></div>
+            <div class="rule"><i>4</i><span><b>调优</b>MindStudioNext / Graph Evidence / Issue</span></div>
+          </div>
+        </div>
+        <div class="iframe-card">
+          <div class="iframe-toolbar"><span class="lamp"></span>PTO 启动台 · 成果矩阵</div>
+          <iframe src="../launch-v2.html?preview=1" title="PTO 启动台 v2"></iframe>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide analysis">
+      <div class="head">
+        <div class="brand"><img src="../assets/logo-cann.svg" alt="">METHOD</div>
+        <div>
+          <h2 class="page-title">PTO 的设计策略是把工程判断转化为可追溯证据</h2>
+          <div class="page-sub">后续产品化不按页面数量推进，而按“工程判断、官方锚点、证据对象、交互机制、复用模式”组织能力沉淀。</div>
+        </div>
+        <div class="pnum">05 / 16</div>
+      </div>
+      <div class="definition">
+        <div class="glass formula">
+          <div class="kicker">Definition</div>
+          <div class="formula-line" style="margin-top:2vh">
+            <span>设计策略 =</span>
+            <span class="token">用户判断</span>
+            <span>+</span>
+            <span class="token">官方锚点</span>
+            <span>+</span>
+            <span class="token">证据对象</span>
+            <span>+</span>
+            <span class="token">交互机制</span>
+            <span>+</span>
+            <span class="token">复用模式</span>
+          </div>
+          <p style="margin:4vh 0 0;color:var(--ink-2);line-height:1.6;max-width:54vw">每一项核心能力都必须回答：用户在做什么工程判断，它对应哪个官方概念，证据从哪里来，交互如何帮助定位，最终如何沉淀为 PTO pattern 或跨模块范式。</p>
+        </div>
+        <div class="glass rule-list">
+          <div class="rule"><i>A</i><span><b>从模块到机制</b>Pass-IR 的价值不是图查看器，而是编译时间线驱动 graph snapshot。</span></div>
+          <div class="rule"><i>B</i><span><b>从视觉到证据</b>工作台视觉必须服务定位、解释、修复和验证，而不是停留在展示效果。</span></div>
+          <div class="rule"><i>C</i><span><b>从单页到复用</b>关键图元、面板和交互需要沉淀到 PTO patterns 与组件体系。</span></div>
+          <div class="rule"><i>D</i><span><b>从原型到产品</b>现有页面通过统一数据和联动协议，收束为稳定的 Evidence Workbench。</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide analysis">
+      <div class="head">
+        <div class="brand"><img src="../assets/logo-cann.svg" alt="">EVIDENCE CHAIN</div>
+        <div>
+          <h2 class="page-title">八个核心策略按开发链路展开，而不是按页面集合排列</h2>
+          <div class="page-sub">PTO 的叙事顺序来自 Ascend/CANN 开发链路：先有图编译证据，再进入参数、硬件、内存、执行和 Profiling 诊断。</div>
+        </div>
+        <div class="pnum">06 / 16</div>
+      </div>
+      <div class="matrix">
+        <div class="glass matrix-card"><div><div class="kicker">01</div><h3>Pass-IR 编译导航</h3><p>用 pass/path/snapshot 时间线解释图结构如何变化。</p></div><div class="score"><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span></div></div>
+        <div class="glass matrix-card"><div><div class="kicker">02</div><h3>Tiling 因果解释</h3><p>从 shape/attr 到 TilingData、blockDim、workspace 的参数解释链。</p></div><div class="score"><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot"></span></div></div>
+        <div class="glass matrix-card"><div><div class="kicker">03</div><h3>硬件路径信任链</h3><p>代码行选择、950 路径高亮和证据区解释绑定。</p></div><div class="score"><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span></div></div>
+        <div class="glass matrix-card"><div><div class="kicker">04</div><h3>运行时内存映射</h3><p>schedule、graph、L1/L0/UB、MTE route 同步变化。</p></div><div class="score"><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot"></span></div></div>
+        <div class="glass matrix-card"><div><div class="kicker">05</div><h3>Swimlane 执行证据</h3><p>任务时间线支持对比、Diff、目录导入和源码联动。</p></div><div class="score"><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot"></span><span class="dot"></span></div></div>
+        <div class="glass matrix-card"><div><div class="kicker">06</div><h3>Graph Evidence</h3><p>Profiling 报告映射到图节点、Inspector 和泳道任务。</p></div><div class="score"><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span></div></div>
+        <div class="glass matrix-card"><div><div class="kicker">07</div><h3>设计系统一致性</h3><p>用 tokens/patterns 控制跨模块认知漂移。</p></div><div class="score"><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot on"></span><span class="dot"></span></div></div>
+        <div class="glass matrix-card"><div><div class="kicker">08</div><h3>Training Twin</h3><p>从学习页推进到脚本体检、run 解释和 what-if 决策。</p></div><div class="score"><span class="dot on"></span><span class="dot on"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div></div>
+      </div>
+    </section>
+
+    <section class="slide design" style="--glow-a:252;--glow-b:308">
+      <div class="head">
+        <div class="brand"><img src="../assets/logo-cann.svg" alt="">EVIDENCE LAYER 01</div>
+        <div>
+          <h2 class="page-title">Pass-IR 把 pass folder 变成编译时间线</h2>
+          <div class="page-sub">图编译证据是整条链路的源头：先解释图如何变化，再进入参数、执行和诊断。</div>
+        </div>
+        <div class="pnum">07 / 16</div>
+      </div>
+      <div class="design-layout">
+        <div class="dark-card point-panel">
+          <div>
+            <div class="tag">01 · compile evidence</div>
+            <h2>编译过程需要可导航</h2>
+            <p>Pass-IR 把 compile_debug_mode 输出目录转成阶段导航。用户通过 pass、PATH、snapshot 和 locked flow 追溯图结构变化。</p>
+            <div class="point-list">
+              <div class="point-item">Pass timeline 替代文件树，降低编译阶段定位成本。</div>
+              <div class="point-item">Locked Flow 把节点上下游从大图中提炼出来。</div>
+              <div class="point-item">Semantic、latency、subgraph 颜色模式服务不同证据切换。</div>
+            </div>
+          </div>
+          <div class="decision-box"><b>产品价值：</b>让编译阶段从黑箱输出变成可导航过程，为后续执行、内存和 Profiling 证据提供源头索引。</div>
+        </div>
+        <div class="iframe-card"><div class="iframe-toolbar"><span class="lamp"></span>Pass-IR 计算图 · 成果页面</div><iframe src="../pass-ir/index.html?preview=1" title="Pass IR 计算图"></iframe></div>
+      </div>
+      <div class="sources"><a href="https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/850/devaids/atctool/atlasatc_16_0005.html">Official ATC / GE</a></div>
+    </section>
+
+    <section class="slide design" style="--glow-a:218;--glow-b:278">
+      <div class="head">
+        <div class="brand"><img src="../assets/logo-cann.svg" alt="">EVIDENCE LAYER 02</div>
+        <div>
+          <h2 class="page-title">Tiling 从参数结果变成因果解释</h2>
+          <div class="page-sub">Tiling 接在图编译之后，承担从 shape/attr 到 kernel 参数的因果解释。</div>
+        </div>
+        <div class="pnum">08 / 16</div>
+      </div>
+      <div class="design-layout">
+        <div class="dark-card point-panel">
+          <div>
+            <div class="tag">02 · tiling causality</div>
+            <h2>从“怎么切”到“为什么这样切”</h2>
+            <p>官方 Tiling 把 shape/attr 转成 TilingData、blockDim、TilingKey 和 workspace。PTO 将这条因果链显性化，避免参数解释停留在经验判断。</p>
+            <div class="point-list">
+              <div class="point-item">把输入约束、参数设计、kernel 消费拆成连续叙事。</div>
+              <div class="point-item">3D tensor 视觉服务参数理解，而不是替代因果解释。</div>
+              <div class="point-item">参数解释 panel 可扩展到更多算子开发场景。</div>
+            </div>
+          </div>
+          <div class="decision-box"><b>产品价值：</b>降低算子开发者理解和调整 Tiling 参数的成本，使参数选择从经验判断转为可解释推导。</div>
+        </div>
+        <div class="iframe-card"><div class="iframe-toolbar"><span class="lamp"></span>Tiling 可视化工作台 · 成果页面</div><iframe src="../tiling/index.html" title="Tiling 可视化工作台"></iframe></div>
+      </div>
+      <div class="sources"><a href="https://www.hiascend.com/document/detail/zh/canncommercial/80RC3/developmentguide/opdevg/Ascendcopdevg/atlas_ascendc_10_0068.html">Official Host Tiling</a></div>
+    </section>
+
+    <section class="slide design" style="--glow-a:312;--glow-b:22">
+      <div class="head">
+        <div class="brand"><img src="../assets/logo-cann.svg" alt="">EVIDENCE LAYER 03</div>
+        <div>
+          <h2 class="page-title">950 工作台用代码行建立硬件路径信任链</h2>
+          <div class="page-sub">参数进入 kernel 后，开发者需要校准代码行、模式建议和 AI Core 硬件路径的一致关系。</div>
+        </div>
+        <div class="pnum">09 / 16</div>
+      </div>
+      <div class="design-layout">
+        <div class="dark-card point-panel">
+          <div>
+            <div class="tag">03 · hardware route</div>
+            <h2>建议必须能被验证</h2>
+            <p>950 路径迁移工作台从代码行出发，同步高亮硬件 route、原因码、指标影响和改写建议，将模式选择转化为可验证判断。</p>
+            <div class="point-list">
+              <div class="point-item">代码行是输入锚点，硬件图是认知主界面。</div>
+              <div class="point-item">证据区解释判断来源，避免“系统建议不可相信”。</div>
+              <div class="point-item">950/910B 对比可支撑迁移方案说明和工程复盘。</div>
+            </div>
+          </div>
+          <div class="decision-box"><b>产品价值：</b>把模式选择建议转化为代码、硬件路径、原因码和指标影响共同支撑的可信判断。</div>
+        </div>
+        <div class="iframe-card"><div class="iframe-toolbar"><span class="lamp"></span>Ascend 950 路径迁移工作台 · 成果页面</div><iframe src="../ascend-950-workbench-demo/index.html" title="Ascend 950 路径迁移工作台"></iframe></div>
+      </div>
+    </section>
+
+    <section class="slide design" style="--glow-a:176;--glow-b:228">
+      <div class="head">
+        <div class="brand"><img src="../assets/logo-cann.svg" alt="">EVIDENCE LAYER 04</div>
+        <div>
+          <h2 class="page-title">Memory Viewer 把 schedule 映射到片上内存状态</h2>
+          <div class="page-sub">硬件路径之后，运行步骤需要落到 L1/L0/UB buffer 和 MTE 搬运通路。</div>
+        </div>
+        <div class="pnum">10 / 16</div>
+      </div>
+      <div class="design-layout">
+        <div class="dark-card point-panel">
+          <div>
+            <div class="tag">04 · memory evidence</div>
+            <h2>让内存层级成为运行证据</h2>
+            <p>Memory Viewer 让 schedule 播放时同步显影 graph、buffer occupancy 和 route，使执行步骤与片上内存层级建立直接关系。</p>
+            <div class="point-list">
+              <div class="point-item">执行中、已完成、待执行状态同时反映在图和内存结构上。</div>
+              <div class="point-item">tensor tier 与 L1/L0A/L0B/L0C/UB 映射建立空间证据。</div>
+              <div class="point-item">MTE route 高亮把 COPY/L1_TO_L0/MMA 变成可解释路径。</div>
+            </div>
+          </div>
+          <div class="decision-box"><b>产品价值：</b>让执行步骤与片上内存层级建立直接证据关系，支撑性能瓶颈定位和硬件路径讲解。</div>
+        </div>
+        <div class="iframe-card"><div class="iframe-toolbar"><span class="lamp"></span>Memory Viewer · 成果页面</div><iframe src="../mem_viewer/index-v2.html" title="Memory Viewer"></iframe></div>
+      </div>
+      <div class="sources"><a href="https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/850alpha002/opdevg/Ascendcopdevg/atlas_ascendc_10_0008.html">Official AI Core Architecture</a><a href="https://www.hiascend.com/document/detail/en/canncommercial/800/apiref/ascendcopapi/atlasascendc_api_07_0004.html">TPosition Mapping</a></div>
+    </section>
+
+    <section class="slide design" style="--glow-a:42;--glow-b:158">
+      <div class="head">
+        <div class="brand"><img src="../assets/logo-cann.svg" alt="">EVIDENCE LAYER 05</div>
+        <div>
+          <h2 class="page-title">Swimlane 让执行任务可以对比、下钻和回到源码</h2>
+          <div class="page-sub">内存证据之后，运行任务需要进入时间维度：对比、Diff、下钻和源码联动。</div>
+        </div>
+        <div class="pnum">11 / 16</div>
+      </div>
+      <div class="design-layout">
+        <div class="dark-card point-panel">
+          <div>
+            <div class="tag">05 · execution evidence</div>
+            <h2>把时间线变成可操作证据</h2>
+            <p>Swimlane 的价值不是展示任务条，而是目录导入、Before/After、Diff、Program 绑定和 Source Flow 联动，让 task 能进入上下游证据。</p>
+            <div class="point-list">
+              <div class="point-item">资源管理面板收口所有本地数据绑定，减少状态分散。</div>
+              <div class="point-item">对比和 Diff 服务性能回归定位，而不是装饰性双图。</div>
+              <div class="point-item">深入任务卡片把 task 导向 Pass-IR 和 Source Flow。</div>
+            </div>
+          </div>
+          <div class="decision-box"><b>产品价值：</b>让一次执行任务能够回到 IR、源码和前后对比，形成时间维度的证据层。</div>
+        </div>
+        <div class="iframe-card"><div class="iframe-toolbar"><span class="lamp"></span>Swimlane 执行视图 · 成果页面</div><iframe src="../swimlane/index.html?preview=1" title="Swimlane 执行视图"></iframe></div>
+      </div>
+    </section>
+
+    <section class="slide design" style="--glow-a:334;--glow-b:266">
+      <div class="head">
+        <div class="brand"><img src="../assets/logo-cann.svg" alt="">EVIDENCE LAYER 06</div>
+        <div>
+          <h2 class="page-title">Graph Evidence 把 Profiling 报告转成图和时间证据</h2>
+          <div class="page-sub">执行证据最终回到性能诊断：报告结论必须能定位到图节点和 runtime task。</div>
+        </div>
+        <div class="pnum">12 / 16</div>
+      </div>
+      <div class="design-layout">
+        <div class="dark-card point-panel">
+          <div>
+            <div class="tag">06 · profiling diagnosis</div>
+            <h2>报告不再是终点</h2>
+            <p>Graph Evidence Workbench 把性能报告中的问题节点、trace task、Inspector 诊断和图结构联动起来，让用户从结论回到证据。</p>
+            <div class="point-list">
+              <div class="point-item">Graph node click、swimlane task click、Inspector mapped node 是同一个 selection state。</div>
+              <div class="point-item">priority filter 让 P0/P1/P2 从报告优先级变成图上可见层。</div>
+              <div class="point-item">数据 schema 明确，下一步可替换真实上游 JSON。</div>
+            </div>
+          </div>
+          <div class="decision-box"><b>产品价值：</b>将性能报告从静态结论升级为可定位、可下钻、可验证的诊断工作台。</div>
+        </div>
+        <div class="iframe-card"><div class="iframe-toolbar"><span class="lamp"></span>Graph Evidence Workbench · 成果页面</div><iframe src="../Profiling_Insight_and_Tool/AI_Profiling_Tool/graph-evidence-workbench.html?reportId=qwen2-7b" title="Graph Evidence Workbench"></iframe></div>
+      </div>
+      <div class="sources"><a href="https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/850alpha002/devaids/Profiling">Official Profiling Tools</a></div>
+    </section>
+
+    <section class="slide design" style="--glow-a:228;--glow-b:188">
+      <div class="head">
+        <div class="brand"><img src="../assets/logo-cann.svg" alt="">SYSTEM LAYER</div>
+        <div>
+          <h2 class="page-title">设计系统让所有工具像同一条链路</h2>
+          <div class="page-sub">证据链跨越多个工具，必须依靠一致的 token、pattern 和交互范式保持连续体验。</div>
+        </div>
+        <div class="pnum">13 / 16</div>
+      </div>
+      <div class="design-layout">
+        <div class="dark-card point-panel">
+          <div>
+            <div class="tag">07 · system consistency</div>
+            <h2>一致性是证据连续性的前提</h2>
+            <p>PTO 设计系统把 workbench、visualization、whitepaper 三类表面拆清楚，并用 tokens 与 patterns 复用图节点、内存架构、泳道任务等关键图元。</p>
+            <div class="point-list">
+              <div class="point-item">同一类交互在不同模块保持同一形状和状态语言。</div>
+              <div class="point-item">pattern 库避免每个页面重画硬件结构和图节点。</div>
+              <div class="point-item">深色开发者工作台保证高密度但不视觉漂移。</div>
+            </div>
+          </div>
+          <div class="decision-box"><b>产品价值：</b>提升跨模块连续性，降低用户在不同工具之间重新学习界面的成本。</div>
+        </div>
+        <div class="iframe-card"><div class="iframe-toolbar"><span class="lamp"></span>PTO 设计系统 · 成果页面</div><iframe src="../design-system-preview.html" title="PTO Design System"></iframe></div>
+      </div>
+    </section>
+
+    <section class="slide design" style="--glow-a:126;--glow-b:206">
+      <div class="head">
+        <div class="brand"><img src="../assets/logo-cann.svg" alt="">EXTENSION LAYER</div>
+        <div>
+          <h2 class="page-title">Training Twin 把学习页推进到真实 run 解释</h2>
+          <div class="page-sub">同一套证据工作台方法，可以从算子和 Profiling 扩展到大模型训练运行解释。</div>
+        </div>
+        <div class="pnum">14 / 16</div>
+      </div>
+      <div class="design-layout">
+        <div class="dark-card point-panel">
+          <div>
+            <div class="tag">08 · training developer twin</div>
+            <h2>学习和实战不能断开</h2>
+            <p>Training 方向把模型架构、训练脚本、运行指标、硬件状态和 what-if 推演连起来，避免学习页停留在教程。</p>
+            <div class="point-list">
+              <div class="point-item">入口服务新手学习，运行孪生体服务工程判断。</div>
+              <div class="point-item">脚本体检、并行参数、run vitals 和风险解释组成闭环。</div>
+              <div class="point-item">长期可连接 Profiling、日志和实验决策中心。</div>
+            </div>
+          </div>
+          <div class="decision-box"><b>产品价值：</b>把 PTO 的证据工作台能力扩展到大模型训练开发场景，连接学习、运行解释和实验决策。</div>
+        </div>
+        <div class="iframe-card"><div class="iframe-toolbar"><span class="lamp"></span>Training Run Twin · 成果页面</div><iframe src="../train/training-run-twin.html?theme=dark" title="Training Run Twin"></iframe></div>
+      </div>
+    </section>
+
+    <section class="slide analysis">
+      <div class="head">
+        <div class="brand"><img src="../assets/logo-cann.svg" alt="">ROADMAP</div>
+        <div>
+          <h2 class="page-title">下一阶段从成果矩阵收束成 Evidence Workbench</h2>
+          <div class="page-sub">不是继续加页面，而是把数据模型、联动协议和可复用面板抽出来，让核心能力进入稳定产品架构。</div>
+        </div>
+        <div class="pnum">15 / 16</div>
+      </div>
+      <div class="roadmap-wrap">
+        <div class="glass roadmap">
+          <div class="rm-row"><div class="rm-phase">P0</div><div class="rm-bar"><b>统一产品叙事</b><span>将 PTO 从页面集合明确收束为 Ascend/CANN 开发者证据工作台。</span></div></div>
+          <div class="rm-row"><div class="rm-phase">P1</div><div class="rm-bar"><b>统一 evidence schema</b><span>定义 graph、nodeInfo、problemMap、trace、inspector、coverage 的最小公共模型。</span></div></div>
+          <div class="rm-row"><div class="rm-phase">P2</div><div class="rm-bar"><b>联动协议产品化</b><span>selection、filter、step、focus 成为跨模块事件协议，而不是页面私有逻辑。</span></div></div>
+          <div class="rm-row"><div class="rm-phase">P3</div><div class="rm-bar"><b>Evidence Workbench</b><span>形成图、Inspector、时间线、硬件路径、源码证据的主工作台骨架。</span></div></div>
+        </div>
+        <div class="glass framework-card">
+          <div class="kicker">Productization Principle</div>
+          <h3>保留演示冲击力，同时把页面能力升级为应用内一等组件</h3>
+          <p>现有成果已经证明图、Inspector、Timeline、Hardware Route 能形成完整证据闭环。下一阶段需要把这些能力统一到同一数据层和 selection state。</p>
+          <div class="cap-row">
+            <div class="cap"><b>统一数据</b><small>从手写常量走向 JSON schema。</small></div>
+            <div class="cap"><b>统一事件</b><small>跨图、泳道、Inspector 的选中态。</small></div>
+            <div class="cap"><b>统一模式</b><small>沉淀 pattern 与面板契约。</small></div>
+            <div class="cap"><b>统一叙事</b><small>把核心能力映射到开发链路。</small></div>
+            <div class="cap"><b>统一验证</b><small>每个结论有证据和指标。</small></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide analysis">
+      <div class="head">
+        <div class="brand"><img src="../assets/logo-cann.svg" alt="">NEXT STEPS</div>
+        <div>
+          <h2 class="page-title">PTO 下一阶段聚焦统一数据、统一联动、统一证据</h2>
+          <div class="page-sub">后续推进以 Evidence Workbench 为主线，保留现有原型成果的展示价值，同时将核心能力沉淀为稳定产品架构。</div>
+        </div>
+        <div class="pnum">16 / 16</div>
+      </div>
+      <div class="roadmap-wrap">
+        <div class="glass ask-list">
+          <div class="ask"><i>1</i><span><b>统一数据模型</b>抽象 graph、nodeInfo、problemMap、trace、inspector、coverage 等公共对象，降低重复实现成本。</span></div>
+          <div class="ask"><i>2</i><span><b>统一联动协议</b>将 selection、filter、step、focus 抽象为跨模块事件协议，稳定连接图、泳道、Inspector、硬件路径和源码证据。</span></div>
+          <div class="ask"><i>3</i><span><b>统一 pattern 库</b>优先沉淀 model graph node、swimlane task、memory architecture、hardware route、inspector panel 等高复用图元。</span></div>
+          <div class="ask"><i>4</i><span><b>统一主工作台</b>以 Graph Evidence 三面板结构为基础，逐步吸收 Pass-IR、Swimlane、Memory Viewer 和 Hardware Route 的核心能力。</span></div>
+        </div>
+        <div class="glass framework-card">
+          <div class="kicker">Closing Claim</div>
+          <h3>PTO 的下一步不是“更多页面”，而是“更强证据链”</h3>
+          <p>当每项核心能力都能追溯到官方流程、真实数据和可复用交互时，PTO 才能从原型集合变成面向 Ascend/CANN 开发者的系统工作台。</p>
+          <div class="cap-row">
+            <div class="cap"><b>看懂</b><small>官方概念变成可视对象。</small></div>
+            <div class="cap"><b>定位</b><small>问题能回到节点和任务。</small></div>
+            <div class="cap"><b>解释</b><small>结论有证据链支撑。</small></div>
+            <div class="cap"><b>修复</b><small>建议能落到下一步动作。</small></div>
+            <div class="cap"><b>复用</b><small>能力沉淀为系统模式。</small></div>
+          </div>
+        </div>
+      </div>
+      <div class="sources">
+        <a href="./pto-ascend-cann-ux-report.md">文字版文稿</a>
+        <a href="../launch-v2.html">PTO Launch v2</a>
+      </div>
+    </section>
+  </main>
+
+  <nav id="nav" aria-label="slide navigation"></nav>
+  <div class="hint">← / →</div>
+
+  <script>
+    const deck = document.getElementById("deck");
+    const slides = Array.from(document.querySelectorAll(".slide"));
+    const nav = document.getElementById("nav");
+    let index = 0;
+    let slideWidth = window.innerWidth;
+
+    slides.forEach((_, i) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.setAttribute("aria-label", `Go to slide ${i + 1}`);
+      btn.addEventListener("click", () => go(i));
+      nav.appendChild(btn);
+    });
+
+    function syncLayout() {
+      slideWidth = window.innerWidth;
+      document.documentElement.style.setProperty("--slide-w", `${slideWidth}px`);
+      deck.style.width = `${slideWidth * slides.length}px`;
+      deck.style.transform = `translate3d(${-index * slideWidth}px,0,0)`;
+      window.scrollTo(0, 0);
+    }
+
+    function updateUrl() {
+      const nextHash = `slide-${String(index + 1).padStart(2, "0")}`;
+      const nextUrl = `${window.location.pathname}${window.location.search}#${nextHash}`;
+      window.history.replaceState(null, "", nextUrl);
+    }
+
+    function go(next, { updateHash = true } = {}) {
+      index = Math.max(0, Math.min(slides.length - 1, next));
+      deck.style.transform = `translate3d(${-index * slideWidth}px,0,0)`;
+      window.scrollTo(0, 0);
+      Array.from(nav.children).forEach((btn, i) => btn.classList.toggle("active", i === index));
+      if (updateHash) updateUrl();
+    }
+
+    window.addEventListener("keydown", (event) => {
+      const active = document.activeElement;
+      if (active && active.tagName === "IFRAME") active.blur();
+      if (event.key === "ArrowRight" || event.key === "PageDown" || event.key === " ") go(index + 1);
+      if (event.key === "ArrowLeft" || event.key === "PageUp") go(index - 1);
+      if (event.key === "Home") go(0);
+      if (event.key === "End") go(slides.length - 1);
+    });
+
+    window.addEventListener("resize", () => syncLayout());
+    window.addEventListener("hashchange", () => {
+      const match = window.location.hash.match(/slide-(\d+)/);
+      if (match) go(Number(match[1]) - 1, { updateHash: false });
+    });
+
+    const match = location.hash.match(/slide-(\d+)/);
+    syncLayout();
+    go(match ? Number(match[1]) - 1 : 0, { updateHash: false });
+  </script>
+</body>
+</html>

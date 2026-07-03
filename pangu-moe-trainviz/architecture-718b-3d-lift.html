@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>openPangu-Ultra-MoE-718B · 2D Architecture 3D Lift</title>
+  <script>
+    (() => {
+      const stored = window.localStorage && window.localStorage.getItem('arch-3d-lift-theme');
+      if (stored === 'light' || stored === 'dark') document.documentElement.dataset.theme = stored;
+      window.addEventListener('error', (event) => {
+        document.body && document.body.setAttribute('data-render-status', `error: ${event.message || 'unknown'}`);
+      });
+      window.addEventListener('unhandledrejection', (event) => {
+        const reason = event.reason && event.reason.message ? event.reason.message : 'promise rejection';
+        document.body && document.body.setAttribute('data-render-status', `error: ${reason}`);
+      });
+    })();
+  </script>
+  <link rel="stylesheet" href="../vendor/pto-design-system/tokens/foundation.css">
+  <link rel="stylesheet" href="../vendor/pto-design-system/tokens/semantic.css">
+  <link rel="stylesheet" href="../vendor/pto-design-system/tokens/components.css">
+  <link rel="stylesheet" href="../vendor/pto-design-system/css/style.css">
+  <link rel="stylesheet" href="css/model-architecture-3d-lift.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "../hpc-topology-viewer-main/node_modules/three/build/three.module.min.js"
+      }
+    }
+  </script>
+</head>
+<body class="arch3d-page" data-render-status="loading">
+  <div class="arch3d-app">
+    <header class="layout-header arch3d-header">
+      <div class="layout-header-left">
+        <div class="layout-header-brand arch3d-brand">
+          <span class="layout-header-dot" aria-hidden="true"></span>
+          <span>Architecture 3D Lift</span>
+        </div>
+        <div class="arch3d-title-copy">
+          <strong>openPangu-Ultra-MoE-718B</strong>
+          <span>Same 2D nodes and edges · extruded 3D · rank mapping off</span>
+        </div>
+      </div>
+      <div class="layout-header-right arch3d-actions">
+        <div class="segmented-control segmented-control-muted" role="group" aria-label="图展开层级">
+          <button class="btn btn-ghost" type="button" data-mode="collapsed">Collapsed</button>
+          <button class="btn btn-ghost is-selected" type="button" data-mode="moe">MoE Layer</button>
+          <button class="btn btn-ghost" type="button" data-mode="ep">EP Buckets</button>
+        </div>
+        <button class="btn btn-ghost" type="button" id="resetViewBtn">Reset</button>
+        <button class="btn btn-ghost" type="button" id="themeBtn">Light</button>
+      </div>
+    </header>
+
+    <main class="arch3d-main">
+      <section class="arch3d-stage" aria-label="2D 架构图 3D 化预览">
+        <div class="arch3d-canvas-host" id="arch3dCanvas"></div>
+        <div class="arch3d-hud">
+          <div>
+            <span class="stat-chip" id="nodeCount">nodes</span>
+            <span class="stat-chip" id="edgeCount">edges</span>
+            <span class="stat-chip" id="modeLabel">MoE Layer</span>
+          </div>
+          <p id="modeSummary">保持 2D 架构图的 node/edge schema，只把节点挤出成厚块，并把 cluster 变成低矮层板。</p>
+        </div>
+        <div class="arch3d-orientation" aria-label="视角快速切换">
+          <canvas class="arch3d-orientation-canvas" id="orientationCanvas" width="128" height="128" aria-hidden="true"></canvas>
+          <div class="arch3d-view-actions">
+            <button class="btn btn-ghost" type="button" data-view="front">Front</button>
+            <button class="btn btn-ghost is-selected" type="button" data-view="iso">2.5D</button>
+          </div>
+        </div>
+        <div class="arch3d-readout" id="readout">
+          <div class="panel-shell-meta">hover</div>
+          <strong>Hover a node or edge</strong>
+          <span>查看原始 node id、edge source/target、tag/type 和架构说明。</span>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="arch3d-tip" id="arch3dTip" role="tooltip">
+    <strong id="arch3dTipTitle"></strong>
+    <span id="arch3dTipBody"></span>
+  </div>
+
+  <script src="data/graph-ultramoe-718b.js"></script>
+  <script type="module" src="js/model-architecture-3d-lift.js"></script>
+</body>
+</html>

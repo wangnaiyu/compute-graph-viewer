@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI CPU AICore UI Inventory</title>
+  <link rel="stylesheet" href="../vendor/pto-design-system/tokens/foundation.css">
+  <link rel="stylesheet" href="../vendor/pto-design-system/tokens/semantic.css">
+  <link rel="stylesheet" href="../vendor/pto-design-system/tokens/components.css">
+  <link rel="stylesheet" href="../vendor/pto-design-system/css/style.css">
+  <link rel="stylesheet" href="../vendor/pto-design-system/patterns/ide-frame/pattern.css">
+  <style>
+    body {
+      margin: 0;
+      background: var(--ide-frame-page-bg);
+      color: var(--foreground);
+      font-family: var(--font-sans);
+    }
+
+    main {
+      width: min(1180px, calc(100vw - 48px));
+      margin: 0 auto;
+      padding: 32px 0 48px;
+      display: grid;
+      gap: 18px;
+    }
+
+    h1,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font: var(--text-display);
+      letter-spacing: 0;
+    }
+
+    p {
+      max-width: 860px;
+      color: var(--foreground-secondary);
+      font: var(--text-body);
+      line-height: 1.6;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      background: color-mix(in srgb, var(--surface-1) 88%, transparent);
+      font: var(--text-body-sm);
+    }
+
+    th,
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border-subtle);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--foreground);
+      background: color-mix(in srgb, var(--surface-2) 86%, transparent);
+      font: var(--text-label);
+      letter-spacing: 0;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    code {
+      color: var(--foreground);
+      font: var(--text-mono);
+    }
+
+    .status-ok {
+      color: var(--success);
+      font-weight: var(--font-weight-semibold);
+    }
+
+    .status-note {
+      color: var(--warning);
+      font-weight: var(--font-weight-semibold);
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>AI CPU AICore UI Inventory</h1>
+    <p>This preview records the current module shell and component inventory after migrating the interactive workbench to the shared PTO IDE frame contract.</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Surface</th>
+          <th>Classes and API</th>
+          <th>Values</th>
+          <th>Bucket</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Application shell</td>
+          <td><code>.pto-ide-frame</code>, <code>data-ide-frame</code>, <code>PtoIdeFrame.init</code></td>
+          <td>Shared IDE gradient skin, transparent chrome, pane wells from <code>patterns/ide-frame</code>.</td>
+          <td>pattern-migrate</td>
+          <td class="status-ok">OK</td>
+        </tr>
+        <tr>
+          <td>Split panes</td>
+          <td><code>data-ide-split</code>, <code>data-ide-pane</code>, delegated <code>PtoWorkbenchShell</code></td>
+          <td>Main split 34/66, nested architecture/execution split 58/42, 8px gutter.</td>
+          <td>pattern-migrate</td>
+          <td class="status-ok">OK</td>
+        </tr>
+        <tr>
+          <td>Architecture map</td>
+          <td><code>PtoMemoryArchitecturePattern.renderArchitecture</code>, <code>createRouteOverlay</code>, <code>createZoomController</code></td>
+          <td>Shared memory layout, graph-only pan/zoom viewport, product-owned control-plane overlay.</td>
+          <td>pattern-migrate</td>
+          <td class="status-ok">OK</td>
+        </tr>
+        <tr>
+          <td>Floating playback</td>
+          <td><code>PtoFloatingPlaybackControl.createControl</code>, <code>init</code>, <code>initScrubberHover</code></td>
+          <td>Shared playback chrome. Business page owns sequence state and handlers.</td>
+          <td>aligned</td>
+          <td class="status-ok">OK</td>
+        </tr>
+        <tr>
+          <td>Buttons, chips, selects</td>
+          <td><code>.btn</code>, <code>.btn-ghost</code>, <code>.iv-chip</code>, <code>.kernel-select</code></td>
+          <td>Uses PTO token typography, radius, border, and semantic foreground colors.</td>
+          <td>aligned</td>
+          <td class="status-ok">OK</td>
+        </tr>
+        <tr>
+          <td>Visualization encodings</td>
+          <td><code>.iv-control-node</code>, <code>.iv-route-*</code>, queue lanes, tile grid</td>
+          <td>Domain colors encode control, memory, compute, queue, and buffer state.</td>
+          <td>exempt</td>
+          <td class="status-note">data-viz</td>
+        </tr>
+        <tr>
+          <td>Container decoration</td>
+          <td><code>.panel-shell</code> plus <code>.pto-ide-frame__pane</code></td>
+          <td>No local gutter internals retained. Pane chrome now comes from IDE frame.</td>
+          <td>migrate</td>
+          <td class="status-ok">OK</td>
+        </tr>
+      </tbody>
+    </table>
+  </main>
+</body>
+</html>

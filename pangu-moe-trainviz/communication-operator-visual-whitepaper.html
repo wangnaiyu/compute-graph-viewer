@@ -18,8 +18,6 @@
           document.documentElement.dataset.theme = queryTheme;
         } else if (storedTheme === 'light' || storedTheme === 'dark') {
           document.documentElement.dataset.theme = storedTheme;
-        } else {
-          document.documentElement.dataset.theme = 'light';
         }
       } catch (error) {
         document.documentElement.dataset.theme = 'light';
@@ -646,36 +644,15 @@
       color: var(--foreground-secondary);
     }
 
-    .fusion-svg {
-      width: 100%;
-      height: auto;
-      display: block;
-    }
-
-    .fusion-mini-svg {
-      min-height: 168px;
-    }
-
-    .mini-table,
-    .fusion-table {
-      width: 100%;
-      border-collapse: collapse;
-      font: var(--text-body-sm);
-      color: var(--foreground-secondary);
-    }
-
     .mini-table th,
-    .mini-table td,
-    .fusion-table th,
-    .fusion-table td {
+    .mini-table td {
       padding: 8px 0;
       border-top: 1px solid var(--border-subtle);
       vertical-align: top;
       text-align: left;
     }
 
-    .mini-table th,
-    .fusion-table th {
+    .mini-table th {
       width: 5.2rem;
       color: var(--foreground);
       font: var(--text-label);
@@ -683,84 +660,114 @@
       padding-right: 10px;
     }
 
-    .fusion-panel {
-      padding: 14px;
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-xl);
-      background: var(--surface-1);
-      display: grid;
-      gap: 12px;
-    }
-
-    .fusion-head {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: baseline;
-      justify-content: space-between;
-      gap: 8px 12px;
-    }
-
-    .fusion-head strong {
-      color: var(--foreground);
-      font: var(--text-title-2);
-    }
-
-    .fusion-head span {
-      color: var(--foreground-secondary);
-      font: var(--text-label);
-    }
-
-    .fusion-grid {
-      display: grid;
-      grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
-      gap: 10px;
-    }
-
-    .fusion-stack {
-      display: grid;
-      gap: 10px;
-    }
-
-    .fusion-card {
-      min-width: 0;
-      padding: 12px;
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-lg);
-      background: color-mix(in srgb, var(--surface-2) 78%, var(--surface-1));
-      display: grid;
-      gap: 10px;
-      align-content: start;
-    }
-
-    .fusion-card strong {
-      color: var(--foreground);
-      font: var(--text-label);
-    }
-
-    .fusion-card p,
-    .fusion-card ul {
-      margin: 0;
-      color: var(--foreground-secondary);
-      font: var(--text-body-sm);
-      line-height: 1.55;
-    }
-
-    .fusion-card ul {
-      padding-left: 1.1rem;
-    }
-
-    .fusion-matrix {
-      grid-column: 1 / -1;
-    }
-
     .pressure-surface {
-      height: min(82vh, 900px);
-      min-height: 760px;
+      height: min(74vh, 760px);
+      min-height: 620px;
     }
 
     .source-panel h2 {
       margin: 0;
       font: var(--text-title-1);
+    }
+
+    .whitepaper-svg {
+      width: min(100%, var(--svg-width, 960px));
+      height: auto;
+      display: block;
+      margin: 0 auto;
+    }
+
+    .screenshot {
+      display: grid;
+      gap: 0;
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      overflow: hidden;
+      background: var(--surface-1);
+    }
+
+    .shotbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border-subtle);
+      color: var(--foreground);
+      font: var(--text-label);
+      background: color-mix(in srgb, var(--surface-2) 74%, transparent);
+      letter-spacing: 0.01em;
+    }
+
+    .shotbar .dots {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      width: 34px;
+      flex: 0 0 auto;
+    }
+
+    .shotbar .dots::before,
+    .shotbar .dots::after {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--viz-dp);
+      box-shadow: 12px 0 0 var(--viz-tp), 24px 0 0 var(--viz-pp);
+    }
+
+    .shotbody {
+      padding: 18px 18px 20px;
+      overflow: hidden;
+      background: var(--surface-1);
+    }
+
+    .shotbody.flush {
+      padding: 0;
+    }
+
+    .section-intro {
+      margin: 0 0 16px;
+      color: var(--foreground-secondary);
+      font: var(--text-body);
+      line-height: 1.6;
+    }
+
+    .evidence-caption {
+      margin-top: 12px;
+      color: var(--foreground-muted);
+      font: var(--text-body-sm);
+      line-height: 1.6;
+    }
+
+    .mini-note {
+      color: var(--foreground-muted);
+      font: var(--text-body-sm);
+      line-height: 1.65;
+    }
+
+    .section-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 14px;
+      color: var(--foreground-secondary);
+      font: var(--text-body-sm);
+    }
+
+    .section-table th,
+    .section-table td {
+      padding: 10px 0;
+      border-top: 1px solid var(--border-subtle);
+      vertical-align: top;
+      text-align: left;
+    }
+
+    .section-table th {
+      width: 5.8rem;
+      color: var(--foreground);
+      font: var(--text-label);
+      white-space: nowrap;
+      padding-right: 12px;
     }
 
     .source-grid {
@@ -849,8 +856,7 @@
       }
 
       .multi-dim-board,
-      .parallel-demo-board,
-      .fusion-grid {
+      .parallel-demo-board {
         grid-template-columns: 1fr;
       }
     }
@@ -912,7 +918,7 @@
           <a class="nav-link" href="#vpp">VPP</a>
           <a class="nav-link" href="#network">Network</a>
         </nav>
-        <button class="theme-toggle" id="themeToggle" type="button" aria-label="切换到深色模式" title="切换到深色模式">
+        <button class="theme-toggle" id="themeToggle" type="button" aria-label="切换到浅色模式" title="切换到浅色模式">
           <svg class="sun-icon" viewBox="0 0 24 24" aria-hidden="true">
             <circle cx="12" cy="12" r="4"></circle>
             <path d="M12 2v2"></path>
@@ -979,7 +985,7 @@
       <div class="source-panel">
         <div class="visual-surface pressure-surface">
           <div class="surface-title"><strong>通信压力速览</strong><span>每个策略先看数据从哪里流向哪里</span></div>
-          <svg class="viz-svg" id="pressure-map" viewBox="0 0 980 760" role="img" aria-label="DP TP PP EP CP SP 典型通信压力可视化"></svg>
+          <svg class="viz-svg" id="pressure-map" viewBox="0 0 980 620" role="img" aria-label="DP TP PP EP CP SP 典型通信压力可视化"></svg>
         </div>
       </div>
     </section>
@@ -989,61 +995,137 @@
     <section class="section" id="multi-dim" aria-labelledby="multi-dim-title">
       <div class="section-head">
         <div>
-          <div class="section-kicker">Multi-dimensional placement</div>
-          <h2 id="multi-dim-title">多维放置：先分清对象层级，再谈并行坐标</h2>
-          <div class="one-line">这层补的是 placement 的语义底座。device、rank、stage、expert 不是同一个东西，不能塞进同一个“卡片归属”口径里。</div>
-        </div>
-        <div class="metric-chip-row" aria-label="多维摘要">
-          <span class="chip"><b>device</b> physical</span>
-          <span class="chip"><b>rank</b> runtime id</span>
-          <span class="chip"><b>stage</b> PP slice</span>
-          <span class="chip"><b>expert</b> MoE owner</span>
+          <div class="section-kicker">Scope · 基本对象</div>
+          <h2 id="multi-dim-title">card、device、rank、worker、stage、expert 的层级关系</h2>
+          <p class="section-intro">若产品界面仅使用“卡”作为统一描述，硬件位置、运行时身份、层段分工与专家放置容易被混合表达。本节先建立对象层级，作为后续 placement 建模的基础。</p>
         </div>
       </div>
-      <div class="multi-dim-board">
-        <div class="multi-dim-surface">
-          <div class="surface-title"><strong>对象层级图</strong><span>从物理设备到并行坐标，再到专家放置</span></div>
-          <svg class="multi-dim-svg" viewBox="0 0 980 360" role="img" aria-label="对象层级图">
+      <div class="screenshot">
+        <div class="shotbar"><span class="dots"></span>对象层级图 · 物理设备、运行时身份与并行坐标</div>
+        <div class="shotbody flush">
+          <svg viewBox="0 0 1180 600" xmlns="http://www.w3.org/2000/svg" class="whitepaper-svg" style="--svg-width: 980px">
             <defs>
-              <marker id="mdArrow" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
-                <path d="M0,0 L9,4.5 L0,9 z" fill="currentColor"></path>
+              <symbol id="chip-shell-compact" viewBox="0 0 160 120">
+                <rect x="4" y="4" width="152" height="112" rx="8" fill="var(--border-subtle)" stroke="var(--viz-muted)" stroke-width="2"/>
+                <rect x="18" y="18" width="124" height="84" rx="5" fill="var(--surface-1)" stroke="var(--border-default)" stroke-width="2"/>
+                <circle cx="18" cy="18" r="5" fill="var(--viz-muted)"/>
+                <circle cx="142" cy="18" r="5" fill="var(--viz-muted)"/>
+                <circle cx="18" cy="102" r="5" fill="var(--viz-muted)"/>
+                <circle cx="142" cy="102" r="5" fill="var(--viz-muted)"/>
+              </symbol>
+              <marker id="scopeArrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+                <path d="M0,0 L10,5 L0,10 z" fill="var(--viz-dp)"/>
               </marker>
             </defs>
-            <rect x="36" y="112" width="120" height="72" rx="14" fill="color-mix(in srgb, var(--viz-dp) 10%, var(--surface-1))" stroke="var(--viz-dp)"/>
-            <rect x="190" y="92" width="170" height="112" rx="16" fill="color-mix(in srgb, var(--viz-pp) 10%, var(--surface-1))" stroke="var(--viz-pp)"/>
-            <rect x="398" y="92" width="170" height="112" rx="16" fill="color-mix(in srgb, var(--viz-tp) 10%, var(--surface-1))" stroke="var(--viz-tp)"/>
-            <rect x="606" y="112" width="156" height="72" rx="14" fill="color-mix(in srgb, var(--viz-ep) 10%, var(--surface-1))" stroke="var(--viz-ep)"/>
-            <rect x="800" y="112" width="126" height="72" rx="14" fill="color-mix(in srgb, var(--viz-zero) 10%, var(--surface-1))" stroke="var(--viz-zero)"/>
-            <text x="96" y="143" text-anchor="middle" fill="var(--foreground)" font-size="14" font-weight="800">device</text>
-            <text x="275" y="134" text-anchor="middle" fill="var(--foreground)" font-size="14" font-weight="800">rank / stage</text>
-            <text x="483" y="134" text-anchor="middle" fill="var(--foreground)" font-size="14" font-weight="800">tp / dp / cp</text>
-            <text x="684" y="143" text-anchor="middle" fill="var(--foreground)" font-size="14" font-weight="800">expert</text>
-            <text x="863" y="143" text-anchor="middle" fill="var(--foreground)" font-size="14" font-weight="800">state</text>
-            <path d="M158 148 L186 148" stroke="var(--foreground-secondary)" stroke-width="2" marker-end="url(#mdArrow)"/>
-            <path d="M360 148 L394 148" stroke="var(--foreground-secondary)" stroke-width="2" marker-end="url(#mdArrow)"/>
-            <path d="M568 148 L602 148" stroke="var(--foreground-secondary)" stroke-width="2" marker-end="url(#mdArrow)"/>
-            <path d="M762 148 L796 148" stroke="var(--foreground-secondary)" stroke-width="2" marker-end="url(#mdArrow)"/>
-            <text x="490" y="268" text-anchor="middle" fill="var(--foreground-secondary)" font-size="12">物理设备 → 运行时身份 → 并行坐标 → 专家放置 → 训练状态</text>
-            <text x="490" y="298" text-anchor="middle" fill="var(--foreground-secondary)" font-size="12">这条链说明“同一张卡”只是映射结果，不是唯一语义</text>
+            <rect x="40" y="40" width="364" height="206" rx="14" fill="color-mix(in srgb, var(--viz-dp) 12%, var(--surface-1))" stroke="var(--viz-dp)" stroke-width="2"/>
+            <text x="222" y="80" text-anchor="middle" font-size="22" font-weight="800" fill="var(--viz-dp)">物理层</text>
+            <g class="svg-chip">
+              <use href="#chip-shell-compact" x="56" y="108" width="164" height="123"/>
+              <text x="138" y="158" text-anchor="middle" font-size="20" font-weight="700" fill="var(--foreground)">host_03</text>
+              <text x="138" y="194" text-anchor="middle" font-size="13" fill="var(--foreground-secondary)">machine / node</text>
+            </g>
+            <g class="svg-chip">
+              <use href="#chip-shell-compact" x="224" y="108" width="164" height="123"/>
+              <text x="306" y="158" text-anchor="middle" font-size="20" font-weight="700" fill="var(--foreground)">device_5</text>
+              <text x="306" y="194" text-anchor="middle" font-size="13" fill="var(--foreground-secondary)">card / NPU</text>
+            </g>
+
+            <rect x="432" y="40" width="364" height="206" rx="14" fill="color-mix(in srgb, var(--viz-zero) 12%, var(--surface-1))" stroke="var(--viz-zero)" stroke-width="2"/>
+            <text x="614" y="80" text-anchor="middle" font-size="22" font-weight="800" fill="var(--viz-zero)">运行时层</text>
+            <g class="svg-chip">
+              <use href="#chip-shell-compact" x="440" y="108" width="164" height="123"/>
+              <text x="522" y="158" text-anchor="middle" font-size="20" font-weight="700" fill="var(--foreground)">rank_237</text>
+              <text x="522" y="194" text-anchor="middle" font-size="13" fill="var(--foreground-secondary)">global rank</text>
+            </g>
+            <g class="svg-chip">
+              <use href="#chip-shell-compact" x="620" y="108" width="164" height="123"/>
+              <text x="702" y="158" text-anchor="middle" font-size="20" font-weight="700" fill="var(--foreground)">worker</text>
+              <text x="702" y="194" text-anchor="middle" font-size="13" fill="var(--foreground-secondary)">process / member</text>
+            </g>
+
+            <rect x="818" y="40" width="324" height="500" rx="14" fill="color-mix(in srgb, var(--viz-pp) 12%, var(--surface-1))" stroke="var(--viz-pp)" stroke-width="2"/>
+            <text x="980" y="80" text-anchor="middle" font-size="22" font-weight="800" fill="var(--viz-pp)">并行坐标层</text>
+            <text x="980" y="104" text-anchor="middle" font-size="12" font-weight="700" fill="var(--viz-pp)">混合并行下的多维语义标签</text>
+            <path d="M858 116 L858 496" stroke="var(--viz-pp)" stroke-width="1.5" stroke-dasharray="6 8"/>
+            <g font-size="12" font-weight="700">
+              <g opacity="0.98">
+                <path d="M858 134 L1074 134 L1102 118 L886 118 Z" fill="color-mix(in srgb, var(--viz-pp) 20%, var(--surface-1))" stroke="var(--viz-pp)" stroke-width="1.4"/>
+                <path d="M1074 134 L1102 118 L1102 156 L1074 172 Z" fill="color-mix(in srgb, var(--viz-pp) 32%, var(--surface-1))" stroke="var(--viz-pp)" stroke-width="1.4"/>
+                <rect x="858" y="134" width="216" height="38" rx="8" fill="color-mix(in srgb, var(--viz-pp) 12%, var(--surface-1))" stroke="var(--viz-pp)" stroke-width="2"/>
+                <text x="966" y="150" text-anchor="middle" font-size="14" font-weight="800" fill="var(--viz-pp)">PP5</text>
+                <text x="966" y="165" text-anchor="middle" font-size="11" fill="var(--viz-pp)">layers 36-42</text>
+              </g>
+              <g opacity="0.98">
+                <path d="M858 206 L1074 206 L1102 190 L886 190 Z" fill="color-mix(in srgb, var(--viz-tp) 20%, var(--surface-1))" stroke="var(--viz-tp)" stroke-width="1.4"/>
+                <path d="M1074 206 L1102 190 L1102 228 L1074 244 Z" fill="color-mix(in srgb, var(--viz-tp) 32%, var(--surface-1))" stroke="var(--viz-tp)" stroke-width="1.4"/>
+                <rect x="858" y="206" width="216" height="38" rx="8" fill="color-mix(in srgb, var(--viz-tp) 12%, var(--surface-1))" stroke="var(--viz-tp)" stroke-width="2"/>
+                <text x="966" y="222" text-anchor="middle" font-size="14" font-weight="800" fill="var(--viz-tp)">TP2</text>
+                <text x="966" y="237" text-anchor="middle" font-size="11" fill="var(--viz-tp)">QKV shard 2/8</text>
+              </g>
+              <g opacity="0.98">
+                <path d="M858 278 L1074 278 L1102 262 L886 262 Z" fill="color-mix(in srgb, var(--viz-dp) 20%, var(--surface-1))" stroke="var(--viz-dp)" stroke-width="1.4"/>
+                <path d="M1074 278 L1102 262 L1102 300 L1074 316 Z" fill="color-mix(in srgb, var(--viz-dp) 32%, var(--surface-1))" stroke="var(--viz-dp)" stroke-width="1.4"/>
+                <rect x="858" y="278" width="216" height="38" rx="8" fill="color-mix(in srgb, var(--viz-dp) 12%, var(--surface-1))" stroke="var(--viz-dp)" stroke-width="2"/>
+                <text x="966" y="294" text-anchor="middle" font-size="14" font-weight="800" fill="var(--viz-dp)">DP7</text>
+                <text x="966" y="309" text-anchor="middle" font-size="11" fill="var(--viz-dp)">replica group</text>
+              </g>
+              <g opacity="0.98">
+                <path d="M858 350 L1074 350 L1102 334 L886 334 Z" fill="color-mix(in srgb, var(--viz-cp) 20%, var(--surface-1))" stroke="var(--viz-cp)" stroke-width="1.4"/>
+                <path d="M1074 350 L1102 334 L1102 372 L1074 388 Z" fill="color-mix(in srgb, var(--viz-cp) 32%, var(--surface-1))" stroke="var(--viz-cp)" stroke-width="1.4"/>
+                <rect x="858" y="350" width="216" height="38" rx="8" fill="color-mix(in srgb, var(--viz-cp) 12%, var(--surface-1))" stroke="var(--viz-cp)" stroke-width="2"/>
+                <text x="966" y="366" text-anchor="middle" font-size="14" font-weight="800" fill="var(--viz-cp)">CP1</text>
+                <text x="966" y="381" text-anchor="middle" font-size="11" fill="var(--viz-cp)">token 2048-4095</text>
+              </g>
+              <g opacity="0.98">
+                <path d="M858 422 L1074 422 L1102 406 L886 406 Z" fill="color-mix(in srgb, var(--viz-ep) 20%, var(--surface-1))" stroke="var(--viz-ep)" stroke-width="1.4"/>
+                <path d="M1074 422 L1102 406 L1102 444 L1074 460 Z" fill="color-mix(in srgb, var(--viz-ep) 32%, var(--surface-1))" stroke="var(--viz-ep)" stroke-width="1.4"/>
+                <rect x="858" y="422" width="216" height="38" rx="8" fill="color-mix(in srgb, var(--viz-ep) 12%, var(--surface-1))" stroke="var(--viz-ep)" stroke-width="2"/>
+                <text x="966" y="438" text-anchor="middle" font-size="14" font-weight="800" fill="var(--viz-ep)">EP19</text>
+                <text x="966" y="453" text-anchor="middle" font-size="11" fill="var(--viz-ep)">experts 152-159</text>
+              </g>
+            </g>
+            <rect x="848" y="552" width="264" height="38" rx="10" fill="var(--surface-1)" stroke="var(--viz-pp)"/>
+            <text x="980" y="576" text-anchor="middle" font-size="13" font-weight="700" fill="var(--viz-pp)">同一个 rank 可落入多个并行维度</text>
+
+            <path d="M388 166 L432 166" stroke="var(--viz-dp)" stroke-width="3" fill="none" marker-end="url(#scopeArrow)"/>
+            <path d="M784 166 L818 166" stroke="var(--viz-zero)" stroke-width="3" fill="none" marker-end="url(#scopeArrow)"/>
+
+            <rect x="84" y="310" width="688" height="132" rx="14" fill="var(--surface-1)" stroke="var(--border-default)"/>
+            <text x="428" y="344" text-anchor="middle" font-size="18" font-weight="800" fill="var(--foreground)">推荐的产品表达</text>
+            <text x="428" y="376" text-anchor="middle" font-size="15" fill="var(--foreground)">rank_237 运行在 host_03 / device_5 上，并被映射到示例中的 PP5 / TP2 / DP7 / CP1 / EP19</text>
+            <text x="428" y="406" text-anchor="middle" font-size="14" fill="var(--foreground-secondary)">先定义物理位置，再定义运行时身份，最后展示并行坐标。不应将三层关系压缩为“卡 237 负责哪几层”。</text>
           </svg>
         </div>
-        <div class="multi-dim-note">
-          <div class="surface-title"><strong>先看什么</strong><span>把能放进 placementMap 的字段先定清楚</span></div>
-          <ul class="mini-list">
-            <li><code>device</code> 表示物理承载，<code>rank</code> 表示运行时身份，<code>stage</code> 表示 PP 切分位置，<code>expert</code> 表示 MoE 放置目标。</li>
-            <li><code>TP / DP / CP / EP / ZeRO</code> 是并行坐标，不是“卡上拥有的单一标签”。</li>
-            <li>右侧的通信解释应落到 All-Reduce、All-to-All、P2P、All-Gather / Reduce-Scatter、KV exchange 这些事件上。</li>
-            <li>如果缺字段，就隐藏；不要把不同语义硬塞成一个统一容器。</li>
-          </ul>
-          <table class="mini-table" aria-label="多维字段建议">
-            <tbody>
-              <tr><th>字段</th><td><code>{host, device, rank, pp, tp, dp, cp, ep}</code></td></tr>
-              <tr><th>用途</th><td>作为 placementMap 的最小可解释集合。</td></tr>
-              <tr><th>边界</th><td>不把 layer ownership 误写成 DP / TP / EP 的统一概念。</td></tr>
-            </tbody>
-          </table>
-        </div>
       </div>
+      <div class="evidence-caption">读图顺序：左侧表示物理设备，中间表示运行时身份，右侧表示混合并行配置下的多维放置标签；这些标签是否全部出现，取决于实际训练配置。</div>
+      <div class="mini-note"><b>Ascend / MindSpore 依据与边界：</b>官方文档支持多种并行模式组合，配置项覆盖 <code>data_parallel</code>、<code>model_parallel</code>、<code>context_parallel</code>、<code>pipeline_stage</code> 和 MoE 专家相关字段。右侧“并行坐标层”是产品抽象；实际页面应按配置有则展示、无则隐藏。参考：<a href="https://www.mindspore.cn/mindformers/docs/zh-CN/master/feature/parallel_training.html">分布式并行训练</a>、<a href="https://www.mindspore.cn/mindformers/docs/zh-CN/master/feature/configuration.html">配置文件说明</a>。</div>
+      <table class="section-table" aria-label="对象层级说明">
+        <thead>
+          <tr><th>对象</th><th>更容易理解的说法</th><th>在页面里该怎么用</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>card</code> / <code>device</code></td>
+            <td>一块物理硬件，或者承载它的主机。</td>
+            <td>表示“这份任务跑在哪台机器 / 哪张卡上”。</td>
+          </tr>
+          <tr>
+            <td><code>rank</code> / <code>worker</code></td>
+            <td>运行时里的进程身份，负责参与训练的那个执行体。</td>
+            <td>表示“当前执行单元是谁”，不是“它拥有哪一层”。</td>
+          </tr>
+          <tr>
+            <td><code>stage</code></td>
+            <td>流水线并行中的一个连续层段。</td>
+            <td>只在 PP 语义下直接对应层范围，例如 <code>layers 36-42</code>。</td>
+          </tr>
+          <tr>
+            <td><code>expert</code></td>
+            <td>MoE 里的专家子模块。</td>
+            <td>表示 token 被路由到哪些专家，以及这些专家落在哪些 rank 上。</td>
+          </tr>
+        </tbody>
+      </table>
     </section>
 
     <section class="section" id="paralleldemo" aria-labelledby="paralleldemo-title">
@@ -1051,53 +1133,191 @@
         <div>
           <div class="section-kicker">ParallelDemo mapping</div>
           <h2 id="paralleldemo-title">ParallelDemo：网格公式负责坐标，不负责 UI 归类</h2>
-          <div class="one-line">world = dp × pp × cp × tp 先生成 rank mesh，再把同一个 rank 投影到不同并行坐标与通信组。</div>
-        </div>
-        <div class="metric-chip-row" aria-label="ParallelDemo 摘要">
-          <span class="chip"><b>world</b> mesh</span>
-          <span class="chip"><b>rank_299</b> sample</span>
-          <span class="chip"><b>group</b> derived</span>
-          <span class="chip"><b>events</b> runtime</span>
+          <p class="section-intro">world = dp × pp × cp × tp 先生成 rank mesh，再把同一个 rank 投影到不同并行坐标与通信组。</p>
         </div>
       </div>
-      <div class="parallel-demo-board">
-        <div class="parallel-demo-surface">
-          <div class="surface-title"><strong>网格映射图</strong><span>把 dp / pp / cp / tp 映射成 rank 坐标</span></div>
-          <svg class="parallel-demo-svg" viewBox="0 0 980 380" role="img" aria-label="ParallelDemo 网格映射图">
-            <rect x="48" y="56" width="884" height="256" rx="18" fill="var(--surface-1)" stroke="var(--border-subtle)"/>
-            <rect x="92" y="104" width="240" height="152" rx="16" fill="color-mix(in srgb, var(--viz-tp) 10%, var(--surface-1))" stroke="var(--viz-tp)"/>
-            <rect x="372" y="80" width="240" height="200" rx="16" fill="color-mix(in srgb, var(--viz-pp) 10%, var(--surface-1))" stroke="var(--viz-pp)"/>
-            <rect x="652" y="104" width="240" height="152" rx="16" fill="color-mix(in srgb, var(--viz-dp) 10%, var(--surface-1))" stroke="var(--viz-dp)"/>
-            <text x="212" y="136" text-anchor="middle" fill="var(--foreground)" font-size="16" font-weight="800">tp shard</text>
-            <text x="492" y="128" text-anchor="middle" fill="var(--foreground)" font-size="16" font-weight="800">pp stage</text>
-            <text x="772" y="136" text-anchor="middle" fill="var(--foreground)" font-size="16" font-weight="800">dp replica</text>
-            <text x="492" y="168" text-anchor="middle" fill="var(--foreground-secondary)" font-size="12">rank mesh 先算坐标，再决定通信组</text>
-            <text x="492" y="192" text-anchor="middle" fill="var(--foreground-secondary)" font-size="12">EP / MoE 作为附加语义叠加，而不是替代坐标</text>
-            <rect x="410" y="210" width="164" height="44" rx="12" fill="color-mix(in srgb, var(--viz-zero) 10%, var(--surface-1))" stroke="var(--viz-zero)"/>
-            <text x="492" y="237" text-anchor="middle" fill="var(--foreground)" font-size="14" font-weight="800">rank_299</text>
-            <path d="M332 180 L408 180" stroke="var(--viz-tp)" stroke-width="2" marker-end="url(#mdArrow)"/>
-            <path d="M612 180 L648 180" stroke="var(--viz-pp)" stroke-width="2" marker-end="url(#mdArrow)"/>
-            <path d="M772 256 L574 256" stroke="var(--viz-dp)" stroke-width="2" marker-end="url(#mdArrow)"/>
-            <text x="492" y="312" text-anchor="middle" fill="var(--foreground-secondary)" font-size="12">同一个 rank 在一次 step 里会先后承接 PP、TP、EP、DP 的 runtime event</text>
+      <table class="section-table" aria-label="ParallelDemo 说明">
+        <thead>
+          <tr><th>概念</th><th>在训练中的含义</th><th>在图表中的表达边界</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>world</code></td>
+            <td>由 <code>dp × pp × cp × tp</code> 推导出的 rank 网格规模。</td>
+            <td>只说明并行坐标如何生成，不直接等同于 UI 分组。</td>
+          </tr>
+          <tr>
+            <td><code>rank</code></td>
+            <td>一个训练进程在网格中的坐标。</td>
+            <td>既参与 stage，也参与通信组。</td>
+          </tr>
+          <tr>
+            <td><code>EP</code></td>
+            <td>MoE 的专家放置与 token 路由语义。</td>
+            <td>作为附加语义叠加显示，不替代坐标。</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="screenshot" id="paralleldemo-mesh">
+        <div class="shotbar"><span class="dots"></span>把 ParallelDemo 落实成真实训练配置 · 从公开模型到单卡计算</div>
+        <div class="shotbody flush">
+          <svg viewBox="0 0 1360 820" xmlns="http://www.w3.org/2000/svg" class="whitepaper-svg" style="--svg-width: 1160px">
+            <defs>
+              <marker id="meshArrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+                <path d="M0,0 L10,5 L0,10 z" fill="var(--viz-dp)"/>
+              </marker>
+            </defs>
+            <text x="680" y="48" text-anchor="middle" font-size="26" font-weight="850" fill="var(--foreground)">公开模型配置 → 派生训练策略 → rank 网格 → 单卡任务投影</text>
+            <text x="680" y="78" text-anchor="middle" font-size="14" font-weight="650" fill="var(--foreground-muted)">确定化样例：openPangu-Ultra-MoE-718B · DP=32 / PP=16 / CP=1 / TP=8，EP=32 作为 MoE 专家放置层</text>
+
+            <g transform="translate(34,112)">
+              <rect x="0" y="0" width="250" height="560" rx="20" fill="color-mix(in srgb, var(--viz-dp) 12%, var(--surface-1))" stroke="var(--viz-dp)" stroke-width="2"/>
+              <text x="125" y="38" text-anchor="middle" font-size="19" font-weight="850" fill="var(--viz-dp)">1. 模型与训练配置</text>
+              <rect x="24" y="72" width="202" height="98" rx="14" fill="var(--surface-1)" stroke="color-mix(in srgb, var(--viz-dp) 32%, var(--surface-1))"/>
+              <text x="125" y="101" text-anchor="middle" font-size="14" font-weight="850" fill="var(--foreground)">整网模型架构</text>
+              <text x="125" y="126" text-anchor="middle" font-size="12" fill="var(--viz-dp)">61 layers · 3 dense + 58 MoE</text>
+              <text x="125" y="148" text-anchor="middle" font-size="12" fill="var(--viz-dp)">256 routed experts · top-8</text>
+              <g font-size="13" font-weight="800" fill="var(--viz-dp)">
+                <rect x="24" y="200" width="88" height="38" rx="10" fill="var(--surface-1)" stroke="var(--viz-dp)"/>
+                <text x="68" y="224" text-anchor="middle">DP = 32</text>
+                <rect x="138" y="200" width="88" height="38" rx="10" fill="var(--surface-1)" stroke="var(--viz-dp)"/>
+                <text x="182" y="224" text-anchor="middle">PP = 16</text>
+                <rect x="24" y="254" width="88" height="38" rx="10" fill="var(--surface-1)" stroke="var(--viz-dp)"/>
+                <text x="68" y="278" text-anchor="middle">CP = 1</text>
+                <rect x="138" y="254" width="88" height="38" rx="10" fill="var(--surface-1)" stroke="var(--viz-dp)"/>
+                <text x="182" y="278" text-anchor="middle">TP = 8</text>
+              </g>
+              <rect x="24" y="326" width="202" height="86" rx="14" fill="var(--surface-1)" stroke="color-mix(in srgb, var(--viz-dp) 32%, var(--surface-1))"/>
+              <text x="125" y="354" text-anchor="middle" font-size="14" font-weight="850" fill="var(--foreground)">world size</text>
+              <text x="125" y="382" text-anchor="middle" font-size="16" font-weight="850" fill="var(--viz-dp)">32 × 16 × 1 × 8 = 4096</text>
+              <rect x="24" y="448" width="202" height="74" rx="14" fill="color-mix(in srgb, var(--viz-pp) 12%, var(--surface-1))" stroke="var(--viz-pp)"/>
+              <text x="125" y="474" text-anchor="middle" font-size="14" font-weight="850" fill="var(--viz-pp)">MoE / EP 叠加</text>
+              <text x="125" y="498" text-anchor="middle" font-size="12" fill="var(--viz-pp)">EP=32 · 8 experts / bucket</text>
+            </g>
+
+            <path d="M292 392 L320 392" stroke="var(--viz-dp)" stroke-width="3" fill="none" marker-end="url(#meshArrow)"/>
+
+            <g transform="translate(326,112)">
+              <rect x="0" y="0" width="250" height="560" rx="20" fill="var(--surface-2)" stroke="var(--border-default)" stroke-width="2"/>
+              <text x="125" y="38" text-anchor="middle" font-size="19" font-weight="850" fill="var(--foreground)">2. 多维 rank 网格</text>
+              <rect x="24" y="72" width="202" height="412" rx="14" fill="var(--surface-1)" stroke="var(--border-default)"/>
+              <text x="125" y="102" text-anchor="middle" font-size="14" font-weight="850" fill="var(--foreground)">rank_299 观察点</text>
+              <text x="125" y="126" text-anchor="middle" font-size="12" fill="var(--foreground-secondary)">PP5 / TP3 / DP2 / CP0 / EP19</text>
+              <g font-size="11" font-weight="800">
+                <rect x="40" y="160" width="44" height="34" rx="8" fill="color-mix(in srgb, var(--viz-dp) 12%, var(--surface-1))" stroke="var(--viz-dp)"/>
+                <text x="62" y="181" text-anchor="middle" fill="var(--viz-dp)">DP2</text>
+                <rect x="92" y="160" width="44" height="34" rx="8" fill="color-mix(in srgb, var(--viz-tp) 12%, var(--surface-1))" stroke="var(--viz-tp)"/>
+                <text x="114" y="181" text-anchor="middle" fill="var(--viz-tp)">TP3</text>
+                <rect x="144" y="160" width="44" height="34" rx="8" fill="color-mix(in srgb, var(--viz-pp) 12%, var(--surface-1))" stroke="var(--viz-pp)"/>
+                <text x="166" y="181" text-anchor="middle" fill="var(--viz-pp)">PP5</text>
+                <rect x="40" y="206" width="44" height="34" rx="8" fill="color-mix(in srgb, var(--viz-cp) 12%, var(--surface-1))" stroke="var(--viz-cp)"/>
+                <text x="62" y="227" text-anchor="middle" fill="var(--viz-cp)">CP0</text>
+                <rect x="92" y="206" width="96" height="34" rx="8" fill="color-mix(in srgb, var(--viz-ep) 12%, var(--surface-1))" stroke="var(--viz-ep)"/>
+                <text x="140" y="227" text-anchor="middle" fill="var(--viz-ep)">EP19</text>
+              </g>
+              <rect x="24" y="280" width="202" height="88" rx="14" fill="var(--surface-2)" stroke="var(--border-default)"/>
+              <text x="125" y="312" text-anchor="middle" font-size="13" font-weight="800" fill="var(--foreground)">mesh → runtime 事件</text>
+              <text x="125" y="338" text-anchor="middle" font-size="11" fill="var(--foreground-secondary)">同一 rank 先后承接 stage / token / state</text>
+              <text x="125" y="362" text-anchor="middle" font-size="11" fill="var(--foreground-secondary)">这里看到的是投影，不是 UI 分组</text>
+              <rect x="24" y="408" width="202" height="52" rx="12" fill="color-mix(in srgb, var(--viz-dp) 12%, var(--surface-1))" stroke="var(--viz-dp)"/>
+              <text x="125" y="440" text-anchor="middle" font-size="12" font-weight="800" fill="var(--viz-dp)">rank_299 derived placement</text>
+            </g>
+
+            <path d="M576 392 L604 392" stroke="var(--viz-dp)" stroke-width="3" fill="none" marker-end="url(#meshArrow)"/>
+
+            <g transform="translate(610,112)">
+              <rect x="0" y="0" width="226" height="560" rx="20" fill="color-mix(in srgb, var(--viz-vpp) 12%, var(--surface-1))" stroke="var(--viz-vpp)" stroke-width="2"/>
+              <text x="113" y="38" text-anchor="middle" font-size="19" font-weight="850" fill="var(--viz-vpp)">3. 训练对象投影</text>
+              <rect x="24" y="72" width="178" height="82" rx="14" fill="var(--surface-1)" stroke="var(--viz-vpp)"/>
+              <text x="113" y="101" text-anchor="middle" font-size="14" font-weight="850" fill="var(--foreground)">PP stage</text>
+              <text x="113" y="126" text-anchor="middle" font-size="12" fill="var(--viz-pp)">Blocks 20-23 on PP5</text>
+              <rect x="24" y="170" width="178" height="82" rx="14" fill="var(--surface-1)" stroke="var(--viz-vpp)"/>
+              <text x="113" y="199" text-anchor="middle" font-size="14" font-weight="850" fill="var(--foreground)">TP shard</text>
+              <text x="113" y="224" text-anchor="middle" font-size="12" fill="var(--viz-pp)">QKV / O-Proj split</text>
+              <rect x="24" y="268" width="178" height="82" rx="14" fill="var(--surface-1)" stroke="var(--viz-vpp)"/>
+              <text x="113" y="297" text-anchor="middle" font-size="14" font-weight="850" fill="var(--foreground)">DP replica</text>
+              <text x="113" y="322" text-anchor="middle" font-size="12" fill="var(--viz-pp)">batch 299 / batch 300</text>
+              <rect x="24" y="366" width="178" height="82" rx="14" fill="var(--surface-1)" stroke="var(--viz-vpp)"/>
+              <text x="113" y="395" text-anchor="middle" font-size="14" font-weight="850" fill="var(--foreground)">EP experts</text>
+              <text x="113" y="420" text-anchor="middle" font-size="12" fill="var(--viz-pp)">E152-E159 / shared</text>
+              <text x="113" y="498" text-anchor="middle" font-size="11" fill="var(--viz-pp)">一个 rank 可以同时承担多个维度</text>
+            </g>
+
+            <path d="M836 392 L864 392" stroke="var(--viz-dp)" stroke-width="3" fill="none" marker-end="url(#meshArrow)"/>
+
+            <g transform="translate(880,112)">
+              <rect x="0" y="0" width="246" height="560" rx="20" fill="color-mix(in srgb, var(--viz-pp) 12%, var(--surface-1))" stroke="var(--viz-pp)" stroke-width="2"/>
+              <text x="123" y="38" text-anchor="middle" font-size="19" font-weight="850" fill="var(--viz-pp)">4. 说明边界</text>
+              <rect x="24" y="72" width="198" height="104" rx="14" fill="var(--surface-1)" stroke="color-mix(in srgb, var(--viz-pp) 32%, var(--surface-1))"/>
+              <text x="123" y="102" text-anchor="middle" font-size="14" font-weight="850" fill="var(--foreground)">不是“卡片归类”</text>
+              <text x="123" y="128" text-anchor="middle" font-size="12" fill="var(--viz-pp)">UI 里展示的是语义投影</text>
+              <text x="123" y="148" text-anchor="middle" font-size="12" fill="var(--viz-pp)">不是固定分组容器</text>
+              <rect x="24" y="202" width="198" height="104" rx="14" fill="var(--surface-1)" stroke="color-mix(in srgb, var(--viz-pp) 32%, var(--surface-1))"/>
+              <text x="123" y="232" text-anchor="middle" font-size="14" font-weight="850" fill="var(--foreground)">不是单一层级</text>
+              <text x="123" y="258" text-anchor="middle" font-size="12" fill="var(--viz-pp)">同一 rank 会落入多个并行坐标</text>
+              <text x="123" y="278" text-anchor="middle" font-size="12" fill="var(--viz-pp)">需要按配置隐藏或展示</text>
+              <rect x="24" y="332" width="198" height="104" rx="14" fill="var(--surface-1)" stroke="color-mix(in srgb, var(--viz-pp) 32%, var(--surface-1))"/>
+              <text x="123" y="362" text-anchor="middle" font-size="14" font-weight="850" fill="var(--foreground)">推荐做法</text>
+              <text x="123" y="388" text-anchor="middle" font-size="12" fill="var(--viz-pp)">先定义物理位置，再定义运行时身份</text>
+              <text x="123" y="408" text-anchor="middle" font-size="12" fill="var(--viz-pp)">最后显示并行坐标</text>
+              <text x="123" y="498" text-anchor="middle" font-size="11" fill="var(--viz-pp)">来源：MindSpore 并行配置语义</text>
+            </g>
           </svg>
         </div>
-        <div class="parallel-demo-note">
-          <div class="surface-title"><strong>怎么复用</strong><span>复用的是坐标推导，不是卡片排版</span></div>
-          <ul class="mini-list">
-            <li>保留 `world = dp × pp × cp × tp` 的网格计算逻辑，用它生成 rank / group 的来源。</li>
-            <li>把 `rank_299 / PP5 / TP3 / DP2 / CP0 / EP19` 这种样例当作 derived placement，而不是官方固定切分。</li>
-            <li>真正的通信顺序放到 runtime timeline 里解释，不要混进静态网格图。</li>
-            <li>ParallelDemo 的价值是 placement engine，不是右侧那种少量卡片布局。</li>
-          </ul>
-          <table class="mini-table" aria-label="ParallelDemo 映射说明">
-            <tbody>
-              <tr><th>输入</th><td><code>dp, pp, cp, tp</code> 维度与模型约束。</td></tr>
-              <tr><th>输出</th><td><code>rank</code>、<code>group</code>、<code>stage</code>、<code>expert bucket</code>。</td></tr>
-              <tr><th>解释</th><td>图上看到的是多维投影，runtime 里看到的是通信事件。</td></tr>
-            </tbody>
-          </table>
+      </div>
+      <div class="mini-note" style="margin-top:16px"><b>Worked example · rank_299 五维分解：</b>在确定化样例 <code>openPangu-Ultra-MoE-718B / DP=32 · PP=16 · CP=1 · TP=8（world_size=4096）+ EP=32</code> 下，<code>rank_299</code> 的网格坐标是 <code>d=2, p=5, c=0, t=3</code>。它同时落在五个并行维度上——不是“这张卡负责第 20-23 层”，而是下面五条投影的叠加。</div>
+      <table class="section-table" aria-label="rank_299 五维分解">
+        <thead>
+          <tr><th>维度</th><th>坐标</th><th>该 rank 的具体承担</th><th>准确表达</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>PP</td><td><code>p=5 → PP5</code></td><td>执行第 5 个流水线 stage 覆盖的 decoder blocks 的前后向。</td><td><code>PP5 · Blocks 20-23</code></td></tr>
+          <tr><td>TP</td><td><code>t=3 → TP3</code></td><td>持有该层线性算子（QKV / O-Proj / MLP）的一个张量分片（8 片之一）。</td><td><code>TP3 · tensor shard</code></td></tr>
+          <tr><td>DP</td><td><code>d=2 → DP2</code></td><td>第 2 个数据副本，处理当前 step 的 mini-batch shard。</td><td><code>DP2 replica</code></td></tr>
+          <tr><td>CP</td><td><code>c=0 → CP0</code></td><td>本样例 CP=1，不切上下文；整段序列都在本 rank 内。</td><td><code>CP0 · 不切分</code></td></tr>
+          <tr><td>EP</td><td><code>EP19</code></td><td>MoE 层叠加的 expert bucket，承载 8 个路由专家。</td><td><code>EP19 · experts 152-159</code></td></tr>
+        </tbody>
+      </table>
+      <div class="evidence-caption">EP 不进入 <code>world_size</code> 乘法（4096 = 32×16×1×8），而是作为 MoE 专家放置层叠加。术语注意：PP 覆盖范围用 <code>Blocks 20-23</code> / <code>decoder blocks</code> 表达，不要写成“隐藏层 20-23”——<code>num_hidden_layers=61</code> 指 block 数量，hidden state 才是 runtime 张量。</div>
+    </section>
+
+    <section class="section" id="glossary" aria-labelledby="glossary-title">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">Reference · 术语坐标系</div>
+          <h2 id="glossary-title">读图前先对齐词汇：哪些词在切“数据”，哪些在切“模型”</h2>
+          <p class="section-intro">前面每张图都假设你已经分清 sample / token / batch / step / stage，以及 block / layer / hidden state 的区别。这些词常被混在一起，但它们各自回答的是不同维度的问题。本节作为全篇的术语落点。</p>
         </div>
       </div>
+      <table class="section-table" aria-label="切分维度对照">
+        <thead>
+          <tr><th>概念</th><th>准确定义</th><th>属于哪个维度</th><th>图里怎么写</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>sample</code></td><td>一条训练数据，对语言模型通常是一段 token 序列。</td><td>数据维度</td><td><code>sample 0-511</code></td></tr>
+          <tr><td><code>token</code></td><td>tokenizer 切出的最小训练单位（字 / 词片段 / 符号）。</td><td>数据维度</td><td><code>token 2048-4095</code></td></tr>
+          <tr><td><code>tensor</code></td><td>承载数据 / 权重 / 激活 / 梯度的多维数组；样本编码后变成 tensor，但 tensor ≠ 样本。</td><td>计算表示</td><td><code>hidden_states tensor</code></td></tr>
+          <tr><td><code>batch</code></td><td>一个 step 一次送进模型的一组样本。</td><td>数据维度</td><td><code>one step · 32 samples</code></td></tr>
+          <tr><td><code>mini-batch shard</code></td><td>DP / CP 下，一个 rank 实际处理的 batch 子集。</td><td>数据维度</td><td><code>rank_1 · samples 512-1023</code></td></tr>
+          <tr><td><code>step</code></td><td>一次训练迭代：取 batch → forward → loss → backward → 通信 → optimizer。</td><td>时间维度</td><td><code>step 1997</code></td></tr>
+          <tr><td><code>stage</code></td><td>PP 把整网层序列切成的一个流水线阶段。</td><td>模型切分</td><td><code>PP5 · Blocks 20-23</code></td></tr>
+        </tbody>
+      </table>
+      <div class="mini-note"><b>一句话区分：</b><code>sample / batch / mini-batch shard</code> 回答“喂了哪些数据”，<code>tensor</code> 回答“数据在机器里是什么数组形态”，<code>stage</code> 回答“整网哪一段层在这个阶段”，<code>step</code> 回答“跑到第几次迭代”。所以 DP 图里“不同 rank 吃不同数据”说的是 mini-batch shard 不同，不是模型结构不同。</div>
+      <table class="section-table" aria-label="层与隐藏状态命名澄清">
+        <thead>
+          <tr><th>词</th><th>准确含义</th><th>建议用法</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>block</code> / decoder block</td><td>Transformer 里重复堆叠的完整计算单元（Attention、FFN/MoE、Norm、Residual）。</td><td>描述 PP 切分层段优先用，例如 <code>Blocks 20-23</code>。</td></tr>
+          <tr><td><code>layer</code></td><td>语境依赖强：可指整个 block，也可指更小的 linear / attention / norm 子层。</td><td>不裸写“layer”，要说明是 decoder layer 还是 linear / attention sublayer。</td></tr>
+          <tr><td><code>num_hidden_layers</code></td><td>Hugging Face 配置字段，表示模型里的 block 数量。</td><td><code>num_hidden_layers=61</code> 即 61 个 decoder blocks。</td></tr>
+          <tr><td>隐藏层 / hidden layer</td><td>中文里易被误用来指 hidden state 或 num_hidden_layers。</td><td>避免做产品标签；改写成“隐藏状态 hidden state”或“层数量字段 num_hidden_layers”。</td></tr>
+          <tr><td><code>hidden state</code></td><td>每个 token 在模型内部的中间向量，形状 <code>[batch, seq_len, hidden_size]</code>，是 runtime tensor 不是模块。</td><td>描述激活、attention 输入输出、层间传递数据时用。</td></tr>
+          <tr><td><code>hidden_size</code></td><td>hidden state 每个 token 向量的宽度（最后一维）。</td><td>解释张量形状 / 模型宽度时用，例如 Pangu <code>hidden_size=7680</code>。</td></tr>
+        </tbody>
+      </table>
+      <div class="evidence-caption">因此 <code>Blocks 20-23</code> 不能翻译成“隐藏状态 20-23”：它指 PP5 这个 stage 覆盖的第 20-23 个 decoder block；这些 block 接收上一层的 hidden state，执行 Attention 和 FFN/MoE，再输出新的 hidden state。来源：knowledge.md §1.2、§10.5.5。</div>
     </section>
 
     <section class="footer-space" aria-labelledby="source-title">
@@ -1139,10 +1359,17 @@
         vpp: '#d7b84e',
         network: '#43a3d9',
         muted: '#8b929e',
-        ink: '#dce3ee',
-        weak: '#8b929e',
-        panel: '#111821',
-        line: 'rgba(255,255,255,0.16)'
+        ink: 'var(--foreground)',
+        weak: 'var(--foreground-secondary)',
+        panel: 'var(--surface-1)',
+        line: 'var(--border-default)'
+      };
+
+      const SURFACE = {
+        base: 'var(--surface-1)',
+        elevated: 'var(--surface-2)',
+        border: 'var(--border-default)',
+        subtle: 'var(--border-subtle)'
       };
 
       const MODEL = {
@@ -1452,6 +1679,15 @@
         }
       };
 
+      const ACCURATE = {
+        dp: '完整模型副本之一，处理当前 step 的数据 shard —— <code>DP2 replica</code>。判定：把它说成“承载哪些层”基本不准确。',
+        tp: '多卡协作同一层，该 rank 只持有该层线性算子的张量分片 —— <code>TP3 · QKV shard（8 片之一）</code>。判定：“承载哪些层 / 算子”只说对了一半。',
+        pp: '该 stage 执行这段 decoder blocks 的前后向 —— <code>PP5 · Blocks 20-23</code>。判定：这里说“承载哪些层”基本准确。',
+        ep: '该 rank 持有当前 MoE 层的一部分 experts —— <code>EP19 · experts 152-159</code>。判定：应从“承载哪些层”改成“承载哪些专家”。',
+        cp: '负责当前上下文窗口的一段 token，参数是复制的 —— <code>CP1 · sequence shard 1/4</code>。判定：把它说成“按层切”基本不准确。',
+        zero: '管理参数 / 梯度 / 优化器状态的分片生命周期，不是新的模型结构（与 FSDP 同类）。判定：它管的是训练状态，不是“承载哪些层”。'
+      };
+
       function mountSections() {
         const root = document.getElementById('strategy-root');
         root.innerHTML = STRATEGIES.map((strategy) => {
@@ -1485,6 +1721,7 @@
                 <div class="inspector-block"><span class="inspector-label">通信原语</span><span class="inspector-value">${guide.primitives}</span></div>
                 <div class="inspector-block"><span class="inspector-label">看图抓什么</span><span class="inspector-value">${guide.watch}</span></div>
                 <div class="inspector-block"><span class="inspector-label">容易误解</span><ul class="inspector-list">${guide.tips.map((item) => `<li>${item}</li>`).join('')}</ul></div>
+                ${ACCURATE[strategy.id] ? `<div class="inspector-block"><span class="inspector-label">准确说法</span><span class="inspector-value">${ACCURATE[strategy.id]}</span></div>` : ''}
               </aside>
             </div>
           </section>
@@ -1496,6 +1733,13 @@
         const node = document.createElementNS('http://www.w3.org/2000/svg', tag);
         Object.entries(attrs).forEach(([key, value]) => {
           if (value === undefined || value === null) return;
+          if ((key === 'fill' || key === 'stroke' || key === 'stop-color') && typeof value === 'string') {
+            const match = value.match(/^var\((--[^)]+)\)$/);
+            if (match) {
+              const resolved = getComputedStyle(document.documentElement).getPropertyValue(match[1]).trim();
+              if (resolved) value = resolved;
+            }
+          }
           node.setAttribute(key, String(value));
         });
         children.forEach((child) => node.appendChild(child));
@@ -1785,8 +2029,8 @@
           g.appendChild(rect(x, y, w, h, {
             class: 'linked-fill',
             rx: options.rx ?? 8,
-            fill: isActive ? 'var(--surface-2)' : 'var(--surface-1)',
-            stroke: isActive ? alpha(tone, 0.78) : 'var(--border-default)',
+            fill: isActive ? SURFACE.elevated : SURFACE.base,
+            stroke: isActive ? alpha(tone, 0.78) : SURFACE.border,
             strokeWidth: isActive ? 1.75 : 1
           }));
           g.appendChild(text(x + w / 2, y + h / 2 - (sub ? 6 : 0), label, { size: options.size || 10.4, weight: isActive ? 800 : 650, fill: isActive ? tone : undefined }));
@@ -1802,7 +2046,7 @@
         addNode('final_norm', 350, 207, 280, 36, 'Final RMSNorm', 'local tensor', COLORS.muted, { forceActive: active('head') || active('norm'), keys: ['head', 'norm'], size: 11.6, subSize: 9.1 });
 
         const block = hoverGroup(linkKeys('decoder-block', 'attention', 'norm', 'router', 'dispatch', 'experts', 'combine'), 'MoE Decoder Block ×58', 'openPangu 的主体是重复 MoE decoder block；图形参考 Transformer 中 N× block 容器，内部展开 attention、norm、router、expert 和残差路径。');
-        block.appendChild(rect(286, 258, 408, 300, { rx: 22, fill: 'var(--surface-1)', stroke: alpha(COLORS.pp, 0.50), strokeWidth: 1.6 }));
+        block.appendChild(rect(286, 258, 408, 300, { rx: 22, fill: SURFACE.base, stroke: alpha(COLORS.pp, 0.50), strokeWidth: 1.6 }));
         block.appendChild(text(490, 284, 'MoE Decoder Block ×58', { size: 14.5, weight: 800, fill: COLORS.pp }));
         block.appendChild(text(490, 307, 'repeated Transformer block', { class: 'svg-muted', size: 10.3 }));
         block.appendChild(text(704, 410, 'N×', { anchor: 'start', size: 16, weight: 800, fill: COLORS.pp }));
@@ -1821,7 +2065,7 @@
         const pos = hoverGroup(linkKeys('position-encoding', 'embedding'), 'Positional Encoding', '位置编码作为统一入口的一部分，和 token embedding 合并后进入同一条向上模型算子链。');
         setLinkTone(pos, COLORS.cp);
         pos.appendChild(path('M285,650 C292,634 306,634 313,650 C320,666 334,666 341,650', { stroke: COLORS.cp, width: 1.5, opacity: 0.78 }));
-        pos.appendChild(svgEl('circle', { class: 'linked-fill', cx: 338, cy: 650, r: 8, fill: 'var(--surface-1)', stroke: alpha(COLORS.cp, 0.56), 'stroke-width': 1.2 }));
+        pos.appendChild(svgEl('circle', { class: 'linked-fill', cx: 338, cy: 650, r: 8, fill: SURFACE.base, stroke: alpha(COLORS.cp, 0.56), 'stroke-width': 1.2 }));
         pos.appendChild(line(333, 650, 343, 650, { stroke: COLORS.cp, width: 1.1, opacity: 0.78 }));
         pos.appendChild(line(338, 645, 338, 655, { stroke: COLORS.cp, width: 1.1, opacity: 0.78 }));
         pos.appendChild(text(280, 674, 'position', { anchor: 'start', class: 'svg-muted', size: 8.5 }));
@@ -1880,7 +2124,7 @@
         const overlay = OVERLAYS[strategy.id] || OVERLAYS.network;
         const color = strategy.color || COLORS.network;
         const left = svgEl('g');
-        left.appendChild(rect(42, 154, 220, 420, { rx: 16, fill: 'var(--surface-1)', stroke: alpha(color, 0.34) }));
+        left.appendChild(rect(42, 154, 220, 420, { rx: 16, fill: SURFACE.base, stroke: alpha(color, 0.34) }));
         left.appendChild(text(62, 180, overlay.leftTitle, { anchor: 'start', size: 13, weight: 800, fill: color }));
         left.appendChild(text(62, 201, overlay.leftSub, { anchor: 'start', class: 'svg-muted', size: 10 }));
         drawSideObject(left, strategy, overlay);
@@ -1889,7 +2133,7 @@
         const points = drawTransformerCore(svg, strategy, overlay, color);
 
         const right = svgEl('g');
-        right.appendChild(rect(732, 154, 204, 420, { rx: 16, fill: 'var(--surface-1)', stroke: alpha(color, 0.34) }));
+        right.appendChild(rect(732, 154, 204, 420, { rx: 16, fill: SURFACE.base, stroke: alpha(color, 0.34) }));
         right.appendChild(text(750, 180, overlay.rightTitle, { anchor: 'start', size: 13, weight: 800, fill: color }));
         right.appendChild(text(750, 201, overlay.rightSub, { anchor: 'start', class: 'svg-muted', size: 10 }));
         drawRightObject(right, strategy, overlay);
@@ -1929,7 +2173,7 @@
             const x = 84 + (i % 2) * 76;
             const y = 232 + Math.floor(i / 2) * 48;
             const item = linkedItem(linkKeys(`overview-scope-${label}`, scopeLinks[label]), `${label} 相关算子`, scopeTips[label], c);
-            item.appendChild(rect(x, y, 62, 30, { class: 'linked-fill', rx: 8, fill: 'var(--surface-1)', stroke: alpha(c, 0.44) }));
+            item.appendChild(rect(x, y, 62, 30, { class: 'linked-fill', rx: 8, fill: SURFACE.base, stroke: alpha(c, 0.44) }));
             item.appendChild(text(x + 12, y + 13, label, { anchor: 'start', size: 10, weight: 800, fill: c }));
             item.appendChild(text(x + 12, y + 24, sub, { anchor: 'start', class: 'svg-muted', size: 7.7 }));
             group.appendChild(item);
@@ -1943,7 +2187,7 @@
             const y = 232 + Math.floor(i / 2) * 70;
             const active = i === 2;
             const item = linkedItem(linkKeys(`dp-replica-${i}`, overlay.nodes), `DP${i}`, 'DP 副本共享同一模型算子链，通信主要在反向梯度 bucket 同步阶段出现。');
-            item.appendChild(rect(x, y, 70, 48, { class: 'linked-fill', rx: 10, fill: active ? 'var(--surface-2)' : 'var(--surface-1)', stroke: active ? color : alpha(color, 0.40), strokeWidth: active ? 1.6 : 1 }));
+            item.appendChild(rect(x, y, 70, 48, { class: 'linked-fill', rx: 10, fill: active ? SURFACE.elevated : SURFACE.base, stroke: active ? color : alpha(color, 0.40), strokeWidth: active ? 1.6 : 1 }));
             item.appendChild(text(x + 35, y + 18, `DP${i}`, { size: 10, weight: 800, fill: active ? color : undefined }));
             item.appendChild(text(x + 35, y + 34, active ? 'rank_299' : `batch ${i}`, { class: 'svg-muted', size: 8.8 }));
             group.appendChild(item);
@@ -1956,7 +2200,7 @@
             const y = 236 + Math.floor(i / 4) * 54;
             const active = i === 3;
             const item = linkedItem(linkKeys(`tp-rank-${i}`, strategy.ops), `TP${i}`, 'TP rank 持有同一层的张量分片，关键通信位于 Embedding、MLA Attention、Expert/MLP 与 LM Head 周围。');
-            item.appendChild(rect(x, y, 32, 34, { class: 'linked-fill', rx: 8, fill: active ? 'var(--surface-2)' : 'var(--surface-1)', stroke: active ? color : alpha(color, 0.42), strokeWidth: active ? 1.8 : 1 }));
+            item.appendChild(rect(x, y, 32, 34, { class: 'linked-fill', rx: 8, fill: active ? SURFACE.elevated : SURFACE.base, stroke: active ? color : alpha(color, 0.42), strokeWidth: active ? 1.8 : 1 }));
             item.appendChild(text(x + 16, y + 17, `T${i}`, { size: 9.2, weight: 800, fill: active ? color : undefined }));
             group.appendChild(item);
           }
@@ -1968,7 +2212,7 @@
             const y = 230 + i * 42;
             const active = label === 'PP5';
             const item = linkedItem(linkKeys(`pp-stage-${label}`, strategy.ops), label, 'PP stage 持有一段连续层或子图，stage 边界负责 activation 与 dActivation 的传递。');
-            item.appendChild(rect(84, y, 150, 28, { class: 'linked-fill', rx: 8, fill: active ? 'var(--surface-2)' : 'var(--surface-1)', stroke: active ? color : alpha(color, 0.38), strokeWidth: active ? 1.6 : 1 }));
+            item.appendChild(rect(84, y, 150, 28, { class: 'linked-fill', rx: 8, fill: active ? SURFACE.elevated : SURFACE.base, stroke: active ? color : alpha(color, 0.38), strokeWidth: active ? 1.6 : 1 }));
             item.appendChild(text(100, y + 14, label, { anchor: 'start', size: 9.8, weight: 800, fill: active ? color : undefined }));
             item.appendChild(text(178, y + 14, active ? 'rank_299' : 'block range', { class: 'svg-muted', size: 8.8 }));
             group.appendChild(item);
@@ -1980,7 +2224,7 @@
             const x = 84 + (i % 2) * 76;
             const y = 232 + Math.floor(i / 2) * 54;
             const item = linkedItem(linkKeys(`ep-token-${i}`, strategy.ops), label, 'Router 把 token 分到专家桶，随后经过 dispatch、Expert FFN 和 combine 回到原 token 顺序。');
-            item.appendChild(rect(x, y, 56, 30, { class: 'linked-fill', rx: 8, fill: 'var(--surface-1)', stroke: alpha(color, 0.40) }));
+            item.appendChild(rect(x, y, 56, 30, { class: 'linked-fill', rx: 8, fill: SURFACE.base, stroke: alpha(color, 0.40) }));
             item.appendChild(text(x + 28, y + 15, label, { size: 9, weight: 800, fill: color }));
             group.appendChild(item);
           });
@@ -1992,7 +2236,7 @@
           ['0-32k', '32-64k', '64-96k', '96-131k'].forEach((label, i) => {
             const y = 232 + i * 36;
             const item = linkedItem(linkKeys(`cp-range-${i}`, strategy.ops), label, 'SP/CP 将序列范围分片，Attention 需要交换 KV 或 attention state 后才能完成局部与全局上下文计算。');
-            item.appendChild(rect(84, y, 150, 22, { class: 'linked-fill', rx: 7, fill: i === 0 ? 'var(--surface-2)' : 'var(--surface-1)', stroke: i === 0 ? color : alpha(color, 0.38) }));
+            item.appendChild(rect(84, y, 150, 22, { class: 'linked-fill', rx: 7, fill: i === 0 ? SURFACE.elevated : SURFACE.base, stroke: i === 0 ? color : alpha(color, 0.38) }));
             item.appendChild(text(100, y + 11, i === 0 ? `CP0 · ${label}` : label, { anchor: 'start', size: 8.8, weight: 700, fill: i === 0 ? color : undefined }));
             group.appendChild(item);
           });
@@ -2003,7 +2247,7 @@
             const y = 232 + i * 54;
             const c = [COLORS.tp, COLORS.dp, color][i];
             const item = linkedItem(linkKeys(`zero-${label.toLowerCase()}`, strategy.ops), `${label} shard`, 'ZeRO 状态分片改变参数、梯度和优化器状态的驻留位置，计算窗口前后需要 gather 或 scatter。', c);
-            item.appendChild(rect(84, y, 150, 34, { class: 'linked-fill', rx: 9, fill: 'var(--surface-1)', stroke: alpha(c, 0.44) }));
+            item.appendChild(rect(84, y, 150, 34, { class: 'linked-fill', rx: 9, fill: SURFACE.base, stroke: alpha(c, 0.44) }));
             item.appendChild(text(102, y + 17, `${label} shard`, { anchor: 'start', size: 9.6, weight: 800, fill: c }));
             group.appendChild(item);
           });
@@ -2015,7 +2259,7 @@
             const y = 232 + i * 54;
             const c = [COLORS.tp, COLORS.ep, COLORS.cp][i];
             const item = linkedItem(linkKeys(`vpp-chunk-${i}`, chunkKeys[i]), label, 'VPP chunk 是同一物理 stage 内的虚拟子图，用更细的 micro-batch 调度减少 pipeline bubble。', c);
-            item.appendChild(rect(84, y, 150, 34, { class: 'linked-fill', rx: 9, fill: 'var(--surface-1)', stroke: alpha(c, 0.44) }));
+            item.appendChild(rect(84, y, 150, 34, { class: 'linked-fill', rx: 9, fill: SURFACE.base, stroke: alpha(c, 0.44) }));
             item.appendChild(text(102, y + 17, label, { anchor: 'start', size: 9.6, weight: 800, fill: c }));
             group.appendChild(item);
           });
@@ -2030,7 +2274,7 @@
           const y = 232 + i * 54;
           const c = [COLORS.tp, COLORS.dp, COLORS.vpp][i];
           const item = linkedItem(linkKeys(`network-fabric-${i}`, fabricKeys[i]), label, `${label} 承载对应通信域的流量，用于判断链路延迟、带宽和拥塞是否进入训练关键路径。`, c);
-          item.appendChild(rect(84, y, 150, 34, { class: 'linked-fill', rx: 9, fill: 'var(--surface-1)', stroke: alpha(c, 0.44) }));
+          item.appendChild(rect(84, y, 150, 34, { class: 'linked-fill', rx: 9, fill: SURFACE.base, stroke: alpha(c, 0.44) }));
           item.appendChild(text(102, y + 17, label, { anchor: 'start', size: 9.6, weight: 800, fill: c }));
           group.appendChild(item);
         });
@@ -2072,7 +2316,7 @@
         rows.forEach((label, i) => {
           const y = 232 + i * 54;
           const item = linkedItem(linkKeys(`${strategy.id}-right-row-${i}`, rowKeySets[i]), shortLabel(label), rowTips[i]);
-          item.appendChild(rect(752, y, 154, 34, { class: 'linked-fill', rx: 9, fill: i === 0 ? 'var(--surface-2)' : 'var(--surface-1)', stroke: i === 0 ? alpha(color, 0.62) : 'var(--border-subtle)' }));
+          item.appendChild(rect(752, y, 154, 34, { class: 'linked-fill', rx: 9, fill: i === 0 ? SURFACE.elevated : SURFACE.base, stroke: i === 0 ? alpha(color, 0.62) : SURFACE.subtle }));
           item.appendChild(text(764, y + 17, shortLabel(label), { anchor: 'start', size: i === 0 ? 9.4 : 8.8, weight: i === 0 ? 800 : 650, fill: i === 0 ? color : undefined }));
           group.appendChild(item);
         });
@@ -2081,7 +2325,7 @@
             const x = 754 + (i % 4) * 37;
             const y = 356 + Math.floor(i / 4) * 22;
             const item = linkedItem(linkKeys(`ep-expert-slot-${i}`, ['experts']), `expert slot ${i}`, '专家槽位表示 Expert FFN 的放置位置，token dispatch 到达后在这里执行专家 MLP。');
-            item.appendChild(rect(x, y, 29, 14, { class: 'linked-fill', rx: 4, fill: 'var(--surface-1)', stroke: alpha(color, 0.42) }));
+            item.appendChild(rect(x, y, 29, 14, { class: 'linked-fill', rx: 4, fill: SURFACE.base, stroke: alpha(color, 0.42) }));
             group.appendChild(item);
           }
         }
@@ -2178,23 +2422,23 @@
         if (!svg) return;
         svg.innerHTML = '';
         addDefs(svg, 'pressure', COLORS.network);
-        svg.appendChild(rect(18, 18, 944, 724, { rx: 18, fill: 'rgba(255,255,255,0.025)', stroke: 'rgba(255,255,255,0.10)' }));
+        svg.appendChild(rect(18, 18, 944, 584, { rx: 18, fill: 'rgba(255,255,255,0.025)', stroke: 'rgba(255,255,255,0.10)' }));
         svg.appendChild(text(44, 46, '典型通信压力 = 哪类 Tensor 在哪些 rank 之间移动', { anchor: 'start', size: 13, weight: 700 }));
         svg.appendChild(text(936, 46, 'A: activation · dA/dW: gradient · KV: attention state', { anchor: 'end', class: 'svg-mono', size: 10.5 }));
 
         const panels = [
-          { id: 'dp', title: 'DP', sub: '多份模型副本各算一批数据', pressure: '梯度同步 · All-Reduce', color: COLORS.dp, x: 42, y: 92, w: 288, h: 268 },
-          { id: 'tp', title: 'TP', sub: '一层矩阵切到多张卡', pressure: '层内高频同步 · low latency', color: COLORS.tp, x: 346, y: 92, w: 288, h: 268 },
-          { id: 'pp', title: 'PP', sub: '模型层切成 stage', pressure: 'activation 与 dA 双向传递', color: COLORS.pp, x: 650, y: 92, w: 288, h: 268 },
-          { id: 'ep', title: 'EP', sub: '专家放到不同设备', pressure: 'token 分发 / 汇聚 · All-to-All', color: COLORS.ep, x: 194, y: 392, w: 288, h: 268 },
-          { id: 'cp', title: 'CP/SP', sub: '长序列或上下文维切开', pressure: 'Attention 状态 / KV 交换', color: COLORS.cp, x: 498, y: 392, w: 288, h: 268 }
+          { id: 'dp', title: 'DP', sub: '多份模型副本各算一批数据', pressure: '梯度同步 · All-Reduce', color: COLORS.dp, x: 44, y: 78, w: 276, h: 214 },
+          { id: 'tp', title: 'TP', sub: '一层矩阵切到多张卡', pressure: '层内高频同步 · low latency', color: COLORS.tp, x: 352, y: 78, w: 276, h: 214 },
+          { id: 'pp', title: 'PP', sub: '模型层切成 stage', pressure: 'activation 与 dA 双向传递', color: COLORS.pp, x: 660, y: 78, w: 276, h: 214 },
+          { id: 'ep', title: 'EP', sub: '专家放到不同设备', pressure: 'token 分发 / 汇聚 · All-to-All', color: COLORS.ep, x: 196, y: 334, w: 276, h: 214 },
+          { id: 'cp', title: 'CP/SP', sub: '长序列或上下文维切开', pressure: 'Attention 状态 / KV 交换', color: COLORS.cp, x: 508, y: 334, w: 276, h: 214 }
         ];
 
         panels.forEach((panel) => {
           svg.appendChild(rect(panel.x, panel.y, panel.w, panel.h, { rx: 16, fill: alpha(panel.color, 0.075), stroke: alpha(panel.color, 0.44) }));
-          svg.appendChild(text(panel.x + 18, panel.y + 27, panel.title, { anchor: 'start', size: 20, weight: 800, fill: panel.color }));
-          svg.appendChild(text(panel.x + 18, panel.y + 54, panel.sub, { anchor: 'start', class: 'svg-muted', size: 11 }));
-          svg.appendChild(text(panel.x + 18, panel.y + 77, panel.pressure, { anchor: 'start', size: 10.2, weight: 700, fill: panel.color }));
+          svg.appendChild(text(panel.x + 16, panel.y + 24, panel.title, { anchor: 'start', size: 18, weight: 800, fill: panel.color }));
+          svg.appendChild(text(panel.x + 16, panel.y + 49, panel.sub, { anchor: 'start', class: 'svg-muted', size: 10.5 }));
+          svg.appendChild(text(panel.x + panel.w - 16, panel.y + 24, panel.pressure, { anchor: 'end', class: 'svg-muted', size: 10.2 }));
         });
 
         drawDpPressure(svg, panels[0]);
@@ -2206,20 +2450,20 @@
 
       function drawDpPressure(svg, panel) {
         const replicas = [
-          [panel.x + 28, panel.y + 112, 'Replica 0'],
-          [panel.x + 107, panel.y + 112, 'Replica 1'],
-          [panel.x + 186, panel.y + 112, 'Replica 2']
+          [panel.x + 24, panel.y + 86, 'Replica 0'],
+          [panel.x + 104, panel.y + 86, 'Replica 1'],
+          [panel.x + 184, panel.y + 86, 'Replica 2']
         ];
         replicas.forEach(([x, y, label], index) => {
-          drawDeviceCell(svg, x, y, 74, 64, label, `dW${index}`, panel.color, index === 1);
+          drawDeviceCell(svg, x, y, 68, 58, label, `dW${index}`, panel.color, index === 1);
           for (let i = 0; i < 3; i += 1) {
-            svg.appendChild(rect(x + 14 + i * 16, y + 44, 11, 8, { rx: 2, fill: alpha(panel.color, 0.20 + i * 0.06), stroke: alpha(panel.color, 0.25) }));
+            svg.appendChild(rect(x + 12 + i * 15, y + 40, 10, 8, { rx: 2, fill: alpha(panel.color, 0.20 + i * 0.06), stroke: alpha(panel.color, 0.25) }));
           }
         });
-        svg.appendChild(rect(panel.x + 58, panel.y + 211, 172, 38, { rx: 10, fill: alpha(panel.color, 0.16), stroke: alpha(panel.color, 0.50) }));
-        svg.appendChild(text(panel.x + 144, panel.y + 230, 'All-Reduce Grad Buckets', { size: 11, weight: 700, fill: panel.color }));
+        svg.appendChild(rect(panel.x + 65, panel.y + 164, 146, 34, { rx: 10, fill: alpha(panel.color, 0.16), stroke: alpha(panel.color, 0.50) }));
+        svg.appendChild(text(panel.x + 138, panel.y + 181, 'All-Reduce Grad Buckets', { size: 10.5, weight: 700, fill: panel.color }));
         replicas.forEach(([x, y]) => {
-          svg.appendChild(path(`M${x + 37},${y + 64} C${x + 37},${panel.y + 196} ${panel.x + 144},${panel.y + 192} ${panel.x + 144},${panel.y + 211}`, {
+          svg.appendChild(path(`M${x + 34},${y + 58} C${x + 34},${panel.y + 154} ${panel.x + 138},${panel.y + 148} ${panel.x + 138},${panel.y + 164}`, {
             stroke: panel.color,
             width: 1.6,
             marker: 'arrow-pressure',
@@ -2230,97 +2474,97 @@
 
       function drawTpPressure(svg, panel) {
         const mx = panel.x + 28;
-        const my = panel.y + 119;
+        const my = panel.y + 92;
         svg.appendChild(text(mx, my - 16, 'Linear / Attention Weight', { anchor: 'start', size: 10.5, weight: 700, fill: panel.color }));
         for (let i = 0; i < 4; i += 1) {
-          svg.appendChild(rect(mx + i * 44, my, 38, 78, { rx: 5, fill: alpha(panel.color, 0.12 + i * 0.04), stroke: alpha(panel.color, 0.42) }));
-          svg.appendChild(text(mx + i * 44 + 19, my + 31, `TP${i}`, { size: 9.8, weight: 700, fill: panel.color }));
-          svg.appendChild(text(mx + i * 44 + 19, my + 52, `Y${i}`, { class: 'svg-muted', size: 9 }));
+          svg.appendChild(rect(mx + i * 44, my, 38, 64, { rx: 5, fill: alpha(panel.color, 0.12 + i * 0.04), stroke: alpha(panel.color, 0.42) }));
+          svg.appendChild(text(mx + i * 44 + 19, my + 25, `TP${i}`, { size: 9.5, weight: 700, fill: panel.color }));
+          svg.appendChild(text(mx + i * 44 + 19, my + 44, `Y${i}`, { class: 'svg-muted', size: 9 }));
         }
-        svg.appendChild(rect(panel.x + 210, panel.y + 133, 58, 52, { rx: 10, fill: alpha(panel.color, 0.16), stroke: alpha(panel.color, 0.50) }));
-        svg.appendChild(text(panel.x + 239, panel.y + 152, 'All-Reduce', { size: 8.6, weight: 700, fill: panel.color }));
-        svg.appendChild(text(panel.x + 239, panel.y + 169, 'partial Y', { class: 'svg-muted', size: 8.4 }));
+        svg.appendChild(rect(panel.x + 184, panel.y + 110, 66, 46, { rx: 10, fill: alpha(panel.color, 0.16), stroke: alpha(panel.color, 0.50) }));
+        svg.appendChild(text(panel.x + 217, panel.y + 128, 'All-Reduce', { size: 9.5, weight: 700, fill: panel.color }));
+        svg.appendChild(text(panel.x + 217, panel.y + 144, 'partial Y', { class: 'svg-muted', size: 8.8 }));
         for (let i = 0; i < 4; i += 1) {
           const sx = mx + i * 44 + 38;
-          const sy = my + 39;
-          svg.appendChild(line(sx, sy, panel.x + 210, panel.y + 159, { stroke: panel.color, width: 1.35, marker: 'arrow-pressure', opacity: 0.58 }));
+          const sy = my + 32;
+          svg.appendChild(line(sx, sy, panel.x + 184, panel.y + 133, { stroke: panel.color, width: 1.35, marker: 'arrow-pressure', opacity: 0.58 }));
         }
-        svg.appendChild(text(panel.x + 29, panel.y + 236, '每层反复发生，尾时延进关键路径', { anchor: 'start', class: 'svg-muted', size: 10 }));
+        svg.appendChild(text(panel.x + 29, panel.y + 186, '压力点：每层反复发生，尾时延进关键路径', { anchor: 'start', class: 'svg-muted', size: 9.7 }));
       }
 
       function drawPpPressure(svg, panel) {
         const stages = [
-          [panel.x + 24, panel.y + 128, 'Stage k'],
-          [panel.x + 108, panel.y + 128, 'Stage k+1'],
-          [panel.x + 192, panel.y + 128, 'Stage k+2']
+          [panel.x + 22, panel.y + 104, 'Stage k'],
+          [panel.x + 104, panel.y + 104, 'Stage k+1'],
+          [panel.x + 188, panel.y + 104, 'Stage k+2']
         ];
         stages.forEach(([x, y, label], index) => {
-          drawDeviceCell(svg, x, y, 72, 64, label, index === 1 ? 'rank_299' : 'layers', panel.color, index === 1);
+          drawDeviceCell(svg, x, y, 66, 58, label, index === 1 ? 'rank_299' : 'layers', panel.color, index === 1);
         });
-        svg.appendChild(path(`M${panel.x + 96},${panel.y + 141} C${panel.x + 112},${panel.y + 108} ${panel.x + 126},${panel.y + 108} ${panel.x + 144},${panel.y + 141}`, {
+        svg.appendChild(path(`M${panel.x + 88},${panel.y + 116} C${panel.x + 102},${panel.y + 92} ${panel.x + 116},${panel.y + 92} ${panel.x + 132},${panel.y + 116}`, {
           stroke: panel.color,
           width: 2.2,
           marker: 'arrow-pressure'
         }));
-        svg.appendChild(text(panel.x + 121, panel.y + 107, 'activation A', { size: 9.8, weight: 700, fill: panel.color }));
-        svg.appendChild(path(`M${panel.x + 180},${panel.y + 180} C${panel.x + 160},${panel.y + 216} ${panel.x + 120},${panel.y + 216} ${panel.x + 96},${panel.y + 180}`, {
+        svg.appendChild(text(panel.x + 110, panel.y + 91, 'activation A', { size: 9.7, weight: 700, fill: panel.color }));
+        svg.appendChild(path(`M${panel.x + 170},${panel.y + 150} C${panel.x + 152},${panel.y + 176} ${panel.x + 118},${panel.y + 176} ${panel.x + 88},${panel.y + 150}`, {
           stroke: COLORS.dp,
           width: 2.0,
           marker: 'arrow-pressure'
         }));
-        svg.appendChild(text(panel.x + 138, panel.y + 220, 'gradient dA', { size: 9.8, weight: 700, fill: COLORS.dp }));
-        svg.appendChild(line(panel.x + 180, panel.y + 141, panel.x + 192, panel.y + 141, { stroke: panel.color, width: 1.5, marker: 'arrow-pressure', opacity: 0.68 }));
-        svg.appendChild(line(panel.x + 192, panel.y + 180, panel.x + 180, panel.y + 180, { stroke: COLORS.dp, width: 1.5, marker: 'arrow-pressure', opacity: 0.68 }));
-        svg.appendChild(text(panel.x + 25, panel.y + 246, 'A 前向传 hidden_states；dA 反向传激活梯度', { anchor: 'start', class: 'svg-muted', size: 9.6 }));
+        svg.appendChild(text(panel.x + 132, panel.y + 181, 'gradient dA', { size: 9.7, weight: 700, fill: COLORS.dp }));
+        svg.appendChild(line(panel.x + 170, panel.y + 116, panel.x + 188, panel.y + 116, { stroke: panel.color, width: 1.5, marker: 'arrow-pressure', opacity: 0.68 }));
+        svg.appendChild(line(panel.x + 188, panel.y + 150, panel.x + 170, panel.y + 150, { stroke: COLORS.dp, width: 1.5, marker: 'arrow-pressure', opacity: 0.68 }));
+        svg.appendChild(text(panel.x + 25, panel.y + 194, 'A 是前向 hidden_states；dA 是反向传回来的激活梯度', { anchor: 'start', class: 'svg-muted', size: 9.4 }));
       }
 
       function drawEpPressure(svg, panel) {
         const rx = panel.x + 28;
-        const ry = panel.y + 120;
-        svg.appendChild(rect(rx, ry, 78, 60, { rx: 12, fill: alpha(panel.color, 0.14), stroke: alpha(panel.color, 0.46) }));
-        svg.appendChild(text(rx + 39, ry + 23, 'Router', { size: 10.8, weight: 700, fill: panel.color }));
-        svg.appendChild(text(rx + 39, ry + 42, 'top-8', { class: 'svg-muted', size: 9 }));
+        const ry = panel.y + 96;
+        svg.appendChild(rect(rx, ry, 72, 54, { rx: 12, fill: alpha(panel.color, 0.14), stroke: alpha(panel.color, 0.46) }));
+        svg.appendChild(text(rx + 36, ry + 20, 'Router', { size: 10.5, weight: 700, fill: panel.color }));
+        svg.appendChild(text(rx + 36, ry + 38, 'top-8', { class: 'svg-muted', size: 9 }));
         for (let i = 0; i < 12; i += 1) {
-          svg.appendChild(svgEl('circle', { cx: rx + 12 + (i % 6) * 11, cy: ry + 76 + Math.floor(i / 6) * 11, r: 3.4, fill: alpha(panel.color, 0.55 + (i % 3) * 0.10) }));
+          svg.appendChild(svgEl('circle', { cx: rx + 11 + (i % 6) * 10, cy: ry + 68 + Math.floor(i / 6) * 10, r: 3.2, fill: alpha(panel.color, 0.55 + (i % 3) * 0.10) }));
         }
         const experts = [
-          [panel.x + 148, panel.y + 111, 'E0-7'],
-          [panel.x + 218, panel.y + 143, 'E152-159'],
-          [panel.x + 148, panel.y + 188, 'E248-255']
+          [panel.x + 142, panel.y + 88, 'E0-7'],
+          [panel.x + 205, panel.y + 112, 'E152-159'],
+          [panel.x + 142, panel.y + 152, 'E248-255']
         ];
         experts.forEach(([x, y, label], index) => {
-          drawDeviceCell(svg, x, y, 58, 38, label, `EP${index === 1 ? 19 : index}`, panel.color, index === 1);
-          svg.appendChild(path(`M${rx + 78},${ry + 30} C${rx + 118},${ry + 24 + index * 24} ${x - 20},${y + 19} ${x},${y + 19}`, {
+          drawDeviceCell(svg, x, y, 54, 34, label, `EP${index === 1 ? 19 : index}`, panel.color, index === 1);
+          svg.appendChild(path(`M${rx + 72},${ry + 26} C${rx + 112},${ry + 20 + index * 18} ${x - 20},${y + 17} ${x},${y + 17}`, {
             stroke: panel.color,
             width: index === 1 ? 2.1 : 1.3,
             marker: 'arrow-pressure',
             opacity: 0.72
           }));
         });
-        svg.appendChild(text(panel.x + 28, panel.y + 247, 'dispatch 送 token；combine 收回 expert output', { anchor: 'start', class: 'svg-muted', size: 9.6 }));
+        svg.appendChild(text(panel.x + 28, panel.y + 194, 'dispatch 送 token；combine 把 expert output 收回', { anchor: 'start', class: 'svg-muted', size: 9.6 }));
       }
 
       function drawCpPressure(svg, panel) {
         const sx = panel.x + 24;
-        const sy = panel.y + 123;
+        const sy = panel.y + 96;
         for (let i = 0; i < 4; i += 1) {
-          svg.appendChild(rect(sx + i * 61, sy, 54, 42, { rx: 8, fill: alpha(panel.color, 0.12 + i * 0.04), stroke: alpha(panel.color, 0.42) }));
-          svg.appendChild(text(sx + i * 61 + 27, sy + 17, `seq${i}`, { size: 9.8, weight: 700, fill: panel.color }));
-          svg.appendChild(text(sx + i * 61 + 27, sy + 33, i === 0 ? 'CP0' : `CP${i}`, { class: 'svg-muted', size: 8.6 }));
+          svg.appendChild(rect(sx + i * 55, sy, 48, 36, { rx: 8, fill: alpha(panel.color, 0.12 + i * 0.04), stroke: alpha(panel.color, 0.42) }));
+          svg.appendChild(text(sx + i * 55 + 24, sy + 15, `seq${i}`, { size: 9.5, weight: 700, fill: panel.color }));
+          svg.appendChild(text(sx + i * 55 + 24, sy + 29, i === 0 ? 'CP0' : `CP${i}`, { class: 'svg-muted', size: 8.5 }));
         }
         for (let i = 0; i < 3; i += 1) {
-          svg.appendChild(line(sx + i * 61 + 54, sy + 21, sx + (i + 1) * 61, sy + 21, { stroke: panel.color, width: 1.6, marker: 'arrow-pressure' }));
+          svg.appendChild(line(sx + i * 55 + 48, sy + 18, sx + (i + 1) * 55, sy + 18, { stroke: panel.color, width: 1.6, marker: 'arrow-pressure' }));
         }
-        svg.appendChild(rect(panel.x + 66, panel.y + 206, 156, 40, { rx: 10, fill: alpha(panel.color, 0.16), stroke: alpha(panel.color, 0.50) }));
-        svg.appendChild(text(panel.x + 144, panel.y + 222, 'KV / Attention State', { size: 10, weight: 700, fill: panel.color }));
-        svg.appendChild(text(panel.x + 144, panel.y + 238, 'ring / gather / p2p', { class: 'svg-muted', size: 8.8 }));
-        svg.appendChild(path(`M${panel.x + 144},${panel.y + 206} C${panel.x + 96},${panel.y + 190} ${panel.x + 56},${panel.y + 187} ${sx + 27},${sy + 42}`, {
+        svg.appendChild(rect(panel.x + 70, panel.y + 162, 136, 34, { rx: 10, fill: alpha(panel.color, 0.16), stroke: alpha(panel.color, 0.50) }));
+        svg.appendChild(text(panel.x + 138, panel.y + 176, 'KV / Attention State', { size: 10, weight: 700, fill: panel.color }));
+        svg.appendChild(text(panel.x + 138, panel.y + 190, 'ring / gather / p2p', { class: 'svg-muted', size: 8.8 }));
+        svg.appendChild(path(`M${panel.x + 138},${panel.y + 162} C${panel.x + 92},${panel.y + 146} ${panel.x + 54},${panel.y + 142} ${sx + 24},${sy + 36}`, {
           stroke: panel.color,
           width: 1.4,
           marker: 'arrow-pressure',
           opacity: 0.68
         }));
-        svg.appendChild(path(`M${panel.x + 144},${panel.y + 206} C${panel.x + 196},${panel.y + 190} ${panel.x + 242},${panel.y + 187} ${sx + 210},${sy + 42}`, {
+        svg.appendChild(path(`M${panel.x + 138},${panel.y + 162} C${panel.x + 190},${panel.y + 146} ${panel.x + 232},${panel.y + 142} ${sx + 189},${sy + 36}`, {
           stroke: panel.color,
           width: 1.4,
           marker: 'arrow-pressure',
@@ -2703,6 +2947,7 @@
             /* localStorage can be unavailable in private or restricted contexts. */
           }
         }
+        drawAllMaps();
         drawAllTimelines();
       }
 

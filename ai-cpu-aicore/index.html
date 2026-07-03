@@ -1,15 +1,17 @@
 <!doctype html>
-<html lang="zh-CN" data-theme="dark">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>指令路径工作台 Demo</title>
+  <title>Instruction Path Workbench</title>
+  <link rel="icon" href="data:,">
   <link rel="stylesheet" href="../vendor/pto-design-system/tokens/foundation.css">
   <link rel="stylesheet" href="../vendor/pto-design-system/tokens/semantic.css">
   <link rel="stylesheet" href="../vendor/pto-design-system/tokens/components.css">
   <link rel="stylesheet" href="../vendor/pto-design-system/css/style.css">
   <link rel="stylesheet" href="../vendor/pto-design-system/patterns/workbench-shell/pattern.css">
   <link rel="stylesheet" href="../vendor/pto-design-system/patterns/floating-playback-control/pattern.css">
+  <link rel="stylesheet" href="../vendor/pto-design-system/patterns/ide-frame/pattern.css">
   <link rel="stylesheet" href="../vendor/pto-design-system/patterns/aic-core-object/pattern.css?v=2412220">
   <link rel="stylesheet" href="../vendor/pto-design-system/patterns/aiv-core-object/pattern.css?v=2412220">
   <link rel="stylesheet" href="../vendor/pto-design-system/patterns/memory-architecture/pattern.css?v=2412220">
@@ -30,7 +32,7 @@
       height: 100vh;
       margin: 0;
       overflow: hidden;
-      background: var(--background);
+      background: var(--ide-frame-page-bg);
       color: var(--foreground);
       font-family: var(--font-sans);
     }
@@ -61,11 +63,15 @@
       --iv-page-inset-top: 8px;
       --iv-page-inset-bottom: 8px;
       --iv-pane-gap: 8px;
+      --floating-playback-expanded-width: min(960px, calc(100vw - 72px));
       width: 100vw;
       height: 100vh;
-      display: grid;
-      grid-template-rows: 58px minmax(0, 1fr);
+      aspect-ratio: auto;
+      display: flex;
+      flex-direction: column;
       overflow: hidden;
+      border-radius: 0;
+      box-shadow: none;
     }
 
     .workbench-shell-header {
@@ -75,10 +81,10 @@
       align-items: center;
       justify-content: space-between;
       gap: 8px;
-      padding: 0 12px;
-      background: color-mix(in srgb, var(--background) 94%, transparent);
+      padding: 0 14px;
+      background: var(--ide-frame-chrome-bg);
       border-bottom: 0;
-      backdrop-filter: blur(14px);
+      backdrop-filter: none;
     }
 
     .layout-header-left,
@@ -132,6 +138,7 @@
       width: 100%;
       padding: var(--iv-page-inset-top) var(--iv-page-inset-x) var(--iv-page-inset-bottom);
       box-sizing: border-box;
+      display: flex;
       flex-direction: row;
       align-items: stretch;
     }
@@ -147,17 +154,6 @@
     #sourcePane,
     #rightPane {
       height: 100%;
-    }
-
-    #mainSplit > .pto-workbench-shell__split-gutter {
-      flex-basis: var(--iv-pane-gap);
-      min-width: var(--iv-pane-gap);
-      cursor: col-resize;
-    }
-
-    #mainSplit > .pto-workbench-shell__split-gutter::before {
-      width: 3px;
-      height: 44px;
     }
 
     .iv-right-split {
@@ -189,17 +185,14 @@
       box-sizing: border-box;
     }
 
-    #rightSplit > .pto-workbench-shell__split-gutter {
-      flex-basis: var(--iv-pane-gap);
-      width: 100%;
-      min-width: 0;
-      min-height: var(--iv-pane-gap);
-      cursor: row-resize;
+    #rightSplit[data-bottom-panel-collapsed="true"] > .pto-workbench-shell__split-gutter,
+    #rightSplit[data-bottom-panel-collapsed="true"] #execPane {
+      display: none !important;
     }
 
-    #rightSplit > .pto-workbench-shell__split-gutter::before {
-      width: 44px;
-      height: 3px;
+    #rightSplit[data-bottom-panel-collapsed="true"] #archPane {
+      flex: 1 1 auto !important;
+      height: auto !important;
     }
 
     .iv-panel {
@@ -592,15 +585,15 @@
       overflow: hidden;
       padding: 0;
       display: grid;
-      grid-template-rows: minmax(0, 1fr) auto;
+      grid-template-rows: minmax(0, 1fr);
     }
 
     .arch-stage {
       position: relative;
       min-height: 0;
-      overflow: auto;
-      padding: var(--space-4);
-      background: color-mix(in srgb, var(--surface-1) 86%, transparent);
+      overflow: hidden;
+      padding: 0;
+      background: transparent;
     }
 
     .arch-host {
@@ -886,25 +879,6 @@
 
     .arch-stage.is-focused [data-control-route].is-active-route {
       filter: none;
-    }
-
-    .arch-status {
-      position: relative;
-      z-index: 12;
-      display: flex;
-      flex-wrap: wrap;
-      gap: var(--space-2);
-      min-height: 36px;
-      padding: 6px var(--space-4);
-      border-top: 1px solid var(--border-subtle);
-      background: color-mix(in srgb, var(--surface-2) 92%, transparent);
-      overflow: hidden;
-    }
-
-    .arch-status .iv-chip {
-      max-width: 100%;
-      overflow: hidden;
-      text-overflow: ellipsis;
     }
 
     .exec-body {
@@ -1416,27 +1390,142 @@
       font: var(--text-label);
       letter-spacing: 0;
     }
+
+    .iv-status-group {
+      min-width: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .iv-status-icon {
+      width: 16px;
+      height: 16px;
+      display: block;
+      fill: none;
+      stroke: var(--ide-frame-icon-stroke);
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      opacity: var(--ide-frame-icon-opacity-secondary);
+    }
+
+    .iv-status-text {
+      color: var(--foreground-muted);
+      font: var(--ide-frame-meta-font);
+      white-space: nowrap;
+    }
+
+    .iv-status-button {
+      min-height: 22px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0 var(--space-2);
+      border-radius: var(--radius-sm);
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--foreground-secondary);
+      font: var(--ide-frame-meta-font);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .iv-status-button:hover {
+      background: color-mix(in srgb, var(--foreground) 8%, transparent);
+      color: var(--foreground);
+    }
+
+    .iv-status-button.is-selected {
+      border-color: color-mix(in srgb, var(--success) 24%, transparent);
+      background: color-mix(in srgb, var(--success) 9%, transparent);
+      color: var(--success);
+    }
+
+    .pto-ide-frame__window-action.is-selected {
+      background: var(--ide-frame-selected-bg);
+      border-color: var(--ide-frame-selected-border);
+    }
+
+    .pto-ide-frame__window-action.is-selected .pto-ide-frame__window-icon {
+      opacity: var(--ide-frame-icon-opacity-strong);
+    }
+
+    #floatingPlaybackMount .pto-floating-playback {
+      bottom: 46px;
+    }
   </style>
 </head>
 <body>
-  <div class="iv-page">
-    <header class="layout-header layout-header-filled workbench-shell-header">
-      <div class="layout-header-left">
-        <div class="iv-brand">
-          <div class="iv-title">Kernel Instruction Visualizer</div>
-          <div class="iv-subtitle">源码、AICPU 控制面、AI Core 指令队列、芯片架构图联动</div>
+  <div class="iv-page pto-ide-frame" id="ivPage" data-ide-frame data-host="standalone" data-cursor-dots="true" aria-label="Kernel instruction visualizer IDE frame">
+    <header class="pto-ide-frame__topbar pto-ide-frame__standalone-chrome layout-header layout-header-filled workbench-shell-header">
+      <div class="pto-ide-frame__topbar-left layout-header-left">
+        <div class="pto-ide-frame__host-chip">
+          <svg class="pto-ide-frame__host-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+            <path d="m7 9 3 3-3 3"></path>
+            <path d="M12 15h5"></path>
+          </svg>
+        </div>
+        <div class="iv-brand" aria-label="Page title">
+          <div class="iv-title">Instruction Path Workbench</div>
         </div>
       </div>
-      <div class="layout-header-right">
-        <span class="iv-chip is-control">AICPU control plane</span>
-        <span class="iv-chip is-data">AI Core data plane</span>
-        <button class="btn btn-sm" type="button" id="openInspectorBtn">打开 Inspector</button>
+      <div class="pto-ide-frame__topbar-center">
+        <div class="pto-ide-frame__search" aria-label="Workbench command search">
+          <svg class="pto-ide-frame__search-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="11" cy="11" r="7"></circle>
+            <path d="m20 20-3.6-3.6"></path>
+          </svg>
+          <span>Search source / queue / architecture</span>
+        </div>
+      </div>
+      <div class="pto-ide-frame__topbar-right layout-header-right">
+        <div class="pto-ide-frame__window-actions" data-ide-slot="window-controls" aria-label="Window controls">
+          <button class="pto-ide-frame__window-action" type="button" id="openInspectorBtn" aria-label="Open inspector" title="Inspector">
+            <svg class="pto-ide-frame__window-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+              <path d="M15 3v18"></path>
+            </svg>
+          </button>
+        </div>
       </div>
     </header>
 
-    <main class="workbench-frame workbench-frame-split iv-main" id="mainSplit">
-      <section class="panel-shell panel-shell-quiet workbench-pane iv-panel" id="sourcePane" aria-label="Kernel source" data-split-pane>
-        <header class="panel-shell-header">
+    <div class="pto-ide-frame__body">
+      <nav class="pto-ide-frame__activity-rail pto-ide-frame__standalone-chrome" data-ide-slot="activity-rail" aria-label="Activity rail">
+        <button class="btn btn-icon btn-ghost pto-ide-frame__rail-button is-selected" type="button" data-ide-toggle="explorer" aria-label="Explorer" aria-controls="sourcePane" aria-expanded="true" aria-pressed="true" title="Explorer">
+          <svg class="pto-ide-frame__rail-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9l-.81-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"></path>
+          </svg>
+        </button>
+        <button class="btn btn-icon btn-ghost pto-ide-frame__rail-button" type="button" aria-label="Search" title="Search">
+          <svg class="pto-ide-frame__rail-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="m21 21-4.3-4.3"></path>
+          </svg>
+        </button>
+        <button class="btn btn-icon btn-ghost pto-ide-frame__rail-button" type="button" aria-label="Source control" title="Source control">
+          <svg class="pto-ide-frame__rail-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="6" cy="18" r="3"></circle>
+            <circle cx="18" cy="6" r="3"></circle>
+            <path d="M6 15V3"></path>
+            <path d="M9 18a9 9 0 0 0 9-9"></path>
+          </svg>
+        </button>
+        <button class="btn btn-icon btn-ghost pto-ide-frame__rail-button" type="button" aria-label="Terminal" title="Terminal">
+          <svg class="pto-ide-frame__rail-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="3" y="5" width="18" height="14" rx="2"></rect>
+            <path d="m7 9 3 3-3 3"></path>
+            <path d="M12 15h5"></path>
+          </svg>
+        </button>
+      </nav>
+
+      <div class="pto-ide-frame__workarea">
+    <main class="pto-ide-frame__split iv-main" id="mainSplit" data-ide-split="standalone-main" data-split-direction="horizontal" data-sizes="25,75" data-pixel-sizes="320" data-min-size="300,720" data-gutter-size="8" data-storage-key="instruction_visualizer_prd_demo_main_v5">
+      <section class="pto-ide-frame__pane panel-shell panel-shell-quiet workbench-pane iv-panel" id="sourcePane" aria-label="Kernel source" data-ide-pane="explorer" data-split-pane>
+        <header class="pto-ide-frame__pane-header panel-shell-header">
           <div class="iv-header-copy">
             <span class="iv-panel-kicker">Kernel Source View</span>
             <div class="kernel-select-wrap">
@@ -1452,10 +1541,10 @@
         <div class="wb-source-body layout-surface-fill-strong" id="sourceBody" role="listbox" aria-label="Kernel source lines"></div>
       </section>
 
-      <section class="workbench-pane iv-right-split" id="rightPane" data-split-pane>
-        <div class="workbench-frame workbench-frame-split iv-right-split" id="rightSplit">
-          <section class="panel-shell panel-shell-quiet workbench-pane iv-panel pto-hw-viewport" id="archPane" aria-label="Architecture map" data-split-pane>
-            <header class="panel-shell-header pto-hw-viewport__toolbar">
+      <section class="pto-ide-frame__pane pto-ide-frame__pane--stack workbench-pane iv-right-split" id="rightPane" data-ide-pane="right-workspace" data-split-pane>
+        <div class="pto-ide-frame__split iv-right-split" id="rightSplit" data-ide-split="instruction-right" data-split-direction="vertical" data-sizes="58,42" data-min-size="300,260" data-gutter-size="8" data-storage-key="instruction_visualizer_prd_demo_right_v4">
+          <section class="pto-ide-frame__pane panel-shell panel-shell-quiet workbench-pane iv-panel pto-hw-viewport" id="archPane" aria-label="Architecture map" data-ide-pane="architecture" data-split-pane>
+            <header class="pto-ide-frame__pane-header panel-shell-header pto-hw-viewport__toolbar">
               <div class="iv-header-copy">
                 <span class="iv-panel-kicker">Architecture Map</span>
                 <div class="kernel-select-wrap">
@@ -1469,21 +1558,22 @@
                 <div class="toolbar-control pto-hw-viewport__tools" aria-label="架构图缩放控制">
                   <button class="btn btn-sm btn-ghost pto-hw-viewport__tool" type="button" id="archDetailToggle" aria-pressed="true">细节开</button>
                   <button class="btn btn-sm btn-ghost pto-hw-viewport__tool" type="button" id="archZoomOutBtn" aria-label="缩小架构图">−</button>
-                  <span class="toolbar-readout pto-hw-viewport__readout" id="archZoomReadout">76%</span>
+                  <span class="toolbar-readout pto-hw-viewport__readout" id="archZoomReadout">40%</span>
                   <button class="btn btn-sm btn-ghost pto-hw-viewport__tool" type="button" id="archZoomInBtn" aria-label="放大架构图">+</button>
                 </div>
               </div>
             </header>
             <div class="panel-shell-body arch-body">
-              <div class="arch-stage layout-surface-fill pto-hw-viewport__stage" id="archStage">
-                <div class="arch-host iv-arch-shell pto-hw-viewport__scale" id="archHost"></div>
+              <div class="arch-stage layout-surface-fill pto-hw-viewport__stage pto-memory-architecture-viewport" id="archStage" data-pto-mem-arch-viewport>
+                <div class="pto-memory-architecture-sizer" id="archSizer" data-pto-mem-arch-sizer>
+                  <div class="arch-host iv-arch-shell pto-hw-viewport__scale pto-memory-architecture-canvas" id="archHost" data-pto-mem-arch-canvas></div>
+                </div>
               </div>
-              <div class="arch-status" id="pathChips"></div>
             </div>
           </section>
 
-          <section class="panel-shell panel-shell-quiet workbench-pane iv-panel" id="execPane" aria-label="Tiling and instruction queue" data-split-pane>
-            <header class="panel-shell-header">
+          <section class="pto-ide-frame__pane panel-shell panel-shell-quiet workbench-pane iv-panel" id="execPane" aria-label="Tiling and instruction queue" data-ide-pane="execution" data-split-pane>
+            <header class="pto-ide-frame__pane-header panel-shell-header">
               <div class="iv-header-copy">
                 <span class="iv-panel-kicker">Tiling + Instruction Queue</span>
                 <h2 class="panel-shell-title">Host 任务订单如何进入 AI Core 队列</h2>
@@ -1549,6 +1639,32 @@
         </div>
       </section>
     </main>
+        <footer class="pto-ide-frame__status-strip pto-ide-frame__standalone-chrome" data-ide-slot="status" aria-label="Status">
+          <div class="iv-status-group">
+            <svg class="iv-status-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 12h16"></path>
+              <path d="M12 4v16"></path>
+            </svg>
+            <span class="iv-status-text">split ready</span>
+            <svg class="iv-status-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 12h14"></path>
+              <path d="m13 6 6 6-6 6"></path>
+            </svg>
+            <span class="iv-status-text">zoom 40%</span>
+          </div>
+          <div class="iv-status-group">
+            <button class="iv-status-button is-selected" type="button" id="toggleBottomPanelBtn" aria-pressed="true" aria-label="Hide tiling and instruction queue" title="Hide tiling and instruction queue">
+              <svg class="iv-status-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+                <path d="M4 14h16"></path>
+              </svg>
+              Tiling + Instruction Queue
+            </button>
+            <span class="iv-status-text" id="statusActiveKernel">fp8_mmad_masked_reduce</span>
+          </div>
+        </footer>
+      </div>
+    </div>
 
     <aside class="inspector-drawer" id="inspectorDrawer" aria-label="Inspector" aria-hidden="true">
       <header class="panel-shell-header">
@@ -1568,6 +1684,7 @@
   <script src="../ascend-950-workbench-demo/kernels/fp8_mmad_masked_reduce.js"></script>
   <script src="../vendor/pto-design-system/patterns/workbench-shell/pattern.js"></script>
   <script src="../vendor/pto-design-system/patterns/floating-playback-control/pattern.js"></script>
+  <script src="../vendor/pto-design-system/patterns/ide-frame/pattern.js"></script>
   <script src="../vendor/pto-design-system/patterns/aiv-core-object/pattern.js?v=2412220"></script>
   <script src="../vendor/pto-design-system/patterns/aic-core-object/pattern.js?v=2412220"></script>
   <script src="../vendor/pto-design-system/patterns/memory-architecture/pattern.js?v=2412220"></script>
@@ -1591,20 +1708,27 @@
 
       const state = {
         selectedKernelId: 'fp8_mmad_masked_reduce',
-        selectedLineId: 'l42',
+        selectedLineId: null,
         annotationsVisible: true,
         activeStep: 0,
         inspectorOpen: false,
+        ideFrame: null,
         archOverlay: null,
         controlOverlay: null,
-        archScaleIndex: 1,
+        archZoomController: null,
+        archScale: 0.4,
+        archFocusEnabled: false,
         archDetailsVisible: true,
         playbackTimer: 0,
         playbackControl: null,
         scrubberHover: null,
+        bottomPanelOpen: true,
       };
 
-      const archZoomLevels = [0.56, 0.66, 0.76, 0.9, 1];
+      const ARCH_DEFAULT_ZOOM = 0.4;
+      const ARCH_ZOOM_STEP = 0.1;
+      const ARCH_ZOOM_MIN = 0.05;
+      const ARCH_ZOOM_MAX = 5;
 
       const lanes = [
         { key: 'x0', name: 'x0 queue', size: '32KB', double: true },
@@ -1797,9 +1921,8 @@
       }
 
       function selectedAnnotation() {
-        return currentAnnotations().find((line) => line.id === state.selectedLineId)
-          || currentAnnotations().find((line) => !line.tagOnly)
-          || null;
+        if (!state.selectedLineId) return null;
+        return currentAnnotations().find((line) => line.id === state.selectedLineId) || null;
       }
 
       function tagClass(kind) {
@@ -1930,10 +2053,13 @@
           `<option value="${kernel.id}" ${kernel.id === state.selectedKernelId ? 'selected' : ''}>${escapeHtml(kernel.name)}</option>`
         )).join('');
         select.value = state.selectedKernelId;
+        const statusKernel = qs('#statusActiveKernel');
+        if (statusKernel) statusKernel.textContent = currentKernel()?.id || state.selectedKernelId;
         select.addEventListener('change', () => {
           state.selectedKernelId = select.value;
-          const kernel = currentKernel();
-          state.selectedLineId = kernel.selectedId || kernel.annotations?.find((line) => !line.tagOnly)?.id;
+          state.selectedLineId = null;
+          state.archFocusEnabled = false;
+          if (statusKernel) statusKernel.textContent = currentKernel()?.id || state.selectedKernelId;
           renderAll();
         });
       }
@@ -2008,11 +2134,9 @@
         const helper = window.PtoMemoryArchitecturePattern;
         const host = qs('#archHost');
         if (!helper || !host) return;
-        const scale = archZoomLevels[state.archScaleIndex] || 0.66;
-        host.style.transform = `scale(${scale})`;
-        host.style.marginBottom = `${Math.max(0, (scale - 1) * 480)}px`;
-        const readout = qs('#archZoomReadout');
-        if (readout) readout.textContent = `${Math.round(scale * 100)}%`;
+        const scale = Number.isFinite(state.archScale) ? state.archScale : ARCH_DEFAULT_ZOOM;
+        state.archZoomController?.destroy?.();
+        state.archZoomController = null;
         helper.renderArchitecture(host, 'ascend950b');
         injectControlPlane(host);
         helper.setDetailVisibility?.(host, state.archDetailsVisible);
@@ -2020,10 +2144,54 @@
         state.archOverlay?.destroy?.();
         state.archOverlay = helper.createRouteOverlay(host, 'ascend950b');
         state.archOverlay?.render?.();
+        state.archZoomController = helper.createZoomController?.({
+          viewport: qs('#archStage'),
+          sizer: qs('#archSizer'),
+          canvas: host,
+          readout: qs('#archZoomReadout'),
+          defaultZoom: scale,
+          zoom: scale,
+          min: ARCH_ZOOM_MIN,
+          max: ARCH_ZOOM_MAX,
+          step: ARCH_ZOOM_STEP,
+          pan: true,
+          wheelZoom: true,
+          centerTarget: '.pto-mem950',
+          onZoom: () => {
+            state.archScale = state.archZoomController?.getZoom?.() || state.archScale;
+            state.archOverlay?.render?.();
+            renderControlOverlay();
+            applyArchitectureFocus();
+          },
+        });
         window.requestAnimationFrame(() => {
+          centerArchitectureView();
+          state.archOverlay?.render?.();
           renderControlOverlay();
           applyArchitectureFocus();
         });
+      }
+
+      function centerArchitectureView() {
+        const viewport = qs('#archStage');
+        const host = qs('#archHost');
+        const controller = state.archZoomController;
+        if (!viewport || !host || !controller) return;
+        controller.center?.();
+      }
+
+      function setArchitectureZoom(delta) {
+        if (!state.archZoomController) {
+          renderArchitecture();
+          return;
+        }
+        const current = state.archZoomController.getZoom?.() || state.archScale || ARCH_DEFAULT_ZOOM;
+        const next = Math.max(ARCH_ZOOM_MIN, Math.min(ARCH_ZOOM_MAX, current + delta));
+        state.archScale = next;
+        state.archZoomController.setZoom?.(next);
+        state.archOverlay?.render?.();
+        renderControlOverlay();
+        applyArchitectureFocus();
       }
 
       function injectControlPlane(host) {
@@ -2137,6 +2305,7 @@
         state.archDetailsVisible = !state.archDetailsVisible;
         window.PtoMemoryArchitecturePattern?.setDetailVisibility?.(qs('#archHost'), state.archDetailsVisible);
         syncArchDetailToggle();
+        state.archZoomController?.render?.();
         state.archOverlay?.render?.();
         renderControlOverlay();
         applyArchitectureFocus();
@@ -2144,6 +2313,13 @@
 
       function applyArchitectureFocus() {
         const archStage = qs('#archStage');
+        if (!archStage) return;
+        qsa('.is-focus-node', archStage).forEach((node) => node.classList.remove('is-focus-node'));
+        qsa('.is-active-route', archStage).forEach((node) => node.classList.remove('is-active-route'));
+        if (!state.archFocusEnabled) {
+          archStage.classList.remove('is-focused');
+          return;
+        }
         const line = enhancedLine(selectedAnnotation()) || {};
         const step = activeStep();
         const selectors = [...(line.selectors || []), ...(step.selectors || [])];
@@ -2151,8 +2327,6 @@
         const controlRouteIds = [...(line.controlRoutes || []), ...(step.controlRoutes || [])];
         const hasFocus = selectors.length || routeIds.length || controlRouteIds.length;
         archStage.classList.toggle('is-focused', Boolean(hasFocus));
-        qsa('.is-focus-node', archStage).forEach((node) => node.classList.remove('is-focus-node'));
-        qsa('.is-active-route', archStage).forEach((node) => node.classList.remove('is-active-route'));
         selectors.forEach((selector) => {
           qsa(selector, archStage).forEach((node) => node.classList.add('is-focus-node'));
         });
@@ -2162,12 +2336,6 @@
         controlRouteIds.forEach((id) => {
           qsa(`[data-control-route="${CSS.escape(id)}"]`, archStage).forEach((route) => route.classList.add('is-active-route'));
         });
-        const chips = qs('#pathChips');
-        chips.innerHTML = [
-          ...(line.controlRoutes?.length ? ['AICPU control arrow'] : []),
-          ...(line.routes || []),
-          ...(line.path ? [line.path] : []),
-        ].slice(0, 5).map((text) => `<span class="iv-chip">${escapeHtml(text)}</span>`).join('');
       }
 
       function laneFill(step, lane) {
@@ -2401,6 +2569,7 @@
         const drawer = qs('#inspectorDrawer');
         drawer.classList.toggle('is-open', state.inspectorOpen);
         drawer.setAttribute('aria-hidden', state.inspectorOpen ? 'false' : 'true');
+        syncInspectorToggle();
         qs('#inspectorTitle').textContent = line ? `${line.tag} · L${line.line}` : '等待选择';
         if (!line) {
           qs('#inspectorBody').innerHTML = '';
@@ -2444,6 +2613,59 @@
         `;
       }
 
+      function syncInspectorToggle() {
+        const button = qs('#openInspectorBtn');
+        if (!button) return;
+        button.classList.toggle('is-selected', state.inspectorOpen);
+        button.setAttribute('aria-pressed', state.inspectorOpen ? 'true' : 'false');
+        button.setAttribute('aria-label', state.inspectorOpen ? 'Close inspector' : 'Open inspector');
+        button.title = state.inspectorOpen ? 'Close inspector' : 'Inspector';
+      }
+
+      function toggleInspector() {
+        state.inspectorOpen = !state.inspectorOpen;
+        renderInspector();
+      }
+
+      function syncBottomPanelToggle() {
+        const button = qs('#toggleBottomPanelBtn');
+        const split = qs('#rightSplit');
+        const pane = qs('#execPane');
+        const gutter = qs('#rightSplit > .pto-workbench-shell__split-gutter');
+        if (!split || !pane) return;
+        split.dataset.bottomPanelCollapsed = state.bottomPanelOpen ? 'false' : 'true';
+        pane.hidden = !state.bottomPanelOpen;
+        if (gutter) gutter.hidden = !state.bottomPanelOpen;
+        button?.classList.toggle('is-selected', state.bottomPanelOpen);
+        button?.setAttribute('aria-pressed', state.bottomPanelOpen ? 'true' : 'false');
+        button?.setAttribute('aria-label', state.bottomPanelOpen ? 'Hide bottom panel' : 'Show bottom panel');
+        if (button) button.title = state.bottomPanelOpen ? 'Hide bottom panel' : 'Show bottom panel';
+      }
+
+      function toggleBottomPanel() {
+        state.bottomPanelOpen = !state.bottomPanelOpen;
+        syncBottomPanelToggle();
+        window.requestAnimationFrame(refreshArchitectureGeometry);
+      }
+
+      function initIdeCursorTracking() {
+        const frame = qs('#ivPage');
+        if (!frame) return;
+        const resetCursor = () => {
+          frame.style.setProperty('--ide-cursor-alpha', '0');
+          frame.style.setProperty('--ide-dot-opacity', '0');
+        };
+        frame.addEventListener('pointermove', (event) => {
+          const rect = frame.getBoundingClientRect();
+          frame.style.setProperty('--ide-cursor-x', `${Math.max(0, event.clientX - rect.left)}px`);
+          frame.style.setProperty('--ide-cursor-y', `${Math.max(0, event.clientY - rect.top)}px`);
+          frame.style.setProperty('--ide-cursor-alpha', '0.14');
+          frame.style.setProperty('--ide-dot-opacity', '0.5');
+        });
+        frame.addEventListener('pointerleave', resetCursor);
+        resetCursor();
+      }
+
       function renderAll() {
         renderSource();
         renderStep();
@@ -2456,9 +2678,12 @@
 
       function selectLine(id, options = {}) {
         const found = lineById(id);
+        if (!options.suppressArchitectureFocus) state.archFocusEnabled = true;
         if (found.kernel?.id && found.kernel.id !== state.selectedKernelId) {
           state.selectedKernelId = found.kernel.id;
           qs('#kernelSelect').value = found.kernel.id;
+          const statusKernel = qs('#statusActiveKernel');
+          if (statusKernel) statusKernel.textContent = found.kernel.id;
         }
         state.selectedLineId = found.line?.id || state.selectedLineId;
         if (options.syncStep) {
@@ -2471,12 +2696,15 @@
       }
 
       function setStep(index, options = {}) {
+        if (!options.suppressArchitectureFocus) state.archFocusEnabled = true;
         state.activeStep = (index + steps.length) % steps.length;
         if (options.selectSource && activeStep().sourceId) {
           const found = lineById(activeStep().sourceId);
           state.selectedKernelId = found.kernel.id;
           state.selectedLineId = found.line.id;
           qs('#kernelSelect').value = found.kernel.id;
+          const statusKernel = qs('#statusActiveKernel');
+          if (statusKernel) statusKernel.textContent = found.kernel.id;
         }
         renderAll();
       }
@@ -2510,59 +2738,44 @@
           state.annotationsVisible = !state.annotationsVisible;
           renderSource();
         });
-        qs('#openInspectorBtn').addEventListener('click', () => {
-          state.inspectorOpen = true;
-          renderInspector();
-        });
+        qs('#openInspectorBtn').addEventListener('click', toggleInspector);
+        qs('#toggleBottomPanelBtn')?.addEventListener('click', toggleBottomPanel);
         qs('#closeInspectorBtn').addEventListener('click', () => {
           state.inspectorOpen = false;
           renderInspector();
         });
         qs('#archZoomOutBtn').addEventListener('click', () => {
-          state.archScaleIndex = Math.max(0, state.archScaleIndex - 1);
-          renderArchitecture();
+          setArchitectureZoom(-ARCH_ZOOM_STEP);
         });
         qs('#archZoomInBtn').addEventListener('click', () => {
-          state.archScaleIndex = Math.min(archZoomLevels.length - 1, state.archScaleIndex + 1);
-          renderArchitecture();
+          setArchitectureZoom(ARCH_ZOOM_STEP);
         });
         qs('#archDetailToggle')?.addEventListener('click', toggleArchDetails);
         window.addEventListener('resize', () => {
+          state.archZoomController?.render?.();
           state.archOverlay?.render?.();
           renderControlOverlay();
           applyArchitectureFocus();
         });
       }
 
-      function initSplits() {
-        const shell = window.PtoWorkbenchShell;
-        if (!shell) return;
-        shell.initResizablePanes({
-          root: '#mainSplit',
-          panes: [qs('#sourcePane'), qs('#rightPane')],
-          direction: 'horizontal',
-          sizes: [34, 66],
-          minSize: [380, 720],
-          gutterSize: 8,
-          storageKey: 'instruction_visualizer_prd_demo_main_v3',
-          onResize: () => {
-            state.archOverlay?.render?.();
-            renderControlOverlay();
-            applyArchitectureFocus();
-          },
-        });
-        shell.initResizablePanes({
-          root: '#rightSplit',
-          panes: [qs('#archPane'), qs('#execPane')],
-          direction: 'vertical',
-          sizes: [58, 42],
-          minSize: [300, 260],
-          gutterSize: 8,
-          storageKey: 'instruction_visualizer_prd_demo_right_v3',
-          onResize: () => {
-            state.archOverlay?.render?.();
-            renderControlOverlay();
-            applyArchitectureFocus();
+      function refreshArchitectureGeometry() {
+        state.archZoomController?.render?.();
+        state.archOverlay?.render?.();
+        renderControlOverlay();
+        applyArchitectureFocus();
+      }
+
+      function initIdeFrame() {
+        const frame = qs('#ivPage');
+        const helper = window.PtoIdeFrame;
+        if (!frame || !helper?.init) return;
+        delete frame.dataset.ideFrameReady;
+        state.ideFrame = helper.init(frame, {
+          splitOptions: {
+            default: {
+              onResize: refreshArchitectureGeometry,
+            },
           },
         });
       }
@@ -2571,11 +2784,12 @@
         if (!kernels.length) return;
         renderKernelSelector();
         initEvents();
-        initSplits();
+        initIdeFrame();
         mountFloatingPlayback();
         renderArchitecture();
+        syncBottomPanelToggle();
+        initIdeCursorTracking();
         renderAll();
-        setStep(0, { selectSource: true });
       }
 
       init();
