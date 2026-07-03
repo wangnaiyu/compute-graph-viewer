@@ -1,6 +1,6 @@
 # Whitepaper Generator
 
-把资料文件生成一份图文并茂的 HTML 白皮书报告，风格与 `/Users/yin/pto/计算领域竞分/index.html` 一致。
+把资料文件生成一份图文并茂的 HTML 白皮书报告。默认复用 PTO 现有白皮书样式与设计系统基线；内容组织应服务资料本身，不强制套固定页数或固定组件。
 
 ## 用法
 
@@ -20,7 +20,7 @@
 ```
 output-dir/
 ├── <name>-whitepaper.html
-└── shared.css   ← 若目录里没有，从 /Users/yin/pto/计算领域竞分/shared.css 复制
+└── shared.css   ← 若目录里没有，优先从相邻 PTO 白皮书目录复制，例如 /Users/yin/pto/ai-cpu-aicore/shared.css
 ```
 
 HTML 头部固定引用：
@@ -38,6 +38,13 @@ HTML 头部固定引用：
 - 固定顶栏场景中，section 自身使用顶部 padding 避开 nav；不要再叠加大的 `scroll-margin-top`，否则标题会被推到视口中部。
 - 交互图、长表格、代码块、图片组所在楼层允许超过一屏高度，优先保证内容完整，不强求每个楼层刚好一屏。
 - 图片默认完整显示，优先 `object-fit: contain`，除非明确是封面背景或裁剪预览。
+- 第二页目录 / Index 严禁默认做横向大表格或 `journey-map`。长报告必须优先使用纵向索引流：每个 section 一张紧凑索引卡，包含页码、问题、输出结论和跳转锚点。只有资料本身就是横向阶段对比、且各阶段字段完全一致时，才使用 `journey-map`，并且不能把它命名或承担为目录。
+- 面向开发者的技术白皮书必须用正式开发者文档口吻写：每节回答“实现目标 / 设计理由 / 代码或配置落点 / 验证方法”。避免第二人称口语、营销页、展厅脚本或抽象认知旅程。
+- 页面正文不得出现维护过程口吻，例如“原文档”“恢复”“保留”“删掉的图表”“这版改为”。这些信息只属于变更说明，不属于面向读者的白皮书正文。
+- 技术主题有官方入门文档或 API 文档时，优先按官方学习路径组织。可视化、产品机会、演示叙事只能服务官方开发流程，不能反过来主导结构。
+- 合并多份白皮书时，必须先盘点每份源文档的图表组件（`screenshot`、内联 SVG、`arch`、`formula-board`、`table`、`rec-grid` 等）。除非用户明确要求精简，否则不得因为重排结构而删除图表；应把图表迁移到新的开发流程章节或“图表解释层”章节。
+- 内容可以按资料需要灵活增删 section。不要为了填满固定模板而制造空泛页；也不要把一个复杂主题硬塞进单页导致表格、SVG 或代码块过度缩放。
+- 内联 SVG 图表默认不强制 `width:100%`。使用 `class="whitepaper-svg"` 并按图表复杂度设置 `style="--svg-width: 860px"` 这类目标宽度；只有需要铺满的总览图才显式使用更大的 `--svg-width`。不要在 SVG 上写死 `style="width:100%"`。
 
 ---
 
@@ -46,6 +53,9 @@ HTML 头部固定引用：
 从 source-file 中提取：
 
 - **主题** 和目标读者
+- **读者任务**：读者下一步要写代码、调试、做决策，还是理解产品方案
+- **官方结构**：如果资料引用官方文档，先提取官方章节顺序、示例顺序和 API 边界
+- **图表资产**：列出所有源文档中的 screenshot、SVG、架构图、公式板、对照表和关键 callout，并标记迁移到哪个新 section
 - **关键概念**（5-10 个，成为各 section 的核心）
 - **核心洞察**（读完必须记住的一件事）
 - **数据 / 公式 / 数字** → `callout` 组件
@@ -59,15 +69,37 @@ HTML 头部固定引用：
 
 先告诉用户规划，再生成 HTML。
 
-| # | Section | 说明 |
-|---|---------|------|
-| cover | 封面 | 大标题 + lead + metric 卡片 |
-| overview | 目录 | journey-map 全局地图 |
-| bg | 背景 | 为什么重要，行业现状 |
-| 03…N | 核心概念 | 每个主题一个 floor |
-| framework | 框架总结 | 核心模型/体系 |
-| findings | 结论 | rec-grid + callout |
-| terms | 术语表 | table，必须有 |
+通用白皮书默认结构：
+- `cover`：大标题 + lead + metric 卡片
+- `index`：纵向索引流 / `index-list`
+- `bg`：为什么重要，行业现状
+- `03…N`：核心概念，每个主题一个 floor
+- `framework`：核心模型 / 体系总结
+- `findings`：结论，使用 `rec-grid` + `callout`
+- `terms`：术语表，使用 `table`，必须有
+
+面向开发者的技术主题默认结构：
+- `cover`：直接说明开发者要解决的问题和最终交付物
+- `index`：纵向索引流，按开发动作排序，不使用横向目录表
+- `official-structure`：先解释官方入门文档或 API 文档的结构
+- `spec` / `analyze-op`：输入输出、约束、文件位置、接口边界
+- `design`：参数、数据结构、状态或协议如何设计
+- `host` / `impl`：Host、服务端、编译期或控制面逻辑的实现路径
+- `runtime` / `kernel`：运行时、Kernel、客户端或数据面如何消费这些参数
+- `dynamic`：动态 shape、分支、key、workspace、错误边界等扩展场景
+- `verify`：正确性测试、边界样例、性能或 profiling 检查
+- `evidence`：官方文档、源码和本地资料核对点
+- `terms`：开发者术语表，说明代码里通常落在哪里
+
+Ascend C Tiling 这类算子开发主题应优先采用官方入门顺序：
+- 概念和输入输出：shape/attr/platform 输入，TilingData、blockDim、TilingKey、workspace 输出
+- 算子分析：OpType、输入输出、shape、dtype、format、核函数和主要 API
+- Tiling 参数设计：核间 block、核内 tile、尾块、对齐和 buffer 容量
+- TilingData 定义与注册：字段、宏、默认结构和 key 匹配结构
+- Host 侧 TilingFunc：从 context 读真实 shape，计算参数，写回 context
+- Kernel 侧解析与使用：按 blockIdx/progress 计算 GM offset，控制 CopyIn/Compute/CopyOut
+- 动态 shape / TilingKey / workspace：何时分支，何时只改参数
+- 验证与调优：断点 shape、尾块、对齐、Local Memory、workspace 和 profiling
 
 ---
 
@@ -128,7 +160,26 @@ HTML 头部固定引用：
 </section>
 ```
 
-### 目录（可选，长报告用）
+### 目录（长报告默认用纵向 Index）
+
+第二页默认是纵向索引，禁止做成横向大表格或 `journey-map`。每个索引项回答三个问题：这页看什么、为什么重要、读完得到什么。
+
+```html
+<div class="index-list">
+  <a class="card index-item" href="#host-func">
+    <span class="pill blue index-num">01</span>
+    <div>
+      <b>Host 侧 TilingFunc</b>
+      <p>开发者要从 context 读取真实 shape，计算 TilingData 并写回 context。</p>
+      <small>输出：TilingData、blockDim、TilingKey 和 workspace 的分工。</small>
+    </div>
+  </a>
+</div>
+```
+
+### 阶段地图（可选，仅用于天然横向流程）
+
+当资料本身就是 4-6 个横向阶段、且每阶段字段完全一致时，才使用 `journey-map`。不要把普通目录写成 `journey-map`；如果使用，它必须是流程对比组件，不是目录组件。
 
 ```html
 <div class="journey-map">
@@ -241,8 +292,8 @@ P = α · C · V² · f
 ```html
 <div class="screenshot">
   <div class="shotbar"><span class="dots"></span>主题 · 主架构图</div>
-  <div class="shotbody flush" style="padding:18px 12px;background:#fff">
-    <svg viewBox="0 0 1200 720" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block">
+  <div class="shotbody flush">
+    <svg viewBox="0 0 1200 720" xmlns="http://www.w3.org/2000/svg" class="whitepaper-svg" style="--svg-width: 980px">
       <!-- 左侧：层级 + icon -->
       <!-- 中间：高亮主线 / 漏斗 / 分层结构 -->
       <!-- 箭头中间：边界标签 -->
@@ -333,12 +384,14 @@ P = α · C · V² · f
 - 术语表（`table`）永远是最后一节
 - 不允许发明数据，只用资料里有的数字
 - 全部中文，专有名词保留英文
+- 面向开发者时，标题和 lead 要直接说明实现路径、代码落点和验证方法，不写“我们将带你体验”“按你真正写的顺序读”这类展陈或口语化表达
+- 官方文档已给出流程时，必须在正文中显式说明采用或偏离官方结构的原因
 
 ---
 
 ## Step 4 — 输出
 
 1. 写 HTML 到 output-dir
-2. 如果目录里没有 `shared.css`，执行：`cp /Users/yin/pto/计算领域竞分/shared.css <output-dir>/shared.css`
-3. 启动预览（如果还没跑）：`python3 -m http.server 8765 --directory <output-dir> &`
-4. 告诉用户预览地址
+2. 如果目录里没有 `shared.css`，从现有 PTO 白皮书目录复制一份，例如：`cp /Users/yin/pto/ai-cpu-aicore/shared.css <output-dir>/shared.css`
+3. 静态 HTML 可直接打开；只有页面依赖模块脚本、跨文件 fetch 或浏览器安全策略时，才启动预览服务器
+4. 告诉用户输出文件路径；如启动了服务器，再给预览地址

@@ -13,6 +13,21 @@ window.ParamRail = (function () {
     gate: 'Load Balance Loss：MoE 路由负载均衡损失。接近 0 表示 token 分配塌陷到少数或空专家组，点击定位 Gate/Router。',
     experts: 'Grad Norm (MoE)：MoE 分支梯度范数。异常暴涨说明专家侧更新不稳定，点击定位 Experts。',
   };
+  const emptyMetric = { setCursor() {} };
+
+  function renderMetric(selector, payload) {
+    const renderer = window.PtoTrainingMetricsChart;
+    if (!renderer || typeof renderer.render !== 'function') {
+      console.warn('[TrainScope] training-metrics-chart pattern is not loaded.');
+      return emptyMetric;
+    }
+    try {
+      return renderer.render(selector, payload) || emptyMetric;
+    } catch (error) {
+      console.error('[TrainScope] metric sparkline render failed:', error);
+      return emptyMetric;
+    }
+  }
 
   function init(host) {
     const ts = window.TS_DATA, cfg = ts.config;
@@ -45,11 +60,11 @@ window.ParamRail = (function () {
     dyn.appendChild(lbWrap); dyn.appendChild(gnWrap);
     host.appendChild(dyn);
 
-    lbCtrl = window.PtoTrainingMetricsChart.render('#spark-lb', {
+    lbCtrl = renderMetric('#spark-lb', {
       steps: ts.steps, series: [{ id: 'lb', label: 'lb', key: 'load_balance_loss', colorVar: '--highlight-l0b-deep-violet-source' }],
       data: ts.series, anomalies: ts.anomalies.load_balance_loss, cursor: initialStep, options: { compact: true }, legend: false,
     });
-    gnCtrl = window.PtoTrainingMetricsChart.render('#spark-gn', {
+    gnCtrl = renderMetric('#spark-gn', {
       steps: ts.steps, series: [{ id: 'gn', label: 'gn', key: 'grad_norm', colorVar: '--highlight-accum-orange-source' }],
       data: ts.series, anomalies: ts.anomalies.grad_norm, cursor: initialStep, options: { compact: true }, legend: false,
     });

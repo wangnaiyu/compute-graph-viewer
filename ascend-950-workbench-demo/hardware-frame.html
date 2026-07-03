@@ -25,10 +25,24 @@
       margin: 0;
       padding: 52px;
       overflow: hidden;
-      background: transparent;
       color: var(--foreground, rgba(255, 255, 255, 0.9));
       font-family: var(--font-sans, Inter, "Source Han Sans SC", "PingFang SC", "Noto Sans SC", sans-serif);
       box-sizing: border-box;
+    }
+
+    html {
+      min-width: 100%;
+      min-height: 100%;
+      background:
+        radial-gradient(circle, color-mix(in srgb, var(--foreground, rgba(255, 255, 255, 0.9)) 14%, transparent) 1px, transparent 1.5px),
+        linear-gradient(180deg, color-mix(in srgb, var(--foreground, rgba(255, 255, 255, 0.9)) 4%, transparent), transparent 46%),
+        var(--background, #101010);
+      background-size: 26px 26px, auto, auto;
+      background-position: 0 0, 0 0, 0 0;
+    }
+
+    body {
+      background: transparent;
     }
 
     #hardwareHost {

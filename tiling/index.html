@@ -12,28 +12,101 @@
   <link rel="stylesheet" href="../vendor/pto-design-system/patterns/floating-playback-control/pattern.css">
   <link rel="stylesheet" href="../vendor/pto-design-system/patterns/ide-frame/pattern.css">
   <link rel="stylesheet" href="../vendor/pto-design-system/patterns/swimlane-task/pattern.css">
-  <link rel="stylesheet" href="../vendor/pto-design-system/patterns/aic-core-object/pattern.css?v=2412220">
-  <link rel="stylesheet" href="../vendor/pto-design-system/patterns/aiv-core-object/pattern.css?v=2412220">
-  <link rel="stylesheet" href="../vendor/pto-design-system/patterns/memory-architecture/pattern.css?v=2412220">
-  <link rel="stylesheet" href="../vendor/pto-design-system/patterns/hardware-architecture-viewport/pattern.css?v=2412220">
-  <link rel="stylesheet" href="src/styles.css?v=20260603-info-panel-v3">
+  <link rel="stylesheet" href="../vendor/pto-design-system/patterns/hardware-architecture-viewport/pattern.css?v=20260703-950-standard-v1">
+  <link rel="stylesheet" href="src/styles.css?v=20260703-pointer-release-v1">
 </head>
 <body class="avz-page">
   <section class="pto-ide-frame avz-frame" data-ide-frame data-host="standalone" aria-label="Ascend tiling visualization workbench">
     <header class="pto-ide-frame__topbar pto-ide-frame__standalone-chrome">
       <div class="pto-ide-frame__topbar-left">
-        <div class="avz-brand">
-          <div class="avz-brand__title">Ascend Tiling Viz</div>
+        <div class="pto-ide-frame__host-chip" aria-hidden="true">
+          <svg class="pto-ide-frame__host-icon" viewBox="0 0 24 24">
+            <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+            <path d="M9 9h6v6H9z"></path>
+            <path d="M9 1v3"></path>
+            <path d="M15 1v3"></path>
+            <path d="M9 20v3"></path>
+            <path d="M15 20v3"></path>
+            <path d="M20 9h3"></path>
+            <path d="M20 15h3"></path>
+            <path d="M1 9h3"></path>
+            <path d="M1 15h3"></path>
+          </svg>
+        </div>
+        <div class="pto-ide-frame__workspace avz-workspace">
+          <span class="avz-workspace__title">Ascend Tiling Viz</span>
+          <span class="avz-workspace__meta">Trace Replayer</span>
         </div>
       </div>
       <div class="pto-ide-frame__topbar-center" aria-hidden="true"></div>
-      <div class="pto-ide-frame__topbar-right"></div>
+      <div class="pto-ide-frame__topbar-right">
+        <div class="pto-ide-frame__window-actions" aria-label="Workbench controls">
+          <button class="pto-ide-frame__window-action" type="button" data-frame-command="fit-tensor" aria-label="Fit tensor viewport" title="Fit tensor viewport">
+            <svg class="pto-ide-frame__window-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M8 3H5a2 2 0 0 0-2 2v3"></path>
+              <path d="M16 3h3a2 2 0 0 1 2 2v3"></path>
+              <path d="M8 21H5a2 2 0 0 1-2-2v-3"></path>
+              <path d="M16 21h3a2 2 0 0 0 2-2v-3"></path>
+            </svg>
+          </button>
+          <button class="pto-ide-frame__window-action" type="button" data-frame-command="fit-architecture" aria-label="Fit memory architecture" title="Fit memory architecture">
+            <svg class="pto-ide-frame__window-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3 3h7v7H3z"></path>
+              <path d="M14 3h7v7h-7z"></path>
+              <path d="M14 14h7v7h-7z"></path>
+              <path d="M3 14h7v7H3z"></path>
+            </svg>
+          </button>
+          <button class="pto-ide-frame__window-action" type="button" data-frame-command="toggle-info" aria-label="Toggle visual guide" aria-controls="traceInfoPanel" aria-expanded="false" aria-pressed="false" title="Visual guide">
+            <svg class="pto-ide-frame__window-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M12 16v-4"></path>
+              <path d="M12 8h.01"></path>
+            </svg>
+          </button>
+          <span class="pto-ide-frame__window-separator" aria-hidden="true"></span>
+          <button class="pto-ide-frame__window-action" type="button" data-frame-command="toggle-inspector" aria-label="Toggle inspector" aria-controls="inspectorDrawer" aria-expanded="false" aria-pressed="false" title="Inspector">
+            <svg class="pto-ide-frame__window-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+              <path d="M15 3v18"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
     </header>
 
     <div class="pto-ide-frame__body">
+      <nav class="pto-ide-frame__activity-rail pto-ide-frame__standalone-chrome" data-ide-slot="activity-rail" aria-label="Activity rail">
+        <button class="btn btn-icon btn-ghost pto-ide-frame__rail-button is-selected" type="button" data-ide-toggle="explorer" aria-label="Toggle source explorer" aria-controls="standalone-explorer-pane" aria-expanded="true" aria-pressed="true" title="Explorer">
+          <svg class="pto-ide-frame__rail-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9l-.81-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"></path>
+          </svg>
+        </button>
+        <button class="btn btn-icon btn-ghost pto-ide-frame__rail-button" type="button" aria-label="Search" title="Search">
+          <svg class="pto-ide-frame__rail-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="m21 21-4.3-4.3"></path>
+          </svg>
+        </button>
+        <button class="btn btn-icon btn-ghost pto-ide-frame__rail-button" type="button" aria-label="Source control" title="Source control">
+          <svg class="pto-ide-frame__rail-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="18" cy="18" r="3"></circle>
+            <circle cx="6" cy="6" r="3"></circle>
+            <path d="M13 6h3a2 2 0 0 1 2 2v7"></path>
+            <path d="M6 9v12"></path>
+          </svg>
+        </button>
+        <button class="btn btn-icon btn-ghost pto-ide-frame__rail-button" type="button" aria-label="Terminal" title="Terminal">
+          <svg class="pto-ide-frame__rail-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="3" y="5" width="18" height="14" rx="2"></rect>
+            <path d="m7 9 3 3-3 3"></path>
+            <path d="M12 15h5"></path>
+          </svg>
+        </button>
+      </nav>
       <div class="pto-ide-frame__workarea">
-        <div class="pto-ide-frame__split avz-main-split" data-ide-split="avz-main" data-storage-key="pto-tiling-avz-main-equal-v1" data-split-direction="horizontal" data-sizes="33.33,33.34,33.33" data-min-size="300,460,340" data-gutter-size="10">
-          <section class="pto-ide-frame__pane" data-ide-pane="source">
+        <div class="pto-ide-frame__split avz-main-split" data-ide-split="standalone-main" data-storage-key="pto-tiling-avz-main-ide-frame-v1" data-split-direction="horizontal" data-sizes="22,46,32" data-pixel-sizes="300" data-min-size="260,460,340" data-gutter-size="10">
+          <section class="pto-ide-frame__pane pto-ide-frame__explorer" data-ide-pane="explorer" id="standalone-explorer-pane">
             <header class="pto-ide-frame__pane-header avz-pane-header">
               <div class="avz-pane-heading">
                 <h2 class="pto-ide-frame__pane-title avz-pane-title">Source</h2>
@@ -102,11 +175,11 @@
             <header class="pto-ide-frame__pane-header avz-pane-header avz-architecture-header">
               <div class="avz-pane-heading">
                 <h2 class="pto-ide-frame__pane-title avz-pane-title">Memory Architecture</h2>
-                <span class="pto-ide-frame__pane-meta">Ascend 950B</span>
+                <span class="pto-ide-frame__pane-meta" id="architectureMeta">Ascend 950B</span>
               </div>
               <div class="pto-hw-viewport__controls avz-architecture-controls">
                 <div class="pto-hw-viewport__tools" aria-label="Memory architecture viewport controls">
-                  <button class="pto-hw-viewport__tool" id="architectureDetailToggle" type="button" aria-pressed="false">细节关</button>
+                  <button class="pto-hw-viewport__tool" id="architectureDetailToggle" type="button" aria-pressed="true">细节开</button>
                   <button class="pto-hw-viewport__tool" id="archZoomOut" type="button" title="Zoom out" aria-label="Zoom out memory architecture">−</button>
                   <span class="pto-hw-viewport__readout" id="archZoomReadout">60%</span>
                   <button class="pto-hw-viewport__tool" id="archZoomIn" type="button" title="Zoom in" aria-label="Zoom in memory architecture">+</button>
@@ -116,12 +189,22 @@
             </header>
             <div class="pto-ide-frame__pane-body avz-pane-body avz-architecture-pane">
               <div class="pto-hw-viewport__stage avz-architecture-viewport" id="architectureViewport">
-                <div class="pto-hw-viewport__scale avz-architecture-scale" id="architectureMap"></div>
+                <iframe class="pto-hw-viewport__frame avz-architecture-frame" id="architectureFrame" src="../ascend-950-workbench-demo/hardware-frame.html?preset=ascend950b&amp;theme=dark&amp;v=20260703-fit-frame-v1" title="Ascend 950B hardware architecture"></iframe>
               </div>
               <div class="avz-architecture-blocks" id="architectureBlocks"></div>
             </div>
           </aside>
         </div>
+        <footer class="pto-ide-frame__status-strip pto-ide-frame__standalone-chrome" data-ide-slot="status">
+          <span id="statusText">Ready</span>
+          <span class="avz-status-cluster">
+            <span id="statusSample">No trace</span>
+            <span aria-hidden="true">·</span>
+            <span id="statusStep">0/0</span>
+            <span aria-hidden="true">·</span>
+            <span id="statusArch">Ascend 950B</span>
+          </span>
+        </footer>
         <aside class="panel-shell avz-inspector-drawer" id="inspectorDrawer" hidden>
           <header class="panel-shell-header avz-inspector-drawer__head">
             <div>
@@ -142,10 +225,7 @@
   <script src="../vendor/pto-design-system/patterns/floating-playback-control/pattern.js"></script>
   <script src="../vendor/pto-design-system/patterns/ide-frame/pattern.js"></script>
   <script src="../vendor/pto-design-system/patterns/swimlane-task/pattern.js"></script>
-  <script src="../vendor/pto-design-system/patterns/aiv-core-object/pattern.js?v=2412220"></script>
-  <script src="../vendor/pto-design-system/patterns/aic-core-object/pattern.js?v=2412220"></script>
-  <script src="../vendor/pto-design-system/patterns/memory-architecture/pattern.js?v=2412220"></script>
-  <script src="../vendor/pto-design-system/patterns/hardware-architecture-viewport/pattern.js?v=2412220"></script>
-  <script src="src/app.js?v=20260603-info-panel-v3"></script>
+  <script src="../vendor/pto-design-system/patterns/hardware-architecture-viewport/pattern.js?v=20260703-950-standard-v1"></script>
+  <script src="src/app.js?v=20260703-pointer-release-v1"></script>
 </body>
 </html>

@@ -746,7 +746,7 @@ TrainScope 的图表建议分成两层：
 
 ```text
 公开模型配置
-openPangu-Ultra-MoE-718B: 61 layers / hidden 7680 / 256 routed experts / top-8
+openPangu-Ultra-MoE-718B-V1.1: 61 decoder layers / hidden 7680 / 3 Dense + 58 MoE / 256 routed experts / top-8
         |
         v
 派生训练策略
@@ -780,10 +780,12 @@ TP group / PP group / CP group / DP group / EP placement
 
 | 层级 | 配置 | 可靠性 |
 |---|---|---|
-| 模型结构 | openPangu-Ultra-MoE-718B：61 层、hidden 7680、256 路由专家、1 共享专家、top-8、MLA、MTP、sandwich norm | 官方公开 config，可作为确定底座 |
+| 模型结构 | openPangu-Ultra-MoE-718B-V1.1：61 个 decoder layers（L0-L2 Dense，L3-L60 MoE）、hidden 7680、vocab 153600、256 路由专家、1 共享专家、top-8、MLA、sandwich norm | 已由本地 `model_architecture.json` 校验为 `model_architecture.v1`：49 节点 / 56 边 / 0 error |
 | 基础 rank mesh | `DP=32 / PP=16 / CP=1 / TP=8`，所以 `world_size = 32 × 16 × 1 × 8 = 4096` | 产品派生 placement，不声称是官方真实训练切分 |
 | MoE / EP | `EP=32`，把 256 experts 聚合成 32 个 expert bucket，每桶 8 个 experts | 产品派生 expert placement，用于解释专家路由和 All-to-All |
 | 动态遥测 | loss、grad norm、router z-loss、expert load、All-to-All bytes、rank util | 需要自采 Ascend run；没有自采时必须标注 synthetic / reprojected |
+
+注意：V1.1 `config.json` 声明了 `num_mtp_layers=1`，但当前 `inference/model.py` forward 路径没有实例化 MTP head；因此 MTP 只能作为 scope note，不能画进 canonical architecture 主图。EP/All-to-All 也是训练 placement / runtime projection 语义；源码事实层只证明 MoE router、NPU init/finalize routing、grouped matmul、conditional MoE All-Reduce 等结构。
 
 这样落图时，可以选一个具体 rank 讲清楚：
 
@@ -842,7 +844,40 @@ rank_299 运行在 910B_299 上；
 
 #### 10.5.1 盘古整网模型架构能确定什么
 
-基于公开 `openPangu-Ultra-MoE-718B` 配置和推理代码，可以确定整网前向结构的大框架：
+基于本地 `openPangu-Ultra-MoE-718B-V1.1` 配置、推理代码和已校验的架构事实层，可以确定整网前向结构的大框架：
+
+```text
+Token IDs / Position IDs / Attention Mask
+        |
+        v
+Parallel Embedding
+        |
+        v
+Decoder Layers × 61
+  每个 decoder layer 都包含：
+  Input RMSNorm
+    -> MLA Attention
+       q_a -> q_ln -> q_b
+       kv_a -> kv_ln -> K/V absorb + RoPE + compressed KV Cache
+       score -> softmax -> context -> output proj -> conditional Attn All-Reduce
+  Post-Attn RMSNorm
+    -> Pre-MLP RMSNorm
+    -> FFN branch:
+       L0-L2  : Dense MLP -> conditional Dense All-Reduce
+       L3-L60 : MoE FFN
+                 Router: linear -> sigmoid -> TopK -> gather -> normalize/scale
+                 NPU routing -> grouped up-gate -> SwiGLU -> grouped down -> finalize routing
+                 Shared Expert MLP -> combine -> conditional MoE All-Reduce
+  Post-MLP RMSNorm
+        |
+        v
+Final RMSNorm
+        |
+        v
+LM Head -> conditional Logits All-Gather -> Logits
+```
+
+为了避免误读，可以把它再压缩成面向产品的折叠图：
 
 ```text
 Token IDs / Position IDs / Attention Mask
@@ -852,29 +887,28 @@ Parallel Embedding
         |
         v
 Dense Decoder Layers × 3
+  每层：MLA Attention + Dense MLP
         |
         v
 MoE Decoder Layers × 58
-  每个 MoE 层内部：
-  MLA Attention
-    -> Router / Gate Top-8
-    -> Routed Experts × 256 + Shared Expert × 1
-    -> dispatch / combine / residual / norm
+  每层：MLA Attention + MoE FFN
+  MoE FFN：Router / Gate Top-8 -> Routed Experts × 256 + Shared Expert × 1 -> Combine
         |
         v
 Final RMSNorm
         |
         v
-LM Head -> Logits
+LM Head -> conditional Logits All-Gather -> Logits
 ```
 
 可靠依据：
 
-- `config.json` 明确给出 `num_hidden_layers=61`、`first_k_dense_replace=3`、`hidden_size=7680`、`n_routed_experts=256`、`n_shared_experts=1`、`num_experts_per_tok=8`、`num_attention_heads=128`、`num_nextn_predict_layers=1` 等结构参数。
+- `config.json` 明确给出 `num_hidden_layers=61`、`num_dense_layers=3`、`hidden_size=7680`、`vocab_size=153600`、`num_routed_experts=256`、`num_shared_experts=1`、`num_experts_per_tok=8`、`num_attention_heads=128`、`attention_q_lora_dim=1536`、`attention_kv_lora_dim=512`、`attention_qk_dim=128`、`attention_qk_rope_dim=64`、`attention_v_dim=128`、`intermediate_size=18432`、`moe_intermediate_size=2048`、`sandwich_norm=true`、`max_position_embeddings=131072`、`rope_theta=25600000`、`num_mtp_layers=1` 等结构参数。
 - `inference/model.py` 里的 `PanguUltraMoEModel.forward()` 会顺序遍历 `self.layers`，最后做 `self.norm`；`PanguUltraMoEForCausalLM.forward()` 会调用 `self.model(...)` 后接 `lm_head` 得到 logits。
 - 同一份代码里，`PanguUltraMoE.forward()` 包含 `gate`、`moe_npu`、`shared_experts`；`moe_npu()` 包含 NPU MoE routing、expert token 统计、expert 计算和 finalize routing；`PanguUltraMoEAttention` 包含 MLA 相关 Q/K/V 低秩投影与输出投影。
+- `/Users/yin/gitcode/openPangu-Ultra-MoE-718B-V1.1/outputs/model_architecture.json` 是规范架构事实层，schema 为 `model_architecture.v1`，校验器结果 `ok: True`，共 49 nodes / 56 edges / 0 errors。
 
-边界要说清楚：这些来源能证明“模型前向结构”和“推理侧 NPU MoE 路径”，但不能证明官方完整训练 placement，也不能证明每个训练 step 的真实通信流量。
+边界要说清楚：这些来源能证明“模型前向结构”和“推理侧 NPU MoE 路径”，但不能证明官方完整训练 placement，也不能证明每个训练 step 的真实通信流量。`num_mtp_layers=1` 只证明 config 声明了 MTP；由于当前 forward 未构建 MTP head，产品图里应把 MTP 放在 scope note，而不是画成实际前向节点。残差 add 在源码中由 fused RMSNorm 路径处理，也不应额外画成独立 Add 节点。MLA 的 `KV Cache` 存的是压缩 latent + RoPE key（`512+64`），不是展开后的完整 K/V。
 
 #### 10.5.2 训练步骤比模型架构多什么
 
@@ -1123,6 +1157,8 @@ loss / grad / router stats / expert load / communication bytes / overflow
 - Pangu 模型配置：`https://huggingface.co/FreedomIntelligence/openPangu-Ultra-MoE-718B/blob/main/config.json`
 - Pangu 推理代码：`https://huggingface.co/FreedomIntelligence/openPangu-Ultra-MoE-718B/blob/main/inference/model.py`
 - Pangu 模型卡：`https://huggingface.co/FreedomIntelligence/openPangu-Ultra-MoE-718B`
+- V1.1 规范架构事实层：`/Users/yin/gitcode/openPangu-Ultra-MoE-718B-V1.1/outputs/model_architecture.json`
+- V1.1 架构校验报告：`/Users/yin/gitcode/openPangu-Ultra-MoE-718B-V1.1/outputs/model_architecture_validation.md`
 - PyTorch 训练循环示例：`https://docs.pytorch.org/tutorials/recipes/recipes/zeroing_out_gradients.html`
 - MindSpore Transformers 分布式并行训练：`https://www.mindspore.cn/mindformers/docs/zh-CN/master/feature/parallel_training.html`
 - MindSpore Transformers 配置文件说明：`https://www.mindspore.cn/mindformers/docs/zh-CN/master/feature/configuration.html`

@@ -290,6 +290,16 @@
   };
 
   const SVGNS = 'http://www.w3.org/2000/svg';
+  const GRAPH_LAYOUT = {
+    // Toggle center is 17px from the cluster top and r=10, so its bottom is 27px.
+    // A 44px child top gap leaves the control, title text, and a 12px visual buffer clear.
+    clusterChildTopGap: 44,
+    clusterChildSideGap: 36,
+    clusterChildBottomGap: 30,
+    collapsedModuleGap: 28,
+    decoderEntryGap: 224,
+    appliedFusionGap: 30,
+  };
   const els = {};
   let G = null;
   let NM = {};
@@ -374,13 +384,13 @@
     io('token_ids', 'Token IDs', 'Input');
     y += 104;
     op('embedding', 'Parallel Embedding', 'Op', 'embedding');
-    y += 120;
+    y += GRAPH_LAYOUT.decoderEntryGap;
     flow('token_ids', 'embedding');
     pL('emb_w', 'Embedding W', '[vocab, h]', 'embedding');
 
-    const qx = 330;
+    const qx = 300;
     const kx = 560;
-    const vx = 790;
+    const vx = 820;
     const laneW = 172;
     const narrowW = 164;
     let ffnEntry = 'ffn_norm';
@@ -437,30 +447,38 @@
       pR('kvb_w', 'KV B W', '[r_kv, kv]', 'kv_b_proj');
       y += 92;
 
-      op('rope_apply', 'RoPE Apply', 'Op', 'rope', { x: qx, w: laneW, typeLabel: 'q_rope' });
-      op('dsa_indexer', 'DSA Indexer', 'Op', 'attention', { x: kx, w: laneW, fuseRec: 'flash_paged', typeLabel: 'global K' });
-      op('attention_core', 'Sparse FlashAttention', 'Op', 'attention', { x: vx, w: laneW + 18, fuseRec: 'flash_paged', typeLabel: 'DSA/SWA' });
+      op('rope_apply', 'RoPE Apply', 'Op', 'rope', { x: cx, w: laneW, typeLabel: 'q_rope' });
       flow('q_b_proj', 'rope_apply', 'Q');
+      N.push({ id: 'rope_cache', label: 'RoPE Cache', typeLabel: 'State', kind: 'param', x: Lx, y, w: Wp, h: 42 });
+      E.push({ s: 'rope_cache', t: 'rope_apply', tag: 'cos/sin', type: 'param' });
+      y += 86;
+
+      op('dsa_indexer', 'DSA Indexer', 'Op', 'attention', { x: cx, w: laneW, fuseRec: 'flash_paged', typeLabel: 'global K' });
       flow('rope_apply', 'dsa_indexer', 'idx');
+      y += 86;
+
+      op('attention_core', 'Sparse FlashAttention', 'Op', 'attention', { x: cx, w: laneW + 18, fuseRec: 'flash_paged', typeLabel: 'DSA/SWA' });
       flow('rope_apply', 'attention_core', 'Q');
       flow('kv_b_proj', 'attention_core', 'KV');
       flow('dsa_indexer', 'attention_core', 'sparse');
-      N.push({ id: 'rope_cache', label: 'RoPE Cache', typeLabel: 'State', kind: 'param', x: Lx, y, w: Wp, h: 42 });
       N.push({ id: 'kv_cache', label: 'KV Cache', typeLabel: 'State', kind: 'param', x: Rx, y: y - 22, w: Wp, h: 42 });
       N.push({ id: 'param_sink_state', label: 'Parameter Sink', typeLabel: 'State', kind: 'param', x: Rx, y: y + 26, w: Wp, h: 42 });
       N.push({ id: 'mome_state', label: 'MoME State', typeLabel: 'State', kind: 'param', x: Rx, y: y + 74, w: Wp, h: 42 });
-      E.push({ s: 'rope_cache', t: 'rope_apply', tag: 'cos/sin', type: 'param' });
       E.push({ s: 'kv_cache', t: 'attention_core', tag: 'KV', type: 'param' });
       E.push({ s: 'param_sink_state', t: 'attention_core', tag: 'sink', type: 'param' });
       E.push({ s: 'mome_state', t: 'attention_core', tag: 'MoME', type: 'param' });
-      y += 120;
+      y += 98;
 
-      op('o_causal_conv', 'O Causal Conv1D', 'Op', 'comm', { x: qx, w: laneW, typeLabel: 'W=3' });
-      op('o_residual_add', 'O Local Add', 'Op', 'norm', { x: kx, w: laneW, typeLabel: 'residual' });
-      op('o_proj', 'O Projection', 'Op', 'linear', { x: vx, w: laneW, typeLabel: 'h->h' });
+      op('o_causal_conv', 'O Causal Conv1D', 'Op', 'comm', { x: cx, w: laneW, typeLabel: 'W=3' });
       flow('attention_core', 'o_causal_conv', 'attn');
+      y += 84;
+
+      op('o_residual_add', 'O Local Add', 'Op', 'norm', { x: cx, w: laneW, typeLabel: 'residual' });
       flow('attention_core', 'o_residual_add', 'skip');
       flow('o_causal_conv', 'o_residual_add', 'local');
+      y += 84;
+
+      op('o_proj', 'O Projection', 'Op', 'linear', { x: cx, w: laneW, typeLabel: 'h->h' });
       flow('o_residual_add', 'o_proj', 'ATTN');
       pL('oproj_w', 'O-Proj W', '[v, h]', 'o_proj');
       y += 96;
@@ -495,15 +513,15 @@
       E.push({ s: 'qkv_w', t: 'q_proj', tag: 'Wq', type: 'param' });
       E.push({ s: 'qkv_w', t: 'k_proj', tag: 'Wk', type: 'param' });
       E.push({ s: 'qkv_w', t: 'v_proj', tag: 'Wv', type: 'param' });
-      y += 100;
+      y += 144;
 
       if (spec.qknorm) {
         op('q_norm', 'Q-Norm', 'Op', 'qknorm', { x: qx, w: narrowW, fuseRec: 'qknorm_rope', typeLabel: 'per-head RMS' });
         op('k_norm', 'K-Norm', 'Op', 'qknorm', { x: kx, w: narrowW, fuseRec: 'qknorm_rope', typeLabel: 'per-head RMS' });
         flow('q_proj', 'q_norm', 'Q');
         flow('k_proj', 'k_norm', 'K');
-        N.push({ id: 'qn_g', label: 'q_norm γ', typeLabel: 'gamma', kind: 'param', x: qx - 160, y, w: 122, h: 36 });
-        N.push({ id: 'kn_g', label: 'k_norm γ', typeLabel: 'gamma', kind: 'param', x: kx + 160, y, w: 122, h: 36 });
+        N.push({ id: 'qn_g', label: 'q_norm γ', typeLabel: 'gamma', kind: 'param', x: qx, y: y - 42, w: 122, h: 36 });
+        N.push({ id: 'kn_g', label: 'k_norm γ', typeLabel: 'gamma', kind: 'param', x: kx, y: y - 42, w: 122, h: 36 });
         E.push({ s: 'qn_g', t: 'q_norm', tag: 'γ', type: 'param' });
         E.push({ s: 'kn_g', t: 'k_norm', tag: 'γ', type: 'param' });
         y += 92;
@@ -544,6 +562,7 @@
       op('attn_output_linear', 'O Projection', 'Op', 'linear', { typeLabel: 'h->h' });
       flow('attn_values', 'attn_output_linear', 'ATTN');
       pL('o_w', 'O-Proj W', '[hd, h]', 'attn_output_linear');
+      y += 96;
 
       op('ffn_norm', 'ffn RMSNorm', 'Op', 'norm', { fuseRec: 'add_rmsnorm', typeLabel: 'AddRmsNorm?' });
       y += 96;
@@ -691,6 +710,74 @@
         y: top - padTop,
         w: right - left + padX * 2,
         h: bottom - top + padTop + padBottom,
+      };
+    };
+    const includeClusterWithClearance = (parent, child) => {
+      const left = child.x - GRAPH_LAYOUT.clusterChildSideGap;
+      const top = child.y - GRAPH_LAYOUT.clusterChildTopGap;
+      const right = child.x + child.w + GRAPH_LAYOUT.clusterChildSideGap;
+      const bottom = child.y + child.h + GRAPH_LAYOUT.clusterChildBottomGap;
+      const parentRight = parent.x + parent.w;
+      const parentBottom = parent.y + parent.h;
+      if (left < parent.x) {
+        parent.w += parent.x - left;
+        parent.x = left;
+      }
+      if (top < parent.y) {
+        parent.h += parent.y - top;
+        parent.y = top;
+      }
+      parent.w = Math.max(parent.w, right - parent.x, parentRight - parent.x);
+      parent.h = Math.max(parent.h, bottom - parent.y, parentBottom - parent.y);
+    };
+    const normalizeClusterHierarchy = (clusters, hierarchy) => {
+      const clusterById = new Map(clusters.map((cluster) => [cluster.id, cluster]));
+      const moduleById = new Map(hierarchy.map((module) => [module.id, module]));
+      const depthCache = new Map();
+      const depthFor = (module) => {
+        if (!module) return 0;
+        if (depthCache.has(module.id)) return depthCache.get(module.id);
+        const depth = module.parentModule ? depthFor(moduleById.get(module.parentModule)) + 1 : 0;
+        depthCache.set(module.id, depth);
+        return depth;
+      };
+      hierarchy
+        .slice()
+        .sort((a, b) => depthFor(b) - depthFor(a))
+        .forEach((module) => {
+          const cluster = clusterById.get(module.id);
+          const parent = clusterById.get(module.parentModule);
+          if (cluster && parent) includeClusterWithClearance(parent, cluster);
+        });
+    };
+    const fitGraphExtents = (nodes, clusters, minWidth, minHeight) => {
+      const lefts = nodes.map((node) => node.x - node.w / 2).concat(clusters.map((cluster) => cluster.x));
+      const tops = nodes.map((node) => node.y - node.h / 2).concat(clusters.map((cluster) => cluster.y));
+      const minLeft = Math.min(...lefts);
+      const minTop = Math.min(...tops);
+      const shiftX = minLeft < 18 ? 18 - minLeft : 0;
+      const shiftY = minTop < 18 ? 18 - minTop : 0;
+      if (shiftX || shiftY) {
+        nodes.forEach((node) => {
+          node.x += shiftX;
+          node.y += shiftY;
+        });
+        clusters.forEach((cluster) => {
+          cluster.x += shiftX;
+          cluster.y += shiftY;
+        });
+      }
+      const right = Math.max(
+        ...nodes.map((node) => node.x + node.w / 2),
+        ...clusters.map((cluster) => cluster.x + cluster.w),
+      );
+      const bottom = Math.max(
+        ...nodes.map((node) => node.y + node.h / 2),
+        ...clusters.map((cluster) => cluster.y + cluster.h),
+      );
+      return {
+        width: Math.ceil(Math.max(minWidth, right + 28)),
+        height: Math.ceil(Math.max(minHeight, bottom + 28)),
       };
     };
 
@@ -904,7 +991,9 @@
       CL.push({ id: 'mlp', label: 'SwiGLU MLP', ...ffnBox, repeat: false });
       H.push({ id: 'mlp', label: 'SwiGLU MLP', typeLabel: 'Feed-forward', parentModule: 'decoder', childIds: ffnIds, sem: 'act' });
     }
-    return { width: 1140, height: y + 20, clusters: CL, nodes: N, edges: E, hierarchy: H, spec };
+    normalizeClusterHierarchy(CL, H);
+    const extents = fitGraphExtents(N, CL, 1140, y + 20);
+    return { width: extents.width, height: extents.height, clusters: CL, nodes: N, edges: E, hierarchy: H, spec };
   }
 
   function cloneGraph(graph) {
@@ -1134,6 +1223,125 @@
     return { x: left - 18, y: top - 24, w: right - left + 36, h: bottom - top + 48 };
   }
 
+  function collapsedModuleBounds(childNodes, cluster) {
+    const primaryNodes = childNodes.filter((node) => node.kind !== 'param' && node.kind !== 'tensor');
+    return moduleFallbackBounds(primaryNodes.length ? primaryNodes : childNodes) || cluster;
+  }
+
+  function separateCollapsedModuleNodes(nodes, graph) {
+    const groups = new Map();
+    nodes.forEach((node) => {
+      const key = node.parent || 'root';
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(node);
+    });
+    groups.forEach((group) => {
+      group.sort((a, b) => a.x - b.x);
+      for (let pass = 0; pass < 3; pass += 1) {
+        for (let i = 1; i < group.length; i += 1) {
+          const prev = group[i - 1];
+          const current = group[i];
+          const verticalOverlap = Math.abs(prev.y - current.y) < (prev.h + current.h) / 2 + GRAPH_LAYOUT.collapsedModuleGap / 2;
+          if (!verticalOverlap) continue;
+          const minX = prev.x + prev.w / 2 + current.w / 2 + GRAPH_LAYOUT.collapsedModuleGap;
+          if (current.x < minX) current.x = minX;
+        }
+      }
+      const minLeft = Math.min(...group.map((node) => node.x - node.w / 2));
+      if (minLeft < 18) {
+        const dx = 18 - minLeft;
+        group.forEach((node) => {
+          node.x += dx;
+        });
+      }
+    });
+    const right = Math.max(0, ...nodes.map((node) => node.x + node.w / 2));
+    if (right + 28 > graph.width) graph.width = Math.ceil(right + 28);
+  }
+
+  function alignCollapsedQkvLanes(nodes, graph) {
+    const byModule = new Map(nodes.map((node) => [node.moduleId, node]));
+    const qkv = byModule.get('qkv_projection');
+    const q = byModule.get('q_lane');
+    const k = byModule.get('k_lane');
+    const v = byModule.get('v_lane');
+    if (!qkv || !q || !k || !v) return;
+
+    const laneY = Math.round((q.y + k.y) / 2);
+    const centerX = Math.round((q.x + k.x + v.x) / 3);
+    q.y = laneY;
+    k.y = laneY;
+    v.y = laneY;
+    qkv.x = centerX;
+    qkv.y = Math.min(qkv.y, laneY - 150);
+
+    const core = byModule.get('attention_core');
+    if (core) {
+      core.x = centerX;
+      core.y = Math.max(core.y, laneY + 170);
+    }
+
+    const right = Math.max(0, ...nodes.map((node) => node.x + node.w / 2));
+    const bottom = Math.max(0, ...nodes.map((node) => node.y + node.h / 2));
+    if (right + 28 > graph.width) graph.width = Math.ceil(right + 28);
+    if (bottom + 28 > graph.height) graph.height = Math.ceil(bottom + 28);
+  }
+
+  function alignVisibleAppliedFusionNodes(graph) {
+    if (graphViewMode !== 'flat') return;
+    const nodes = graph.nodes || [];
+    const byModule = new Map(nodes.filter((node) => node.collapsedModule).map((node) => [node.moduleId, node]));
+    const qkv = byModule.get('qkv_projection');
+    const q = byModule.get('q_lane');
+    const k = byModule.get('k_lane');
+    const v = byModule.get('v_lane');
+    const core = byModule.get('attention_core');
+    const visibleVirtuals = nodes.filter((node) => node.virtual);
+    if (!visibleVirtuals.length) return;
+
+    const gap = GRAPH_LAYOUT.appliedFusionGap;
+    const setAbove = (node, target) => {
+      node.y = target.y - target.h / 2 - node.h / 2 - gap;
+    };
+    const setBelow = (node, target) => {
+      node.y = target.y + target.h / 2 + node.h / 2 + gap;
+    };
+
+    const attnAdd = visibleVirtuals.find((node) => node.fuseRec === 'add_rmsnorm' && node.parent === 'attention');
+    if (attnAdd && qkv) {
+      attnAdd.x = qkv.x;
+      setAbove(attnAdd, qkv);
+    }
+
+    const qkFusion = visibleVirtuals.find((node) => node.fuseRec === 'qknorm_rope');
+    if (qkFusion && q && k) {
+      qkFusion.x = Math.round((q.x + k.x) / 2);
+      setBelow(qkFusion, q);
+      if (core) {
+        core.x = Math.round((q.x + k.x + (v?.x ?? k.x)) / (v ? 3 : 2));
+        core.y = Math.max(core.y, qkFusion.y + qkFusion.h / 2 + core.h / 2 + gap);
+      }
+    }
+
+    visibleVirtuals
+      .filter((node) => node !== attnAdd && node !== qkFusion)
+      .sort((a, b) => (a.y - b.y) || (a.x - b.x))
+      .forEach((node) => {
+        let guard = 0;
+        while (guard < 8) {
+          const blocker = nodes.find((other) => other !== node && Math.abs(other.x - node.x) < (other.w + node.w) / 2 + gap && Math.abs(other.y - node.y) < (other.h + node.h) / 2 + gap);
+          if (!blocker) break;
+          node.y = blocker.y + blocker.h / 2 + node.h / 2 + gap;
+          guard += 1;
+        }
+      });
+
+    const right = Math.max(0, ...nodes.map((node) => node.x + node.w / 2));
+    const bottom = Math.max(0, ...nodes.map((node) => node.y + node.h / 2));
+    if (right + 28 > graph.width) graph.width = Math.ceil(right + 28);
+    if (bottom + 28 > graph.height) graph.height = Math.ceil(bottom + 28);
+  }
+
   function applyHierarchyProjection(inputGraph) {
     const graph = cloneGraph(inputGraph);
     const hierarchy = graph.hierarchy || [];
@@ -1166,7 +1374,7 @@
     const moduleNodes = visibleCollapsedModules.map((module) => {
       const childNodes = graph.nodes.filter((node) => moduleContainsNode(module, node, moduleById));
       const cluster = clusterById.get(module.id);
-      const bounds = cluster || moduleFallbackBounds(childNodes) || { x: 360, y: 120, w: 240, h: 90 };
+      const bounds = collapsedModuleBounds(childNodes, cluster) || { x: 360, y: 120, w: 240, h: 90 };
       const collapsedChildIds = Array.from(new Set(childNodes.flatMap((node) => [node.id].concat(node.originalNodeIds || []))));
       return {
         id: `module_${module.id}`,
@@ -1184,12 +1392,16 @@
         h: 58,
       };
     });
+    alignCollapsedQkvLanes(moduleNodes, graph);
+    separateCollapsedModuleNodes(moduleNodes, graph);
 
     const moduleNodeIdByModule = new Map(moduleNodes.map((node) => [node.moduleId, node.id]));
     graph.nodes = graph.nodes
       .filter((node) => !hiddenOwnerByNode.has(node.id))
       .concat(moduleNodes)
       .sort((a, b) => (a.y - b.y) || (a.x - b.x));
+    alignVisibleAppliedFusionNodes(graph);
+    graph.nodes.sort((a, b) => (a.y - b.y) || (a.x - b.x));
 
     const edgeKeys = new Set();
     graph.edges = graph.edges.reduce((edges, edge) => {
@@ -1379,7 +1591,31 @@
     };
   }
 
-  function edgePath(source, target) {
+  function qkvLaneEdgePath(source, target) {
+    const a = anchor(source, 'b');
+    const b = anchor(target, 't');
+    const gap = Math.max(30, Math.abs(b.y - a.y) * 0.46);
+    return {
+      d: `M ${a.x} ${a.y} C ${a.x} ${a.y + gap}, ${b.x} ${b.y - gap}, ${b.x} ${b.y}`,
+      mx: (a.x + b.x) / 2,
+      my: (a.y + b.y) / 2,
+    };
+  }
+
+  function shouldUseQkvLaneEdge(source, target) {
+    if (!source?.collapsedModule || !target?.collapsedModule) return false;
+    const lanes = new Set(['q_lane', 'k_lane', 'v_lane']);
+    return (
+      source.moduleId === 'qkv_projection' && lanes.has(target.moduleId)
+    ) || (
+      lanes.has(source.moduleId) && target.moduleId === 'attention_core'
+    );
+  }
+
+  function edgePath(source, target, edge = null) {
+    if (edge?.hierarchyProjection && shouldUseQkvLaneEdge(source, target)) {
+      return qkvLaneEdgePath(source, target);
+    }
     if (Math.abs(source.x - target.x) < Math.abs(source.y - target.y)) {
       const a = anchor(source, source.y < target.y ? 'b' : 't');
       const b = anchor(target, source.y < target.y ? 't' : 'b');
@@ -1428,6 +1664,7 @@
     renderBrackets();
 
     const hierarchyById = new Map((graph.hierarchy || []).map((module) => [module.id, module]));
+    const clusterChrome = [];
     graph.clusters.forEach((cluster) => {
       const module = hierarchyById.get(cluster.id);
       const group = svg('g', { class: module ? 'cl-group' : '' });
@@ -1440,9 +1677,18 @@
         rx: 16,
         ry: 16,
       }));
+      if (module) {
+        group.addEventListener('dblclick', (event) => {
+          event.stopPropagation();
+          toggleModule(module.id);
+        });
+      }
+      els.gsvg.appendChild(group);
+
+      const chrome = svg('g', { class: 'cl-chrome' });
       const label = svg('text', { class: 'cl-label', x: cluster.x + 18, y: cluster.y + 22 });
       label.textContent = cluster.label;
-      group.appendChild(label);
+      chrome.appendChild(label);
       if (module) {
         const toggle = svg('g', {
           class: 'cl-toggle',
@@ -1463,13 +1709,13 @@
           event.stopPropagation();
           toggleModule(module.id);
         });
-        group.addEventListener('dblclick', (event) => {
+        chrome.addEventListener('dblclick', (event) => {
           event.stopPropagation();
           toggleModule(module.id);
         });
-        group.appendChild(toggle);
+        chrome.appendChild(toggle);
       }
-      els.gsvg.appendChild(group);
+      clusterChrome.push(chrome);
     });
 
     const edgeEls = [];
@@ -1477,7 +1723,7 @@
       const source = NM[edge.s];
       const target = NM[edge.t];
       if (!source || !target) return;
-      const pathData = edgePath(source, target);
+      const pathData = edgePath(source, target, edge);
       const cls = `edge ${edge.type === 'param' ? 'param' : edge.type === 'comm' ? 'comm' : ''}${edge.fusedProjection || edge.hierarchyProjection ? ' fuse' : ''}`;
       const path = svg('path', { class: cls, d: pathData.d, 'marker-end': 'url(#arr)' });
       els.gsvg.appendChild(path);
@@ -1499,6 +1745,7 @@
       edgeEls.push({ el: path, edge });
     });
     graph._edgeEls = edgeEls;
+    clusterChrome.forEach((chrome) => els.gsvg.appendChild(chrome));
 
     graph.nodes.forEach((node) => {
       const kind = node.kind;

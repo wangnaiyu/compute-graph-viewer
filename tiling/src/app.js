@@ -16,8 +16,7 @@
     fusion: { fill: 'rgba(184, 146, 255, 0.72)', stroke: 'rgba(229, 216, 255, 0.9)' },
     avoided: { fill: 'rgba(164, 176, 189, 0.20)', stroke: 'rgba(164, 176, 189, 0.42)' },
   };
-
-  const ARCH_PRESET = 'ascend950b';
+  const ARCH_ZOOM_LEVELS = [0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.2];
 
   const CPP_KEYWORDS = new Set([
     'alignas', 'auto', 'break', 'case', 'class', 'const', 'constexpr', 'continue', 'default', 'defined', 'do',
@@ -126,10 +125,23 @@
     },
     architecture: {
       mounted: false,
-      overlay: null,
-      hover: null,
-      viewport: null,
-      pathFocus: null,
+      frameReady: false,
+      pendingFocus: null,
+      detailsVisible: true,
+      zoomIndex: 2,
+      frameWidth: 1900,
+      frameHeight: 2400,
+      fitOnReady: true,
+      panX: 0,
+      panY: 0,
+      dragging: false,
+      startX: 0,
+      startY: 0,
+      startPanX: 0,
+      startPanY: 0,
+      moved: false,
+      panCaptureTarget: null,
+      framePanDocument: null,
     },
     resizeObserver: null,
     resizeRaf: 0,
@@ -172,9 +184,10 @@
     viewportInfo: byId('viewportInfo'),
     tileLens: byId('tileLens'),
     architectureKicker: byId('architectureKicker'),
+    architectureMeta: byId('architectureMeta'),
     architectureViewportRoot: byId('architectureViewportRoot'),
     architectureViewport: byId('architectureViewport'),
-    architectureMap: byId('architectureMap'),
+    architectureFrame: byId('architectureFrame'),
     architectureBlocks: byId('architectureBlocks'),
     architectureDetailToggle: byId('architectureDetailToggle'),
     archZoomOut: byId('archZoomOut'),
@@ -192,7 +205,11 @@
     closeInspector: byId('closeInspector'),
     inspector: byId('inspector'),
     statusText: byId('statusText'),
+    statusSample: byId('statusSample'),
+    statusStep: byId('statusStep'),
+    statusArch: byId('statusArch'),
     playbackMount: byId('playbackMount'),
+    frameActions: Array.from(document.querySelectorAll('[data-frame-command]')),
   };
 
   function escapeHtml(value) {
@@ -279,16 +296,30 @@
     els.zoomIn?.addEventListener('click', () => zoomTensorView(1.16));
     els.fitView?.addEventListener('click', resetTensorView);
     els.viewportInfo?.addEventListener('click', () => {
-      state.infoOpen = !state.infoOpen;
-      renderInfoPanel();
+      setInfoOpen(!state.infoOpen);
     });
     els.closeTraceInfo?.addEventListener('click', () => {
-      state.infoOpen = false;
-      renderInfoPanel();
+      setInfoOpen(false);
     });
     els.closeInspector?.addEventListener('click', () => {
-      state.inspectorOpen = false;
-      renderInspector();
+      setInspectorOpen(false);
+    });
+    els.frameActions.forEach((button) => {
+      button.addEventListener('click', () => handleFrameCommand(button.dataset.frameCommand));
+    });
+    els.architectureDetailToggle?.addEventListener('click', () => {
+      state.architecture.detailsVisible = !state.architecture.detailsVisible;
+      syncArchitectureControls();
+      postArchitectureDetails();
+    });
+    els.archZoomOut?.addEventListener('click', () => {
+      setArchitectureZoom(state.architecture.zoomIndex - 1);
+    });
+    els.archZoomIn?.addEventListener('click', () => {
+      setArchitectureZoom(state.architecture.zoomIndex + 1);
+    });
+    els.archFitView?.addEventListener('click', () => {
+      resetArchitectureViewport();
     });
     els.sourceLines?.addEventListener('click', (event) => {
       const btn = event.target.closest('[data-line]');
@@ -304,6 +335,244 @@
       }
     });
     initTensorViewportInteractions();
+    initArchitecturePan();
+  }
+
+  function handleFrameCommand(command) {
+    if (command === 'fit-tensor') {
+      resetTensorView();
+      return;
+    }
+    if (command === 'fit-architecture') {
+      els.archFitView?.click();
+      return;
+    }
+    if (command === 'toggle-info') {
+      setInfoOpen(!state.infoOpen);
+      return;
+    }
+    if (command === 'toggle-inspector') {
+      if (!state.inspectorOpen && !state.selectedObject) {
+        state.selectedObject = { type: 'timeline step', stepIndex: state.stepIndex };
+      }
+      setInspectorOpen(!state.inspectorOpen);
+    }
+  }
+
+  function setInfoOpen(open) {
+    state.infoOpen = !!open;
+    renderInfoPanel();
+    syncFrameActions();
+  }
+
+  function setInspectorOpen(open) {
+    state.inspectorOpen = !!open;
+    renderInspector();
+    syncFrameActions();
+  }
+
+  function syncFrameActions() {
+    els.frameActions.forEach((button) => {
+      const command = button.dataset.frameCommand;
+      const selected = (command === 'toggle-info' && state.infoOpen)
+        || (command === 'toggle-inspector' && state.inspectorOpen);
+      if (command === 'toggle-info' || command === 'toggle-inspector') {
+        button.classList.toggle('is-selected', selected);
+        button.setAttribute('aria-expanded', String(selected));
+        button.setAttribute('aria-pressed', String(selected));
+      }
+    });
+    if (els.viewportInfo) {
+      els.viewportInfo.classList.toggle('is-selected', state.infoOpen);
+      els.viewportInfo.setAttribute('aria-expanded', String(state.infoOpen));
+      els.viewportInfo.setAttribute('aria-pressed', String(state.infoOpen));
+    }
+  }
+
+  function refreshArchitectureViewport(options = {}) {
+    const run = () => {
+      if (options.fit) {
+        state.architecture.fitOnReady = true;
+        fitArchitectureViewport();
+      }
+      syncArchitectureControls();
+    };
+    window.requestAnimationFrame(() => window.requestAnimationFrame(run));
+  }
+
+  function architectureScale() {
+    return ARCH_ZOOM_LEVELS[state.architecture.zoomIndex] || 0.6;
+  }
+
+  function setArchitectureZoom(index) {
+    state.architecture.fitOnReady = false;
+    state.architecture.zoomIndex = Math.max(0, Math.min(ARCH_ZOOM_LEVELS.length - 1, index));
+    syncArchitectureControls();
+    postArchitectureScale();
+  }
+
+  function resetArchitectureViewport() {
+    state.architecture.fitOnReady = true;
+    fitArchitectureViewport();
+    syncArchitectureControls();
+    postArchitectureScale();
+  }
+
+  function fitArchitectureViewport() {
+    const viewportRect = els.architectureViewport?.getBoundingClientRect?.();
+    const frameWidth = state.architecture.frameWidth || 1900;
+    const frameHeight = state.architecture.frameHeight || 2400;
+    const viewportWidth = Math.max(1, viewportRect?.width || 0);
+    const viewportHeight = Math.max(1, viewportRect?.height || 0);
+    const verticalFitScale = viewportHeight > 1 ? (viewportHeight - 24) / frameHeight : 0.6;
+    const maxScale = Math.min(0.6, Math.max(ARCH_ZOOM_LEVELS[0], verticalFitScale));
+    let nextIndex = 0;
+    ARCH_ZOOM_LEVELS.forEach((level, index) => {
+      if (level <= maxScale + 0.001) nextIndex = index;
+    });
+    state.architecture.zoomIndex = nextIndex;
+    const scale = architectureScale();
+    const scaledWidth = frameWidth * scale;
+    const scaledHeight = frameHeight * scale;
+    state.architecture.panX = Math.round((viewportWidth - scaledWidth) / 2);
+    state.architecture.panY = Math.max(0, Math.round((viewportHeight - scaledHeight) / 2));
+  }
+
+  function applyArchitectureFrameSize(payload = {}) {
+    const width = Number(payload.width);
+    const height = Number(payload.height);
+    let changed = false;
+    if (Number.isFinite(width) && width > 0) {
+      state.architecture.frameWidth = Math.ceil(width);
+      changed = true;
+    }
+    if (Number.isFinite(height) && height > 0) {
+      state.architecture.frameHeight = Math.ceil(height);
+      changed = true;
+    }
+    if (changed && state.architecture.fitOnReady) {
+      fitArchitectureViewport();
+    }
+    syncArchitectureControls();
+  }
+
+  function syncArchitectureControls() {
+    const scale = architectureScale();
+    if (els.architectureViewport) {
+      els.architectureViewport.style.setProperty('--avz-hw-scale', String(scale));
+      els.architectureViewport.style.setProperty('--avz-hw-pan-x', `${Math.round(state.architecture.panX)}px`);
+      els.architectureViewport.style.setProperty('--avz-hw-pan-y', `${Math.round(state.architecture.panY)}px`);
+      els.architectureViewport.style.setProperty('--avz-hw-frame-width', `${Math.ceil(state.architecture.frameWidth || 1900)}px`);
+      els.architectureViewport.style.setProperty('--avz-hw-frame-height', `${Math.ceil(state.architecture.frameHeight || 2400)}px`);
+    }
+    if (els.archZoomReadout) els.archZoomReadout.textContent = `${Math.round(scale * 100)}%`;
+    if (els.archZoomOut) els.archZoomOut.disabled = state.architecture.zoomIndex <= 0;
+    if (els.archZoomIn) els.archZoomIn.disabled = state.architecture.zoomIndex >= ARCH_ZOOM_LEVELS.length - 1;
+    if (els.architectureDetailToggle) {
+      els.architectureDetailToggle.textContent = state.architecture.detailsVisible ? '细节开' : '细节关';
+      els.architectureDetailToggle.title = state.architecture.detailsVisible ? '隐藏细节数据' : '显示细节数据';
+      els.architectureDetailToggle.setAttribute('aria-label', els.architectureDetailToggle.title);
+      els.architectureDetailToggle.setAttribute('aria-pressed', String(state.architecture.detailsVisible));
+    }
+  }
+
+  function postArchitectureDetails() {
+    if (!els.architectureFrame?.contentWindow) return;
+    els.architectureFrame.contentWindow.postMessage({
+      type: 'hardware-details',
+      visible: state.architecture.detailsVisible,
+    }, '*');
+  }
+
+  function postArchitectureScale() {
+    if (!els.architectureFrame?.contentWindow) return;
+    els.architectureFrame.contentWindow.postMessage({
+      type: 'hardware-scale',
+      scale: architectureScale(),
+    }, '*');
+  }
+
+  function setArchitecturePanCursor(active) {
+    els.architectureViewport?.classList.toggle('is-panning', active);
+  }
+
+  function beginArchitecturePan(event) {
+    if (event.button !== undefined && event.button !== 0) return;
+    const target = event.target?.nodeType === 1 ? event.target : null;
+    if (target?.closest?.('button, input, textarea, select, a')) return;
+    const point = architecturePointerPoint(event);
+    state.architecture.fitOnReady = false;
+    state.architecture.dragging = true;
+    state.architecture.startX = point.x;
+    state.architecture.startY = point.y;
+    state.architecture.startPanX = state.architecture.panX;
+    state.architecture.startPanY = state.architecture.panY;
+    state.architecture.moved = false;
+    state.architecture.panCaptureTarget = null;
+    setArchitecturePanCursor(true);
+  }
+
+  function moveArchitecturePan(event) {
+    if (!state.architecture.dragging) return;
+    if (event.buttons !== undefined && event.buttons === 0) {
+      endArchitecturePan(event);
+      return;
+    }
+    const point = architecturePointerPoint(event);
+    const dx = point.x - state.architecture.startX;
+    const dy = point.y - state.architecture.startY;
+    if (Math.abs(dx) + Math.abs(dy) > 3) state.architecture.moved = true;
+    state.architecture.panX = state.architecture.startPanX + dx;
+    state.architecture.panY = state.architecture.startPanY + dy;
+    syncArchitectureControls();
+    event.preventDefault?.();
+  }
+
+  function architecturePointerPoint(event) {
+    return {
+      x: Number.isFinite(event.screenX) ? event.screenX : event.clientX,
+      y: Number.isFinite(event.screenY) ? event.screenY : event.clientY,
+    };
+  }
+
+  function endArchitecturePan(event) {
+    if (!state.architecture.dragging) return;
+    state.architecture.dragging = false;
+    state.architecture.panCaptureTarget = null;
+    setArchitecturePanCursor(false);
+  }
+
+  function bindArchitectureFramePan() {
+    let frameDoc = null;
+    try {
+      frameDoc = els.architectureFrame?.contentDocument;
+    } catch {
+      return;
+    }
+    if (!frameDoc || state.architecture.framePanDocument === frameDoc) return;
+    state.architecture.framePanDocument = frameDoc;
+    frameDoc.addEventListener('pointerdown', beginArchitecturePan);
+    frameDoc.addEventListener('pointermove', moveArchitecturePan);
+    frameDoc.addEventListener('pointerup', endArchitecturePan);
+    frameDoc.addEventListener('pointercancel', endArchitecturePan);
+    frameDoc.addEventListener('lostpointercapture', endArchitecturePan);
+  }
+
+  function initArchitecturePan() {
+    const viewport = els.architectureViewport;
+    if (!viewport) return;
+    viewport.addEventListener('pointerdown', beginArchitecturePan);
+    viewport.addEventListener('pointermove', moveArchitecturePan);
+    viewport.addEventListener('pointerup', endArchitecturePan);
+    viewport.addEventListener('pointercancel', endArchitecturePan);
+    viewport.addEventListener('lostpointercapture', endArchitecturePan);
+    window.addEventListener('pointermove', moveArchitecturePan);
+    window.addEventListener('pointerup', endArchitecturePan);
+    window.addEventListener('pointercancel', endArchitecturePan);
+    window.addEventListener('blur', endArchitecturePan);
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) endArchitecturePan();
+    });
   }
 
   function initTensorViewportInteractions() {
@@ -492,7 +761,8 @@
     const step = currentStep(trace);
     const sourceLines = sourceLinesForTrace(trace);
     if (els.operatorMeta) els.operatorMeta.textContent = '';
-    if (els.archReadout) els.archReadout.textContent = '';
+    if (els.archReadout) els.archReadout.textContent = 'Ascend 950B';
+    if (els.architectureMeta) els.architectureMeta.textContent = 'Ascend 950B';
     if (els.sourceMeta) {
       const suffix = trace.source?.partial ? '关键行' : `${sourceLines.length} 行`;
       els.sourceMeta.textContent = `${trace.source?.path || 'source'} · ${suffix}`;
@@ -501,7 +771,11 @@
     if (els.stepMeta) els.stepMeta.textContent = step ? `${state.stepIndex + 1}/${trace.steps.length}` : '';
     if (els.inspectorMeta) els.inspectorMeta.textContent = inspectorTypeLabel(state.selectedObject?.type) || '选中对象';
     if (els.timelineKicker) els.timelineKicker.textContent = step?.stageId || '';
-    if (els.statusText) els.statusText.textContent = '';
+    if (els.statusText) els.statusText.textContent = step ? zh(step.label) : 'Ready';
+    if (els.statusSample) els.statusSample.textContent = sampleShortName(trace);
+    if (els.statusStep) els.statusStep.textContent = step ? `${state.stepIndex + 1}/${trace.steps.length}` : '0/0';
+    if (els.statusArch) els.statusArch.textContent = 'Ascend 950B';
+    syncFrameActions();
   }
 
   function renderSamples(trace) {
@@ -1314,58 +1588,66 @@
   }
 
   function ensureArchitectureMounted() {
-    const helper = window.PtoMemoryArchitecturePattern;
-    if (!helper?.renderArchitecture || !els.architectureMap) return false;
+    if (!els.architectureFrame) return false;
     if (state.architecture.mounted) return true;
-    helper.renderArchitecture(els.architectureMap, ARCH_PRESET);
-    state.architecture.overlay = helper.createRouteOverlay?.(els.architectureMap, ARCH_PRESET);
-    const viewportHelper = window.PtoHardwareArchitectureViewport;
-    state.architecture.viewport = viewportHelper?.mount?.(els.architectureViewportRoot, {
-      mode: 'inline',
-      viewport: '#architectureViewport',
-      scaleEl: '#architectureMap',
-      detailToggle: '#architectureDetailToggle',
-      zoomOut: '#archZoomOut',
-      zoomIn: '#archZoomIn',
-      fit: '#archFitView',
-      readout: '#archZoomReadout',
-      zoomLevels: [0.35, 0.4, 0.5, 0.6, 0.7, 0.85, 1, 1.1],
-      defaultScale: 0.6,
-      frameSize: { width: 3200, height: 900 },
-      detailsVisible: false,
-      fitOnMount: false,
-      inlineHost: '#architectureMap',
-      onScaleChange: (scale) => {
-        state.architecture.hover?.setViewportScale?.(scale);
-        state.architecture.overlay?.render?.();
-      },
-      onPanChange: () => state.architecture.overlay?.render?.(),
-      onDetailChange: () => state.architecture.overlay?.render?.(),
+
+    const markReady = (payload = {}) => {
+      applyArchitectureFrameSize(payload);
+      if (state.architecture.frameReady) return;
+      state.architecture.frameReady = true;
+      bindArchitectureFramePan();
+      postArchitectureDetails();
+      postArchitectureScale();
+      postArchitectureFocus(state.architecture.pendingFocus || {});
+    };
+
+    window.addEventListener('message', (event) => {
+      if (event.source !== els.architectureFrame.contentWindow) return;
+      if (event.data?.type === 'hardware-ready') {
+        markReady(event.data);
+        return;
+      }
+      if (event.data?.type === 'hardware-size') {
+        applyArchitectureFrameSize(event.data);
+        postArchitectureScale();
+      }
     });
-    state.architecture.hover = helper.attachHoverInteractions?.(els.architectureMap, ARCH_PRESET, {
-      viewportScale: state.architecture.viewport?.state?.scale || 0.6,
+    els.architectureFrame.addEventListener('load', () => window.requestAnimationFrame(markReady));
+    syncArchitectureControls();
+    window.requestAnimationFrame(() => {
+      try {
+        const readyState = els.architectureFrame.contentDocument?.readyState;
+        if (readyState === 'interactive' || readyState === 'complete') markReady();
+      } catch {
+        // Cross-origin protections can block inspection; load/message still handle the normal local case.
+      }
     });
-    helper.setDetailVisibility?.(els.architectureMap, false);
-    state.architecture.overlay?.render?.();
     state.architecture.mounted = true;
     return true;
   }
 
+  function postArchitectureFocus(focus = {}) {
+    if (!els.architectureFrame?.contentWindow) return;
+    els.architectureFrame.contentWindow.postMessage({
+      type: 'hardware-focus',
+      selectors: focus.selectors || [],
+      routes: focus.routes || focus.routeIds || [],
+      instructionTags: focus.instructionTags || [],
+      ...(Object.prototype.hasOwnProperty.call(focus, 'foldAiv') ? { foldAiv: focus.foldAiv } : {}),
+    }, '*');
+  }
+
   function renderArchitectureFocus(trace) {
     const mounted = ensureArchitectureMounted();
-    const helper = window.PtoMemoryArchitecturePattern;
     const visual = visualStateForStep(trace, currentStep(trace)).architectureFocus || {};
-    const blocks = visual.bufferBlocks || [];
+    const focus = {
+      selectors: visual.selectors || [],
+      routes: visual.routes || visual.routeIds || [],
+      instructionTags: visual.instructionTags || [],
+    };
+    state.architecture.pendingFocus = focus;
     if (els.architectureKicker) els.architectureKicker.textContent = '';
-    if (mounted && helper) {
-      helper.clearPathFocus?.(els.architectureMap);
-      helper.clearBufferBlocks?.(els.architectureMap);
-      if ((visual.selectors || []).length || (visual.routes || []).length) {
-        helper.setPathFocus?.(els.architectureMap, ARCH_PRESET, visual);
-      }
-      helper.setBufferBlocks?.(els.architectureMap, blocks);
-      state.architecture.overlay?.render?.();
-    }
+    if (mounted) postArchitectureFocus(focus);
     if (els.architectureBlocks) {
       els.architectureBlocks.hidden = true;
       els.architectureBlocks.innerHTML = '';
@@ -1760,7 +2042,7 @@
         const trace = currentTrace();
         renderTensorViewport(trace);
         renderTimeline(trace);
-        state.architecture.overlay?.render?.();
+        refreshArchitectureViewport();
       });
     } catch (error) {
       if (els.statusText) els.statusText.textContent = error.message;
@@ -1777,7 +2059,7 @@
         const trace = currentTrace();
         renderTensorViewport(trace);
         renderTimeline(trace);
-        state.architecture.overlay?.render?.();
+        refreshArchitectureViewport();
       });
     });
     [els.tensorStage, els.timelineCanvas, els.architectureViewport].forEach((target) => {

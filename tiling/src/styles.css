@@ -71,23 +71,42 @@ body {
   flex: 1 1 auto;
 }
 
-.avz-brand {
+.avz-workspace {
   min-width: 0;
   display: grid;
   gap: 2px;
 }
 
-.avz-brand__title {
+.avz-workspace__title {
   color: var(--foreground);
-  font: var(--text-title-2);
+  font: var(--ide-frame-title-font);
   white-space: nowrap;
 }
 
-.avz-brand__meta,
+.avz-workspace__meta,
 .avz-kicker {
   color: var(--foreground-muted);
   font: var(--text-label);
   white-space: nowrap;
+}
+
+.avz-status-cluster {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  color: var(--foreground-secondary);
+  white-space: nowrap;
+}
+
+.avz-frame .pto-ide-frame__window-action.is-selected {
+  background: var(--ide-frame-selected-bg);
+  color: var(--foreground);
+}
+
+.avz-frame .pto-ide-frame__window-action.is-selected .pto-ide-frame__window-icon {
+  opacity: var(--ide-frame-icon-opacity-strong);
 }
 
 .avz-toolbar,
@@ -138,7 +157,7 @@ body {
   overflow: auto;
 }
 
-[data-ide-pane="source"] .avz-pane-body {
+[data-ide-pane="explorer"] .avz-pane-body {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   overflow: hidden;
@@ -420,7 +439,7 @@ body {
   height: 100%;
   min-height: 0;
   display: block;
-  cursor: grab;
+  cursor: default;
   touch-action: none;
 }
 
@@ -521,15 +540,42 @@ body {
 }
 
 .avz-architecture-viewport {
+  --avz-hw-scale: 0.6;
+  --avz-hw-pan-x: 0px;
+  --avz-hw-pan-y: 0px;
+  --avz-hw-frame-width: 1900px;
+  --avz-hw-frame-height: 2400px;
   border-radius: var(--radius-md);
-  display: grid;
-  align-items: center;
-  justify-items: center;
+  display: block;
+  overflow: hidden;
+  background: transparent;
+  position: relative;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.avz-architecture-viewport.is-panning {
+  cursor: grabbing;
 }
 
 .avz-architecture-scale.avz-architecture-scale {
-  width: max-content;
-  min-height: 900px;
+  position: relative;
+  width: 1px;
+  height: 1px;
+  min-height: 0;
+  transform-origin: top left;
+}
+
+.avz-architecture-frame {
+  display: block;
+  width: var(--avz-hw-frame-width);
+  height: var(--avz-hw-frame-height);
+  border: 0;
+  background: transparent;
+  transform: translate3d(var(--avz-hw-pan-x), var(--avz-hw-pan-y), 0) scale(var(--avz-hw-scale));
+  transform-origin: top left;
+  pointer-events: auto;
 }
 
 .avz-architecture-pane {

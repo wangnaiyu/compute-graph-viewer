@@ -27,24 +27,51 @@ window.GraphView = (function () {
 
   const currentGraph = () => moeCollapsed ? collapsedGraph() : window.PANGU_GRAPH;
   const defaultSel = () => moeCollapsed ? 'moe_block' : 'gate';
+  const emptyController = {
+    selectNode() {},
+    clearSelection() {},
+    fit() {},
+  };
+
+  function showGraphError(error) {
+    const message = error && error.message ? error.message : String(error || 'unknown error');
+    console.error('[TrainScope] Pangu graph render failed:', error);
+    stageEl.innerHTML = `
+      <div class="graph-load-error">
+        <strong>Pangu model graph failed to load.</strong>
+        <span>${message}</span>
+      </div>
+    `;
+    controller = emptyController;
+  }
 
   function renderGraph() {
     const sel = defaultSel();
-    controller = window.PtoModelTrainingGraphvizPattern.render(stageEl, currentGraph(), {
-      activeNodeId: sel,
-      activeRelatedNodeIds: CrossMap.resolve(sel).relatedNodeIds,
-      colormap: { saturation: 0.45, lightness: 0.38 },
-      fitMode: 'full',
-      viewportPadding: 18,
-      onSelect: ({ nodeId, source }) => {
-        if (source === 'bus') return;
-        const m = CrossMap.resolve(nodeId);
-        selfSelect = true;
-        Bus.emit('select', { objectType: 'node', id: nodeId, relatedNodeIds: m.relatedNodeIds, cols: m.cols, weightKey: m.weightKey, source: 'graph' });
-        selfSelect = false;
-      },
-    });
-    wireToggles();
+    const renderer = window.PtoModelTrainingGraphvizPattern;
+    if (!renderer || typeof renderer.render !== 'function') {
+      showGraphError(new Error('model-training-graphviz pattern is not loaded'));
+      return;
+    }
+    try {
+      controller = renderer.render(stageEl, currentGraph(), {
+        activeNodeId: sel,
+        activeRelatedNodeIds: CrossMap.resolve(sel).relatedNodeIds,
+        colormap: { saturation: 0.45, lightness: 0.38 },
+        fitMode: 'full',
+        viewportPadding: 18,
+        onSelect: ({ nodeId, source }) => {
+          if (source === 'bus') return;
+          const m = CrossMap.resolve(nodeId);
+          selfSelect = true;
+          Bus.emit('select', { objectType: 'node', id: nodeId, relatedNodeIds: m.relatedNodeIds, cols: m.cols, weightKey: m.weightKey, source: 'graph' });
+          selfSelect = false;
+        },
+      });
+      if (!controller) throw new Error('model-training-graphviz render returned empty controller');
+      wireToggles();
+    } catch (error) {
+      showGraphError(error);
+    }
   }
 
   function bindToggle(elm, handler) {

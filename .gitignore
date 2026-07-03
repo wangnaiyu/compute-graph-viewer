@@ -9,3 +9,6 @@ dist/
 .DS_Store
 *.zip
 __pycache__/
+pto-design-system
+model-architecture/sources/openPangu-2.0-Flash/
+model-architecture/sources/openPangu-2.0-Infer/

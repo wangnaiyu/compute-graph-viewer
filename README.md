@@ -65,14 +65,19 @@ npx serve .
 
 ## 白皮书页面
 
-| 白皮书 | 页面链接 |
-|--------|------------|
-| 硬件原生系统：面向 Ascend NPU 的 AI 编译运行时栈白皮书 | https://yinyucheng0601.github.io/compute-graph-viewer/hw-native-sys/ |
-| HNSW 白皮书：分层导航小世界图与向量检索工程 | https://yinyucheng0601.github.io/compute-graph-viewer/HNSW/HNSW-whitepaper.html |
-| H-Anchor：分层锚点 VLSI 布局算法白皮书 | https://yinyucheng0601.github.io/compute-graph-viewer/PycPlacer/pycplacer-whitepaper.html |
-| VLSI 布局白皮书：布局算法如何实现芯片“核舟记” | https://yinyucheng0601.github.io/compute-graph-viewer/vlsi-placement-whitepaper/ |
-| PyPTO 工具链白皮书 | `pypto-toolchain-whitepaper/index.html` |
-| PTO 白皮书总稿 | `whitepaper.md` |
+| 白皮书 | 本地路径 | 线上预览 | 备注 |
+|--------|----------|----------|------|
+| PTO / PyPTO Hardware-Native Operator Toolchain 白皮书 | [pypto-toolchain-whitepaper/index.html](pypto-toolchain-whitepaper/index.html) | [GitHub Pages](https://yinyucheng0601.github.io/compute-graph-viewer/pypto-toolchain-whitepaper/) | 工具链总览 |
+| Hardware-Native Systems：面向 Ascend NPU 的 AI 编译运行时栈白皮书 | [hw-native-sys/index.html](hw-native-sys/index.html) | [GitHub Pages](https://yinyucheng0601.github.io/compute-graph-viewer/hw-native-sys/) | 系统栈总览 |
+| HNSW 白皮书：分层导航小世界图与向量检索工程 | [HNSW/HNSW-whitepaper.html](HNSW/HNSW-whitepaper.html) | [GitHub Pages](https://yinyucheng0601.github.io/compute-graph-viewer/HNSW/HNSW-whitepaper.html) | 图检索方法 |
+| VLSI Placement 白皮书：布局算法如何实现芯片核舟记 | [vlsi-placement-whitepaper/index.html](vlsi-placement-whitepaper/index.html) | [GitHub Pages](https://yinyucheng0601.github.io/compute-graph-viewer/vlsi-placement-whitepaper/) | EDA 布局背景 |
+| Ascend C Tiling 入门白皮书 | [tiling/tiling-whitepaper.html](tiling/tiling-whitepaper.html) | [GitHub Pages](https://yinyucheng0601.github.io/compute-graph-viewer/tiling/tiling-whitepaper.html) | Tiling 入门 |
+| 已合并到 Ascend C Tiling 白皮书 | [tiling/real-operator-workflow-whitepaper.html](tiling/real-operator-workflow-whitepaper.html) | [GitHub Pages](https://yinyucheng0601.github.io/compute-graph-viewer/tiling/real-operator-workflow-whitepaper.html) | 合并提示页 |
+| AI CPU 与 AI Core：算子开发初学者的产品视角白皮书 | [ai-cpu-aicore/whitepaper.html](ai-cpu-aicore/whitepaper.html) | [GitHub Pages](https://yinyucheng0601.github.io/compute-graph-viewer/ai-cpu-aicore/whitepaper.html) | 算子开发入门 |
+| H-Anchor: 分层锚点 VLSI 布局算法白皮书 | [PycPlacer/pycplacer-whitepaper.html](PycPlacer/pycplacer-whitepaper.html) | [GitHub Pages](https://yinyucheng0601.github.io/compute-graph-viewer/PycPlacer/pycplacer-whitepaper.html) | 布局算法原型 |
+| 大模型并行放置白皮书：从 rank 到 PP / TP / DP / CP / EP | [pangu-moe-trainviz/knowledge-whitepaper.html](pangu-moe-trainviz/knowledge-whitepaper.html) | [GitHub Pages](https://yinyucheng0601.github.io/compute-graph-viewer/pangu-moe-trainviz/knowledge-whitepaper.html) | 并行放置知识 |
+| openPangu 并行通信可视化白皮书 | [pangu-moe-trainviz/communication-operator-visual-whitepaper.html](pangu-moe-trainviz/communication-operator-visual-whitepaper.html) | [GitHub Pages](https://yinyucheng0601.github.io/compute-graph-viewer/pangu-moe-trainviz/communication-operator-visual-whitepaper.html) | 通信可视化 |
+| 白皮书生成规范 | [whitepaper.md](whitepaper.md) | - | 生成与维护说明 |
 
 ---
 

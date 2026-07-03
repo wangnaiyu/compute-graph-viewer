@@ -55,6 +55,37 @@ body { background: var(--background); color: var(--foreground); font-family: var
   background-size: 22px 22px;
   background-position: 11px 11px;
 }
+.graph-load-error {
+  height: 100%;
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--foreground-secondary);
+  text-align: center;
+}
+.graph-load-error strong {
+  color: var(--danger);
+  font-size: 13px;
+}
+.graph-load-error span {
+  max-width: min(460px, calc(100% - 48px));
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.45;
+}
+.timeline-load-error {
+  width: 100%;
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--danger);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
 
 /* 架构图：model-graphviz 的 --model-graphviz-* 变量本只定义在
    .pto-model-graphviz-pattern-page（pattern 自带 demo 页）上；消费页不带该类，

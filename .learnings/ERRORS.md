@@ -27,6 +27,217 @@ Error: ENOENT: no such file or directory, open '/Users/yin/pto/deepseek_out_pass
 
 ---
 
+## [ERR-20260624-002] liquid-glass-list-card-refract-overload
+
+**Logged**: 2026-06-24T15:17:00+08:00  
+**Priority**: high  
+**Status**: resolved  
+**Area**: frontend
+
+### Summary
+Applying `@samasante/liquid-glass` `refract` copy mode to many launch cards at page load can overload Chrome rendering and crash or hang the page.
+
+### Error
+```
+Chrome headless emitted tile memory limit warnings when many cards rendered SVG displacement filters and full-viewport background copies at once.
+User report: opening launch_test crashes immediately.
+```
+
+### Context
+- Operation attempted: matching liquid-glass examples by rendering a `Glass` lens beneath every visible launch card.
+- Environment: `/Users/yin/pto/launch_test.html`, Chrome, static React page.
+- Root cause: each card created its own SVG displacement filter, map image, and viewport-sized `refract` background copy on initial render.
+
+### Suggested Fix
+For lists/grids, do not instantiate `refract` mode for every item on load. Keep base cards lightweight and enable a single true refraction lens only on hover/focus, or centralize the effect in one shared surface.
+
+### Metadata
+- Reproducible: yes
+- Related Files: /Users/yin/pto/launch_test.html
+
+### Resolution
+- **Resolved**: 2026-06-24T15:17:00+08:00
+- **Notes**: `launch_test.html` now only creates the card `Glass` refraction lens while a card is hovered/focused; initial page load stays lightweight.
+
+---
+
+## [ERR-20260624-002] shell-node-e-template-string
+
+**Logged**: 2026-06-24T14:12:00+08:00
+**Priority**: low
+**Status**: pending
+**Area**: tooling
+
+### Summary
+An inline `node -e` verification command failed because a JavaScript template string was interpreted by the shell.
+
+### Error
+```
+zsh:1: command not found: rank:r:v0
+SyntaxError: Unexpected token ')'
+```
+
+### Context
+- Command/operation attempted: palette verification with `node -e`
+- Cause: unescaped backticks in a JavaScript template string inside a shell command
+- Environment: zsh via `rtk`
+
+### Suggested Fix
+Use string concatenation or escape backticks when writing inline JavaScript in shell commands.
+
+### Metadata
+- Reproducible: yes
+- Related Files: /Users/yin/pto/pangu-moe-trainviz/pangu-palette.js
+
+---
+
+## [ERR-20260624-002] browser-plugin-node-repl-sandbox-meta
+
+**Logged**: 2026-06-24T04:03:00Z  
+**Priority**: low  
+**Status**: pending  
+**Area**: tooling
+
+### Summary
+The in-app Browser skill bootstrap failed in the Node REPL because the tool call lacked sandbox state metadata expected by the runtime.
+
+### Error
+```
+Mcp error: -32602: js: codex/sandbox-state-meta: missing field `sandboxPolicy`
+```
+
+### Context
+- Operation attempted: Browser plugin bootstrap via `setupBrowserRuntime({ globals: globalThis })`
+- Page being verified: `http://127.0.0.1:8765/pangu-moe-trainviz/op-rank-time.html`
+- Environment: Codex MCP `mcp__node_repl__js`
+
+### Suggested Fix
+If this recurs, avoid repeated browser-client bootstrap attempts in the same session and use an already authorized Chrome debugging path or static validation fallback.
+
+### Metadata
+- Reproducible: unknown
+- Related Files: /Users/yin/pto/pangu-moe-trainviz/op-rank-time.html
+
+---
+
+## [ERR-20260622-001] npm-pack-animejs-proxy-eperm
+
+**Logged**: 2026-06-22T12:01:00+08:00  
+**Priority**: medium  
+**Status**: pending  
+**Area**: tooling
+
+### Summary
+`rtk npm pack animejs@3.2.2` failed because npm attempted to connect through local proxy `127.0.0.1:8890` and was blocked.
+
+### Error
+```
+npm error FetchError: request to https://registry.npmjs.org/animejs failed, reason: connect EPERM 127.0.0.1:8890
+```
+
+### Context
+- Command/operation attempted: fetching Anime.js from npm for a local PTO preview page
+- User clarified the intended source was the official GitHub repo `juliangarnier/anime`
+- Resolution in this task: cloned official GitHub tag `v4.4.1` and vendored its ESM `src/` locally instead of relying on npm/CDN
+
+### Suggested Fix
+For small frontend vendor previews under PTO, prefer official GitHub tag sources when npm is blocked, or rerun npm/network fetch with explicit escalation if the published package `dist/` is required.
+
+### Metadata
+- Reproducible: yes
+- Related Files: /Users/yin/pto/pangu-moe-trainviz/vendor/animejs-v4.4.1
+
+---
+
+## [ERR-20260602-001] manual-symbol-typo-loop
+
+**Logged**: 2026-06-02T14:30:40+08:00  
+**Priority**: low  
+**Status**: fixed  
+**Area**: documentation
+
+### Summary
+Repeated manual `apply_patch` attempts failed to correct an Ascend C kernel symbol in the tiling spec, leaving `mmol_vec_custom` / `mma d_vec_custom` instead of the source-confirmed `mmad_vec_custom`.
+
+### Error
+```text
+Erroneous text: __global__ __mix__(1, 2) void mmol_vec_custom(...)
+Actual source: __global__ __mix__(1, 2) void mmad_vec_custom(GM_ADDR a, GM_ADDR b, GM_ADDR c)
+```
+
+### Context
+- Command/operation attempted: manually patching one symbol in `/Users/yin/pto/tiling/docs/ascend-viz-puzzle-spec.md`
+- Root cause: repeated manual transcription error after already verifying the source line.
+
+### Suggested Fix
+For exact source symbols, copy from `rg` / source output or use a narrow mechanical replacement after verification instead of retyping the symbol repeatedly.
+
+### Metadata
+- Reproducible: yes
+- Related Files: `/Users/yin/pto/tiling/docs/ascend-viz-puzzle-spec.md`
+
+---
+
+## [ERR-20260530-001] chrome-headless-screenshot-signal-6
+
+**Logged**: 2026-05-30T14:02:00+08:00  
+**Priority**: low  
+**Status**: pending  
+**Area**: frontend
+
+### Summary
+Headless Chrome screenshot validation can abort with signal 6 in this local macOS session even when the page loads in the regular browser.
+
+### Error
+```
+/Applications/Google Chrome.app/Contents/MacOS/Google Chrome --headless --disable-gpu --window-size=1600,1000 --screenshot=/private/tmp/ascend950_operator_guide.png http://127.0.0.1:8789/operator_developer_guide.html
+process terminated by signal 6
+```
+
+### Context
+- Command/operation attempted: visual screenshot verification for `/Users/yin/pto/ascend-950-workbench-demo/operator_developer_guide.html`
+- Regular Chrome app state showed the page DOM and controls loaded; the abort appears specific to the headless screenshot command.
+
+### Suggested Fix
+Use browser accessibility state, DOM checks, or an installed Playwright/Chrome automation path for verification when this headless command aborts.
+
+### Metadata
+- Reproducible: unknown
+- Related Files: /Users/yin/pto/ascend-950-workbench-demo/operator_developer_guide.html
+
+---
+
+## [ERR-20260530-002] chrome-headless-feature-taxonomy-signal-6
+
+**Logged**: 2026-05-30T14:42:00+08:00  
+**Priority**: low  
+**Status**: pending  
+**Area**: frontend
+
+### Summary
+Headless Chrome screenshot validation for the Ascend 950 feature taxonomy page still aborts with signal 6 in this local macOS session.
+
+### Error
+```
+/Applications/Google Chrome.app/Contents/MacOS/Google Chrome --headless --disable-gpu --disable-dev-shm-usage --no-sandbox --window-size=1800,1000 --screenshot=/private/tmp/feature_taxonomy_ccu.png http://127.0.0.1:8790/ascend-950-workbench-demo/feature_taxonomy.html
+process terminated by signal 6
+```
+
+### Context
+- Command/operation attempted: visual screenshot verification after revising CCU placement and capability labels.
+- HTTP checks for the target page and hardware frame both returned 200; inline script syntax checks passed.
+- This appears to be the same local headless Chrome issue previously observed for the operator guide page.
+
+### Suggested Fix
+Use regular browser inspection, Computer Use, DOM checks, or an installed Playwright/WebDriver path for visual verification when this headless command aborts.
+
+### Metadata
+- Reproducible: yes
+- Related Files: /Users/yin/pto/ascend-950-workbench-demo/feature_taxonomy.html
+- See Also: ERR-20260530-001
+
+---
+
 ## [ERR-20260511-001] rg-default-regex-lookahead
 
 **Logged**: 2026-05-11T10:25:00+08:00  
@@ -270,5 +481,239 @@ Summary: Remote subagent worker execution returned 503 Service Unavailable durin
 Error: unexpected status 503 Service Unavailable
 Context: spawn/wait worker agents to generate existingUI_preview files.
 Suggested Fix: fallback to local edits when collab worker service is unstable.
+
+---
+
+## [ERR-20260528-001] rtk-find-compound-predicate
+
+**Logged**: 2026-05-28T14:39:39+08:00  
+**Priority**: low  
+**Status**: pending  
+**Area**: tooling
+
+### Summary
+`rtk find` does not support compound predicates such as grouped `-path` / `-o` expressions.
+
+### Error
+```
+rtk: rtk find does not support compound predicates or actions (e.g. -not, -exec). Use `find` directly.
+```
+
+### Context
+- Command/operation attempted: listing PTO design-system token/css files with a compound `find` predicate under `rtk`
+- Environment: `/Users/yin/pto` planning task
+
+### Suggested Fix
+Use simple `rtk ls` / separate `rtk find` calls, or plain `find` only when compound predicates are necessary.
+
+### Metadata
+- Reproducible: yes
+- Related Files: /Users/yin/pto/.learnings/ERRORS.md
+
+---
+
+## [ERR-20260528-002] rg-leading-dash-pattern
+
+**Logged**: 2026-05-28T17:20:00+08:00  
+**Priority**: low  
+**Status**: pending  
+**Area**: tooling
+
+### Summary
+`rg` treats a search pattern that starts with `--` as a flag unless the pattern separator `--` is provided first.
+
+### Error
+```
+rg: unrecognized flag --text-|--font-size|\.btn|\.badge|\.panel-shell|\.inspector-section|\.nav-
+```
+
+### Context
+- Command/operation attempted: searching PTO design-system CSS for token and class names
+- Root cause: the regex alternation began with `--text-`, so ripgrep parsed it as an option
+
+### Suggested Fix
+Use `rg -n -- '<pattern>' <paths>` whenever the pattern can start with a dash.
+
+### Metadata
+- Reproducible: yes
+- Related Files: /Users/yin/pto/.learnings/ERRORS.md
+
+---
+
+## [ERR-20260617-001] rtk-test-file-check
+
+**Logged**: 2026-06-17T17:21:18+08:00  
+**Priority**: low  
+**Status**: pending  
+**Area**: tooling
+
+### Summary
+`rtk test -f <path>` is not a reliable file-existence check in this environment; it can surface shell built-in usage output instead of a simple pass/fail.
+
+### Error
+```
+OUTPUT (last 5 lines):
+  	--version
+  	--wordexp
+  Shell options:
+  	-irsD or -c command or -O shopt_option		(invocation only)
+  	-abefhkmnptuvxBCHP or -o option
+```
+
+### Context
+- Command/operation attempted: verifying `/Users/yin/pto/vendor/pto-design-system/patterns/swimlane-task/pattern.js` exists after adding a whitepaper dependency
+- Environment: Codex with RTK command prefix requirement
+
+### Suggested Fix
+Use `rtk ls -l <path>` or `rtk rg --files <root>` for existence checks instead of `rtk test -f`.
+
+### Metadata
+- Reproducible: yes
+- Related Files: /Users/yin/pto/.learnings/ERRORS.md
+
+---
+
+## [ERR-20260618-001] shell-quoted-rg-pattern
+
+**Logged**: 2026-06-18T11:18:00+08:00  
+**Priority**: low  
+**Status**: pending  
+**Area**: tooling
+
+### Summary
+An `rtk rg` line-number lookup failed because the shell command used an unmatched double quote while the search pattern also contained backticks and quotes.
+
+### Error
+```
+zsh:1: unmatched "
+```
+
+### Context
+- Command/operation attempted: final line-number lookup across UB Fabric files after UI edits
+- Root cause: composing a broad regex with embedded quote-sensitive text directly inside a shell double-quoted command
+
+### Suggested Fix
+Use simpler separate `rg` calls, single-quoted patterns without embedded single quotes, or avoid quote-heavy fragments when the lookup is only for final references.
+
+### Metadata
+- Reproducible: yes
+- Related Files: /Users/yin/pto/.learnings/ERRORS.md
+
+---
+
+## [ERR-20260618-002] rtk-find-compound-predicates
+
+**Logged**: 2026-06-18T12:32:00+08:00  
+**Priority**: low  
+**Status**: pending  
+**Area**: tooling
+
+### Summary
+`rtk find` does not support ordinary `find` compound predicates or some flags, so design-system file discovery failed when using `-path`, `-o`, and similar expressions.
+
+### Error
+```
+rtk find: unknown flag '-path', ignored
+rtk: rtk find does not support compound predicates or actions (e.g. -not, -exec). Use `find` directly.
+```
+
+### Context
+- Command/operation attempted: locating PTO design-system token files from `/Users/yin/pto`
+- Environment: Codex with RTK command prefix requirement
+
+### Suggested Fix
+Use `rtk rg --files <root>` followed by `rtk rg '<filename-pattern>'`, or call plain `find` only when the RTK wrapper restrictions are acceptable for the task.
+
+### Metadata
+- Reproducible: yes
+- Related Files: /Users/yin/pto/.learnings/ERRORS.md
+
+---
+
+## [ERR-20260624-001] chrome-computer-use-apple-event-auth
+
+**Logged**: 2026-06-24T03:45:09Z  
+**Priority**: low  
+**Status**: pending  
+**Area**: tooling
+
+### Summary
+Computer Use could not inspect Google Chrome after opening a local preview because macOS rejected the Apple event for authentication.
+
+### Error
+```
+Apple event error -10000: Sender process is not authenticated
+```
+
+### Context
+- Operation attempted: `mcp__computer_use.get_app_state` for `com.google.Chrome`
+- Page being verified: `http://127.0.0.1:8788/launch_test.html`
+- Environment: macOS Chrome automation through Codex Computer Use
+
+### Suggested Fix
+When this appears, rely on HTTP/static validation and direct browser opening, or use an already authorized browser automation surface if available.
+
+### Metadata
+- Reproducible: unknown
+- Related Files: /Users/yin/pto/launch_test.html
+
+---
+
+## [ERR-20260701-001] playwright-cache-browser-missing
+
+**Logged**: 2026-07-01T10:13:02+08:00  
+**Priority**: low  
+**Status**: pending  
+**Area**: tooling
+
+### Summary
+Playwright was importable from Node, but its cached Chromium executable was missing, so headless verification failed before page launch.
+
+### Error
+```
+browserType.launch: Executable doesn't exist at /Users/yin/Library/Caches/ms-playwright/chromium_headless_shell-1200/chrome-headless-shell-mac-arm64/chrome-headless-shell
+```
+
+### Context
+- Operation attempted: headless Playwright verification for `http://127.0.0.1:8779/ai-cpu-aicore/index.html`
+- Environment: Codex Node REPL on macOS
+- Impact: default Playwright browser launch failed even though the package was installed
+
+### Suggested Fix
+Prefer launching Playwright with the system Chrome executable when available, or explicitly install Playwright browsers before relying on the default cached executable.
+
+### Metadata
+- Reproducible: yes
+- Related Files: /Users/yin/pto/ai-cpu-aicore/index.html
+
+---
+
+## [ERR-20260701-002] shell-dollar-expansion-in-node-e
+
+**Logged**: 2026-07-01T14:06:40+08:00  
+**Priority**: low  
+**Status**: pending  
+**Area**: tooling
+
+### Summary
+An inline `rtk node -e` Playwright verification failed because zsh expanded `$eval` inside a double-quoted command string before Node received it.
+
+### Error
+```
+Expected ident
+SyntaxError: Unexpected token '('
+```
+
+### Context
+- Command/operation attempted: Playwright page verification using `page.$eval(...)`
+- Environment: zsh command passed through `rtk node -e`
+- Impact: the generated JavaScript became `page.(...)`, so verification failed before opening the page
+
+### Suggested Fix
+Use `page.locator(selector).evaluate(...)`, escape `$`, or wrap the inline JavaScript so the shell cannot expand `$eval`.
+
+### Metadata
+- Reproducible: yes
+- Related Files: /Users/yin/pto/ascend-hardware-map/ascend-hardware-map-v3.html
 
 ---

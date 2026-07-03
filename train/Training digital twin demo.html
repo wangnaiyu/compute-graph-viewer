@@ -23,7 +23,7 @@
     background-image:radial-gradient(circle at 20% -10%,rgba(96,165,250,.06),transparent 40%),radial-gradient(circle at 90% 0,rgba(167,139,250,.05),transparent 35%);}
   .mono{font-family:var(--mono);font-variant-numeric:tabular-nums;}
   .wrap{max-width:1280px;margin:0 auto;padding:18px 18px 48px;}
-
+ 
   /* header */
   header{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:14px 18px;background:var(--panel);
     border:1px solid var(--line);border-radius:14px;}
@@ -37,7 +37,7 @@
   .sync{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--purple);
     border:1px solid var(--purple-d);border-radius:999px;padding:5px 12px;background:rgba(167,139,250,.06);}
   .sync .dot{background:var(--purple)}
-
+ 
   /* vitals strip */
   .vitals{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-top:14px;}
   .vital{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;}
@@ -45,7 +45,7 @@
   .vital .v{font-size:22px;font-weight:600;margin-top:3px;font-family:var(--mono);}
   .vital .s{font-size:11px;color:var(--dim);margin-top:1px;font-family:var(--mono);}
   .vital .v small{font-size:12px;color:var(--mut);font-weight:400;margin-left:3px;}
-
+ 
   /* layout grid */
   .grid{display:grid;grid-template-columns:1.55fr 1fr;gap:14px;margin-top:14px;align-items:start;}
   .col{display:flex;flex-direction:column;gap:14px;}
@@ -53,28 +53,28 @@
   .card h2{font-size:13px;font-weight:600;margin:0 0 2px;display:flex;align-items:center;gap:8px;}
   .card h2 .tag{font-size:10px;font-weight:600;color:var(--dim);border:1px solid var(--line2);border-radius:5px;padding:1px 6px;letter-spacing:.5px;text-transform:uppercase;}
   .card .desc{font-size:11px;color:var(--dim);margin:0 0 12px;}
-
+ 
   /* charts */
   .chartrow{display:grid;grid-template-columns:2fr 1fr 1fr;gap:14px;}
   .chartbox .lbl{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;}
   .chartbox .lbl .name{font-size:11px;color:var(--mut);}
   .chartbox .lbl .now{font-size:14px;font-weight:600;font-family:var(--mono);}
   svg.chart{width:100%;display:block;}
-
+ 
   /* gpu heatmap */
   .heat{display:grid;grid-template-columns:repeat(32,1fr);gap:2px;}
   .cell{aspect-ratio:1;border-radius:2px;background:var(--teal-d);position:relative;}
   .legend{display:flex;gap:14px;margin-top:11px;font-size:11px;color:var(--mut);flex-wrap:wrap;}
   .legend span{display:inline-flex;align-items:center;gap:5px;}
   .sw{width:11px;height:11px;border-radius:3px;display:inline-block;}
-
+ 
   /* gauges / bars */
   .bars{display:flex;flex-direction:column;gap:11px;}
   .bar .top{display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px;}
   .bar .top .val{font-family:var(--mono);color:var(--ink);}
   .track{height:7px;background:var(--bg2);border-radius:6px;overflow:hidden;}
   .fill{height:100%;border-radius:6px;transition:width .5s ease,background .5s;}
-
+ 
   /* fault gauge */
   .risk{display:flex;align-items:center;gap:18px;}
   .risknum{font-size:40px;font-weight:700;font-family:var(--mono);line-height:1;}
@@ -83,7 +83,7 @@
   .factor{display:flex;justify-content:space-between;align-items:center;font-size:12px;}
   .factor .ftrack{flex:1;margin:0 10px;height:5px;background:var(--bg2);border-radius:4px;overflow:hidden;}
   .factor .ffill{height:100%;background:var(--amber);}
-
+ 
   /* event feed */
   .feed{display:flex;flex-direction:column;gap:0;max-height:230px;overflow:auto;}
   .ev{display:flex;gap:10px;padding:8px 2px;border-bottom:1px solid var(--line);font-size:12px;}
@@ -95,7 +95,7 @@
   .ev.crit .msg{color:var(--red);} .ev.crit .sev{background:var(--red);}
   .ev.info .sev{background:var(--blue);} .ev.info .msg{color:var(--mut);}
   .ev.ok .sev{background:var(--teal);} .ev.ok .msg{color:var(--teal);}
-
+ 
   /* data pipeline */
   .pipe{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
   .mix{margin-top:4px;}
@@ -104,7 +104,7 @@
   .mixbar{flex:1;height:6px;background:var(--bg2);border-radius:4px;overflow:hidden;}
   .mixbar i{display:block;height:100%;background:var(--blue);border-radius:4px;}
   .mixrow .pc{font-family:var(--mono);color:var(--ink);width:36px;text-align:right;}
-
+ 
   /* what-if */
   .ctrl{display:grid;grid-template-columns:1fr 1fr;gap:13px 18px;}
   .ctrl .field label{display:flex;justify-content:space-between;font-size:12px;color:var(--mut);margin-bottom:6px;}
@@ -119,14 +119,14 @@
   .out .d{font-size:11px;font-family:var(--mono);margin-top:2px;}
   .up{color:var(--teal)} .down{color:var(--red)} .flat{color:var(--dim)}
   .note{font-size:11px;color:var(--dim);margin-top:13px;line-height:1.6;}
-
+ 
   @media(max-width:1080px){.grid{grid-template-columns:1fr}.vitals{grid-template-columns:repeat(3,1fr)}.chartrow{grid-template-columns:1fr}.heat{grid-template-columns:repeat(32,1fr)}}
   @media(max-width:640px){.vitals{grid-template-columns:repeat(2,1fr)}.ctrl,.outgrid,.pipe{grid-template-columns:1fr 1fr}.outgrid{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
 <div class="wrap">
-
+ 
   <header>
     <div class="run">
       <h1>训练孪生体控制台</h1>
@@ -135,7 +135,7 @@
     <span class="pill ok"><span class="dot"></span>TRAINING</span>
     <div class="sync"><span class="dot"></span>孪生镜像同步 · <span id="syncLag" class="mono">12</span>ms 前 · 回灌校准 OK</div>
   </header>
-
+ 
   <!-- vitals -->
   <div class="vitals">
     <div class="vital"><div class="k">Step</div><div class="v" id="vStep">—</div><div class="s" id="vStepSub">—</div></div>
@@ -145,11 +145,11 @@
     <div class="vital"><div class="k">Tokens seen</div><div class="v" id="vSeen">—</div><div class="s" id="vSeenSub">—</div></div>
     <div class="vital"><div class="k">ETA</div><div class="v" id="vEta">—</div><div class="s">至 3.0T tokens</div></div>
   </div>
-
+ 
   <div class="grid">
     <!-- LEFT COLUMN -->
     <div class="col">
-
+ 
       <!-- training dynamics -->
       <div class="card">
         <h2>训练动态 · 模型层 <span class="tag">dim 3</span></h2>
@@ -169,7 +169,7 @@
           </div>
         </div>
       </div>
-
+ 
       <!-- gpu cluster -->
       <div class="card">
         <h2>硬件 · 基础设施层 <span class="tag">dim 1</span></h2>
@@ -182,19 +182,19 @@
           <span style="margin-left:auto" id="heatStat" class="mono"></span>
         </div>
       </div>
-
+ 
       <!-- system / software -->
       <div class="card">
         <h2>系统 · 软件运行层 <span class="tag">dim 2</span></h2>
         <p class="desc">并行配置 TP4·PP4·DP32 · NCCL 集合通信与显存占用</p>
         <div class="bars" id="sysBars"></div>
       </div>
-
+ 
     </div>
-
+ 
     <!-- RIGHT COLUMN -->
     <div class="col">
-
+ 
       <!-- fault prediction -->
       <div class="card">
         <h2>预测 · 故障预警 <span class="tag">twin · forecast</span></h2>
@@ -208,14 +208,14 @@
         </div>
         <div class="factors" id="factors"></div>
       </div>
-
+ 
       <!-- event feed -->
       <div class="card">
         <h2>可靠性 · 运维事件 <span class="tag">dim 7</span></h2>
         <p class="desc">异常 / 重启 / 抢占 / straggler 实时流</p>
         <div class="feed" id="feed"></div>
       </div>
-
+ 
       <!-- data pipeline -->
       <div class="card">
         <h2>数据管道层 <span class="tag">dim 4</span></h2>
@@ -228,10 +228,10 @@
           <div class="bars" id="dataBars"></div>
         </div>
       </div>
-
+ 
     </div>
   </div>
-
+ 
   <!-- WHAT-IF -->
   <div class="card" style="margin-top:14px">
     <h2>What-if · 配置 / 扩容推演 <span class="tag">dim 5 · twin sim</span></h2>
@@ -256,20 +256,20 @@
     </div>
     <p class="note">模型为演示用简化代理：MFU 随 TP 通信开销与 PP 气泡下降，micro-batch 过小损失核效率；真实孪生体会用历史 run 校准这些系数。当前基线 TP4·PP4·DP32 · MFU≈51% · 512 GPU。</p>
   </div>
-
+ 
 </div>
-
+ 
 <script>
 (function(){
   const $=id=>document.getElementById(id);
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const rand=(a,b)=>a+Math.random()*(b-a);
-
+ 
   // ---- formatters ----
   function fmtBig(n){ if(n>=1e12)return (n/1e12).toFixed(2)+'T'; if(n>=1e9)return (n/1e9).toFixed(2)+'B'; if(n>=1e6)return (n/1e6).toFixed(1)+'M'; if(n>=1e3)return (n/1e3).toFixed(1)+'k'; return Math.round(n).toString(); }
   function fmtTime(s){ s=Math.max(0,s); const d=Math.floor(s/86400),h=Math.floor(s%86400/3600),m=Math.floor(s%3600/60); if(d>0)return d+'d '+h+'h'; if(h>0)return h+'h '+m+'m'; return m+'m'; }
   function fmtMoney(n){ if(n>=1e6)return '$'+(n/1e6).toFixed(2)+'M'; if(n>=1e3)return '$'+(n/1e3).toFixed(1)+'k'; return '$'+Math.round(n); }
-
+ 
   // ---- state ----
   const S={
     step:48230, totalSteps:120000,
@@ -285,7 +285,7 @@
   // seed a few warm + one straggler
   S.gpus[37].temp=84; S.gpus[37].bad='straggler'; S.gpus[37].util=.71;
   S.gpus[201].temp=78; S.gpus[330].temp=76;
-
+ 
   // seed history (~96 pts) with realistic decay
   for(let i=0;i<96;i++){
     const t=i/96;
@@ -296,7 +296,7 @@
     S.hist.gn.push(0.8+(Math.random()-.5)*0.25);
   }
   S.loss=S.hist.loss[95]; S.lossEMA=S.loss;
-
+ 
   // ---- svg line drawing ----
   function path(data,W,H,pad){
     pad=pad||4; let mn=Math.min(...data),mx=Math.max(...data); if(mx-mn<1e-6)mx=mn+1;
@@ -322,7 +322,7 @@
     });
     svg.innerHTML=html;
   }
-
+ 
   // ---- heatmap ----
   const heat=$('heat');
   for(let i=0;i<N;i++){ const c=document.createElement('div'); c.className='cell'; heat.appendChild(c); }
@@ -344,17 +344,17 @@
     }
     $('heatStat').textContent='peak '+mx.toFixed(0)+'°C · avg '+(avg/N).toFixed(0)+'°C · 异常 '+nbad;
   }
-
+ 
   // ---- system bars ----
   function bar(name,val,pct,color){
     return '<div class="bar"><div class="top"><span style="color:var(--mut)">'+name+'</span><span class="val">'+val+'</span></div>'+
       '<div class="track"><div class="fill" style="width:'+clamp(pct,0,100)+'%;background:'+color+'"></div></div></div>';
   }
-
+ 
   // ---- data mix ----
   const MIX=[['Web',43,'var(--blue)'],['Code',22,'var(--purple)'],['书籍/论文',16,'var(--teal)'],['多语种',13,'var(--amber)'],['数学',6,'var(--red)']];
   $('mix').innerHTML=MIX.map(m=>'<div class="mixrow"><span class="nm">'+m[0]+'</span><span class="mixbar"><i style="width:'+m[1]+'%;background:'+m[2]+'"></i></span><span class="pc">'+m[1]+'%</span></div>').join('');
-
+ 
   // ---- event feed ----
   const feed=$('feed'); const EVB=[
     ['info','checkpoint 写入完成 · step {s} · 用时 41s'],
@@ -374,7 +374,7 @@
     while(feed.children.length>40)feed.removeChild(feed.lastChild);
   }
   function seedEvents(){ for(let i=0;i<6;i++){ const e=EVB[Math.floor(rand(0,EVB.length))]; const msg=e[1].replace('{s}',(S.step-i*40)).replace('{r}',Math.floor(rand(0,64))).replace('{g}',Math.floor(rand(0,8))); pushEvent(e[0],msg); } }
-
+ 
   // ---- fault risk ----
   function computeRisk(){
     let mx=0,bad=0,warm=0; for(const g of S.gpus){ mx=Math.max(mx,g.temp); if(g.bad)bad++; if(g.temp>78)warm++; }
@@ -395,7 +395,7 @@
     $('riskLabel').textContent=lab; $('riskLabel').style.color=col;
     $('factors').innerHTML=f.map(x=>'<div class="factor"><span style="color:var(--mut);width:78px">'+x[0]+'</span><span class="ftrack"><i class="ffill" style="width:'+Math.round(x[1]*100)+'%;background:'+col+'"></i></span><span class="mono" style="width:34px;text-align:right;color:var(--ink)">'+Math.round(x[1]*100)+'%</span></div>').join('');
   }
-
+ 
   // ---- main tick ----
   function tick(){
     S.step+=2;
@@ -409,21 +409,21 @@
     S.mfu=clamp(0.512+(Math.random()-.5)*0.04 - S.spike*0.05 - (S.gpus[37].bad?0.015:0),0.3,0.62);
     S.gn=clamp(0.82+(Math.random()-.5)*0.3+S.spike*1.5,0.2,4);
     S.seen+=S.mfu*S.world*S.peak/(6*S.params)*1; // ~tokens this tick
-
+ 
     // gpu thermal drift
     for(const g of S.gpus){ g.temp=clamp(g.temp+(Math.random()-.5)*1.4 + (g.bad?0.3:0) ,52,92); g.util=clamp(g.util+(Math.random()-.5)*0.03,.5,1); }
     if(Math.random()<0.04){ const i=Math.floor(rand(0,N)); S.gpus[i].temp=clamp(S.gpus[i].temp+rand(4,9),52,92); }
-
+ 
     // history push
     S.hist.loss.push(S.loss); S.hist.val.push(S.val); S.hist.mfu.push(S.mfu*100); S.hist.gn.push(S.gn);
     for(const k in S.hist){ if(S.hist[k].length>96)S.hist[k].shift(); }
-
+ 
     // random events
     if(Math.random()<0.5){ const e=EVB[Math.floor(rand(0,EVB.length))]; pushEvent(e[0],e[1].replace('{s}',S.step).replace('{r}',Math.floor(rand(0,64))).replace('{g}',Math.floor(rand(0,8)))); }
-
+ 
     render();
   }
-
+ 
   function render(){
     const tokps=S.mfu*S.world*S.peak/(6*S.params);
     const eta=(S.target-S.seen)/tokps;
@@ -435,7 +435,7 @@
     $('vTok').textContent=fmtBig(tokps);
     $('vSeen').textContent=fmtBig(S.seen); $('vSeenSub').textContent='/ 3.0T · '+(S.seen/S.target*100).toFixed(1)+'%';
     $('vEta').textContent=fmtTime(eta);
-
+ 
     // charts
     $('lossNow').textContent=S.loss.toFixed(3);
     $('mfuNow').textContent=(S.mfu*100).toFixed(1)+'%';
@@ -446,10 +446,10 @@
     ]);
     drawChart($('mfuChart'),[{data:S.hist.mfu,color:'var(--purple)',fill:true,w:1.6}]);
     drawChart($('gnChart'),[{data:S.hist.gn,color:'var(--amber)',w:1.6}]);
-
+ 
     renderHeat();
     renderRisk();
-
+ 
     // system bars
     const hbm=78+ (Math.random()-.5)*3, nvl=rand(360,420), net=rand(180,210), nccl=rand(8,14), frag=rand(4,9);
     $('sysBars').innerHTML=
@@ -458,7 +458,7 @@
       bar('IB 网络吞吐',net.toFixed(0)+' Gbps',net/200*100,'var(--purple)')+
       bar('NCCL all-reduce 耗时',nccl.toFixed(1)+' ms',100-nccl*4,'var(--amber)')+
       bar('显存碎片率',frag.toFixed(1)+'%',frag*4,'var(--mut)');
-
+ 
     // data bars
     const load=rand(580,640), prep=rand(2.1,3.4), wait=rand(2,7);
     $('dataBars').innerHTML=
@@ -466,10 +466,10 @@
       bar('预处理耗时',prep.toFixed(1)+' ms/batch',100-prep*15,'var(--teal)')+
       bar('dataloader 等待',wait.toFixed(1)+'%',100-wait*6,'var(--amber)')+
       bar('平均序列长度','7.6k / 8k tokens',95,'var(--purple)');
-
+ 
     $('syncLag').textContent=Math.floor(rand(8,22));
   }
-
+ 
   // ---- what-if ----
   const TPv=[1,2,4,8], PPv=[1,2,4,8,16], MBv=[1,2,4,8], GAv=[1,2,4,8,16,32];
   const baseline={mfu:0.512,world:512,tokps:0,eta:0,gh:0,cost:0,batch:512};
@@ -493,7 +493,7 @@
     const eta=remaining/tokps;
     const gh=world*eta/3600;
     const cost=gh*c.price;
-
+ 
     function delta(id,cur,base,inv,fmt){
       const e=$(id); if(base===0){e.textContent='—';e.className='d flat';return;}
       const pc=(cur-base)/base*100; const good = inv? pc<0 : pc>0;
@@ -516,7 +516,7 @@
     const tokps=world*S.peak*mfu/(6*S.params); const eta=(S.target-S.seen)/tokps;
     baseline.world=world;baseline.mfu=mfu;baseline.tokps=tokps;baseline.eta=eta;baseline.gh=world*eta/3600;baseline.cost=baseline.gh*c.price;baseline.batch=c.DP*c.MB*c.GA;
   })();
-
+ 
   // boot
   seedEvents(); render(); whatif();
   setInterval(tick,1200);
