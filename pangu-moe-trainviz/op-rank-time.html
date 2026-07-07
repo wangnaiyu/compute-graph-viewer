@@ -32,6 +32,7 @@
   }
   /* 播放条：加宽（见上 expanded-width）+ 整体下移 20px（默认 bottom:38px → 18px） */
   .pto-ide-frame__floating-playback-mount{bottom:18px}
+  #playbackMount,.opv-layer-playback{display:none!important}
   /* 顶栏 */
   .pto-ide-frame__host-chip span{font:var(--ide-frame-title-font);color:var(--foreground)}
   .pto-ide-frame__host-chip b{color:var(--accent)}
@@ -69,6 +70,38 @@
   .opv-tree-icon--file::after{content:"";position:absolute;right:3px;top:2px;width:4px;height:4px;border-left:1.5px solid currentColor;border-bottom:1.5px solid currentColor;background:var(--ide-frame-pane-bg)}
   .opv-tree-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .opv-tree-badge{font:700 10px/1 var(--font-mono);color:var(--foreground-muted)}
+  .opv-id-search{display:flex;align-items:center;gap:7px;min-height:30px;padding:0 9px;border:1px solid var(--border-subtle);
+    border-radius:var(--radius-md);background:color-mix(in srgb,var(--foreground) 4%,transparent);color:var(--foreground-muted)}
+  .opv-id-search svg{width:14px;height:14px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .opv-id-search input{min-width:0;width:100%;border:0;outline:0;background:transparent;color:var(--foreground);font:var(--text-body-sm)}
+  .opv-id-search input::placeholder{color:var(--foreground-muted)}
+  .opv-object-type-filters{display:flex;flex-wrap:wrap;gap:5px}
+  .opv-object-filter{height:23px;padding:0 8px;border:1px solid var(--border-subtle);border-radius:var(--radius-pill);
+    background:var(--surface-disabled);color:var(--foreground-secondary);font:700 10px/1 var(--font-sans);cursor:pointer}
+  .opv-object-filter.is-active{background:var(--state-selected);border-color:var(--border-default);color:var(--foreground)}
+  .opv-registry-list{display:flex;flex-direction:column;gap:9px;min-height:0}
+  .opv-registry-group{display:flex;flex-direction:column;gap:4px}
+  .opv-registry-group__head{display:flex;align-items:center;justify-content:space-between;color:var(--foreground-muted);
+    font:var(--text-label);text-transform:uppercase;letter-spacing:.05em}
+  .opv-registry-row{width:100%;display:grid;grid-template-columns:24px minmax(0,1fr);gap:8px;min-height:50px;padding:7px;
+    border:0;border-radius:var(--radius-md);background:transparent;color:var(--foreground);text-align:left;cursor:pointer}
+  .opv-registry-row:hover{background:var(--state-hover)}
+  .opv-registry-row.is-selected{background:var(--state-selected)}
+  .opv-registry-row__glyph,.opv-training-object-badge__glyph{display:inline-flex;align-items:center;justify-content:center;
+    width:24px;height:24px;border-radius:var(--radius-sm);background:var(--surface-3);color:var(--foreground);font:800 11px/1 var(--font-mono)}
+  .opv-registry-row__main{min-width:0;display:flex;flex-direction:column;gap:4px}
+  .opv-registry-row__label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:700 12px/1.2 var(--font-sans)}
+  .opv-registry-row__path{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--foreground-muted);font:var(--text-mono)}
+  .opv-registry-row__placement{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--foreground-secondary);font:var(--text-label)}
+  .opv-train-tag-row{display:flex;flex-wrap:wrap;gap:4px}
+  .opv-train-tag{display:inline-flex;align-items:center;min-height:18px;max-width:100%;padding:0 6px;border-radius:var(--radius-sm);
+    background:color-mix(in srgb,var(--surface-4) 70%,transparent);color:var(--foreground-secondary);font:600 10px/1 var(--font-mono);white-space:nowrap}
+  .opv-train-tag[data-kind="tp"]{background:color-mix(in srgb,#5b8cff 26%,transparent)}
+  .opv-train-tag[data-kind="pp"]{background:color-mix(in srgb,#f59e0b 24%,transparent)}
+  .opv-train-tag[data-kind="ep"]{background:color-mix(in srgb,#a855f7 24%,transparent)}
+  .opv-train-tag[data-kind="dp"]{background:color-mix(in srgb,#14b8a6 22%,transparent)}
+  .opv-train-tag[data-kind="cp"]{background:color-mix(in srgb,#38bdf8 22%,transparent)}
+  .opv-train-tag[data-kind="sp"]{background:color-mix(in srgb,#ec4899 20%,transparent)}
   .pto-ide-frame[data-inspector-open="false"] [data-ide-pane="inspector"]{display:none}
   .pto-ide-frame[data-inspector-open="false"] [data-ide-split="standalone-main"]>[data-ide-pane="editor-preview"]{flex:1 1 0%!important;width:auto!important}
   .pto-ide-frame[data-inspector-open="false"] [data-ide-split="standalone-main"]>.pto-workbench-shell__split-gutter:has(+ [data-ide-pane="inspector"]){display:none}
@@ -181,6 +214,42 @@
     cursor:pointer;letter-spacing:0;white-space:nowrap}
   .opv-object-btn:hover{color:var(--foreground);background:color-mix(in srgb,var(--foreground) 8%,transparent)}
   .opv-object-btn.is-active{background:#4f6df6;border-color:#4f6df6;color:#fff}
+  .opv-training-object-overlay{position:absolute;inset:0;z-index:38;pointer-events:none;overflow:hidden}
+  .opv-training-object-links{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+  .opv-training-object-link{display:none;stroke:var(--object-color,#94a3b8);stroke-width:1.4;stroke-dasharray:5 4;opacity:.88}
+  .opv-training-object-link.is-active{display:block}
+  .opv-training-object-anchor{position:absolute;display:none;align-items:center;gap:6px;max-width:190px;transform:translate(-50%,-50%);
+    pointer-events:none;color:var(--foreground);font:700 10px/1.2 var(--font-sans);text-shadow:0 1px 8px color-mix(in srgb,var(--background) 80%,transparent)}
+  .opv-training-object-anchor.is-active{display:flex}
+  .opv-training-object-anchor__dot{width:10px;height:10px;border-radius:50%;background:var(--object-color,#94a3b8);
+    box-shadow:0 0 0 4px color-mix(in srgb,var(--object-color,#94a3b8) 20%,transparent),0 0 18px color-mix(in srgb,var(--object-color,#94a3b8) 58%,transparent);flex:none}
+  .opv-training-object-anchor__label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:3px 6px;border-radius:var(--radius-sm);
+    background:color-mix(in srgb,var(--ide-frame-pane-bg) 82%,transparent);border:1px solid var(--border-subtle)}
+  .opv-training-object-badge{position:absolute;display:inline-flex;align-items:center;gap:5px;width:24px;height:24px;padding:0;
+    border:1px solid color-mix(in srgb,var(--object-color) 44%,var(--border-subtle));border-radius:var(--radius-sm);
+    background:color-mix(in srgb,var(--ide-frame-pane-bg) 78%,var(--object-color) 20%);color:var(--foreground);
+    box-shadow:0 10px 24px color-mix(in srgb,var(--object-color) 16%,transparent);transform:translate(-50%,-50%);
+    pointer-events:auto;cursor:pointer;overflow:visible;transition:opacity .12s ease,filter .12s ease,transform .12s ease}
+  .opv-training-object-badge:hover{filter:brightness(1.08);transform:translate(-50%,-50%) scale(1.06);z-index:8}
+  .opv-training-object-badge.is-selected{display:grid;grid-template-columns:24px minmax(0,1fr);align-items:start;gap:7px;
+    width:max-content;min-width:216px;max-width:286px;height:auto;padding:7px 9px 8px 7px;border-radius:var(--radius-md);
+    background:color-mix(in srgb,var(--ide-frame-pane-bg) 92%,var(--object-color) 8%);box-shadow:var(--shadow-md);
+    transform:translate(12px,-52px);z-index:12;text-align:left}
+  .opv-training-object-badge.is-selected[data-side="left"]{transform:translate(calc(-100% - 12px),-52px)}
+  .opv-training-object-badge.is-selected::after{content:"";display:none}
+  .opv-training-object-badge.is-selected::before{content:"";display:none}
+  .opv-training-object-badge.is-selected[data-side="left"]::after{left:auto;right:10px}
+  .opv-training-object-badge.is-selected[data-side="left"]::before{left:auto;right:7px}
+  .opv-training-object-badge.is-dimmed{opacity:.28}
+  .opv-training-object-badge__glyph{width:22px;height:22px;background:color-mix(in srgb,var(--object-color) 74%,var(--surface-3));
+    color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.32)}
+  .opv-training-object-badge__body{display:none;min-width:0;flex-direction:column;gap:4px}
+  .opv-training-object-badge.is-selected .opv-training-object-badge__body{display:flex}
+  .opv-training-object-badge__label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--foreground);
+    font:700 11px/1.15 var(--font-sans)}
+  .opv-training-object-badge__meta{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--foreground-secondary);
+    font:var(--text-mono)}
+  .opv-training-object-badge__meaning{color:var(--foreground-muted);font:var(--text-label);line-height:1.35}
   [data-ide-pane="analysis-dock"]>.pto-ide-frame__pane-header{display:flex;align-items:center;gap:8px}
   .opv-comm-toggle{margin-left:auto;flex:none}
   /* Monitor 抽屉右上角：smoothing 滑条 */
@@ -243,6 +312,30 @@
   .opv-analysis-legend .is-comm::before{background:#b99ae7}
   .opv-analysis-legend .is-bubble::before{background:#d6dbe3}
   .opv-analysis-scroll{position:relative;flex:1;min-height:0;overflow:auto}
+  .opv-object-flow-view{height:100%;display:grid;grid-template-rows:auto minmax(0,1fr);gap:9px;padding:10px;overflow:hidden}
+  .opv-object-flow-head{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:9px;align-items:start}
+  .opv-object-flow-stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+  .opv-object-flow-stat{min-width:0;border:1px solid var(--border-subtle);border-radius:var(--radius-md);
+    background:color-mix(in srgb,var(--foreground) 3.5%,transparent);padding:7px 9px}
+  .opv-object-flow-stat span{display:block;color:var(--foreground-muted);font:var(--text-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .opv-object-flow-stat b{display:block;margin-top:3px;color:var(--foreground);font:var(--text-mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .opv-mb-control{display:flex;align-items:center;gap:8px;min-width:230px;color:var(--foreground-muted);font:var(--text-label)}
+  .opv-mb-control input{width:130px;accent-color:var(--primary)}
+  .opv-object-flow-grid{min-height:0;display:grid;grid-template-columns:minmax(240px,.9fr) minmax(320px,1.2fr) minmax(300px,1fr);gap:9px;overflow:hidden}
+  .opv-object-flow-panel{min-width:0;min-height:0;overflow:auto;border:1px solid var(--border-subtle);border-radius:var(--radius-md);
+    background:color-mix(in srgb,var(--foreground) 3%,transparent);padding:9px}
+  .opv-object-flow-panel h3{margin:0 0 8px;color:var(--foreground-muted);font:var(--text-label);text-transform:uppercase;letter-spacing:.05em}
+  .opv-object-flow-card{display:flex;flex-direction:column;gap:6px;padding:8px;border-radius:var(--radius-sm);
+    background:color-mix(in srgb,var(--foreground) 4%,transparent);margin-bottom:7px}
+  .opv-object-flow-card__title{display:flex;align-items:center;justify-content:space-between;gap:8px;font:700 12px/1.25 var(--font-sans);color:var(--foreground)}
+  .opv-object-flow-card__body{color:var(--foreground-secondary);font:var(--text-body-sm);line-height:1.45}
+  .opv-analysis-link-list{display:flex;flex-direction:column;gap:6px}
+  .opv-analysis-link{display:grid;grid-template-columns:76px minmax(0,1fr);gap:8px;align-items:start;width:100%;min-height:38px;
+    padding:7px 8px;border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:color-mix(in srgb,var(--foreground) 3.5%,transparent);
+    color:var(--foreground);text-align:left;cursor:pointer}
+  .opv-analysis-link:hover{background:var(--state-hover);border-color:var(--border-default)}
+  .opv-analysis-link__name{font:700 11px/1.2 var(--font-sans);color:var(--foreground)}
+  .opv-analysis-link__reason{font:var(--text-body-sm);color:var(--foreground-secondary);line-height:1.35}
   /* ===== Card Load · 平涂正方形卡（行=并行组，列=TP；占用随 step 重分布） ===== */
   .opv-cardload{display:flex;flex-direction:column;min-height:0}
   .opv-cardload-head{position:relative;display:flex;align-items:flex-start;gap:8px}
@@ -288,7 +381,8 @@
   .opv-swim-body{display:block;width:100%;cursor:pointer}
 
   /* P0 异常徽标：3D 舞台 DOM 叠层（按相机投影定位，实心填充 + 白字） */
-  .opv-anomaly-layer{position:absolute;inset:0;z-index:35;pointer-events:none;overflow:hidden}
+  .opv-anomaly-layer{position:absolute;inset:0;z-index:35;pointer-events:none;overflow:hidden;display:none}
+  .opv-anomaly-layer.is-active{display:block}
   .opv-anomaly-badge{position:absolute;transform:translate(-50%,-100%);pointer-events:auto;cursor:pointer;
     display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px;border:0;border-radius:var(--radius-pill);
     color:#fff;font:700 11px/1 var(--font-sans);white-space:nowrap;letter-spacing:0;
@@ -366,6 +460,28 @@
   .opv-inspector-tab.is-active{background:#4f6df6;border-color:#4f6df6;color:#fff}
   .opv-inspector-panel[hidden]{display:none}
   .opv-inspector-panel{display:flex;flex:0 0 auto;flex-direction:column;gap:10px;min-height:0;overflow:visible}
+  .opv-object-inspector{display:flex;flex-direction:column;gap:10px}
+  .opv-object-inspector__head{display:grid;grid-template-columns:28px minmax(0,1fr);gap:9px;align-items:start}
+  .opv-object-inspector__title{font:700 13px/1.25 var(--font-sans);color:var(--foreground)}
+  .opv-object-inspector__path{margin-top:5px;color:var(--foreground-muted);font:var(--text-mono);overflow-wrap:anywhere}
+  .opv-object-inspector__note{margin:0;color:var(--foreground-secondary);font:var(--text-body-sm);line-height:1.5}
+  .opv-object-detail-grid{display:grid;grid-template-columns:82px minmax(0,1fr);gap:5px 8px;font:var(--text-body-sm)}
+  .opv-object-detail-grid dt{color:var(--foreground-muted)}
+  .opv-object-detail-grid dd{margin:0;color:var(--foreground);overflow-wrap:anywhere}
+  .opv-object-guide{display:flex;flex-direction:column;gap:6px;padding:8px;border:1px solid var(--border-subtle);
+    border-radius:var(--radius-md);background:color-mix(in srgb,var(--foreground) 3%,transparent)}
+  .opv-object-guide__row{display:grid;grid-template-columns:74px minmax(0,1fr);gap:8px;color:var(--foreground-secondary);font:var(--text-body-sm)}
+  .opv-object-guide__row b{color:var(--foreground);font-weight:600}
+  .opv-tag-explain-list{display:flex;flex-direction:column;gap:5px}
+  .opv-tag-explain{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:7px;align-items:start;color:var(--foreground-secondary);font:var(--text-body-sm)}
+  .opv-tag-explain .opv-train-tag{margin-top:1px}
+  .opv-object-link-list,.opv-object-flow-list{display:flex;flex-direction:column;gap:5px}
+  .opv-object-link,.opv-object-flow-row{display:grid;grid-template-columns:22px minmax(0,1fr);gap:7px;align-items:center;
+    min-height:29px;padding:5px 6px;border-radius:var(--radius-sm);background:color-mix(in srgb,var(--foreground) 4%,transparent)}
+  .opv-object-link{border:0;color:var(--foreground);text-align:left;cursor:pointer}
+  .opv-object-link:hover{background:var(--state-hover)}
+  .opv-object-link__text,.opv-object-flow-row__text{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:var(--text-body-sm)}
+  .opv-object-flow-row__kind{color:var(--foreground-muted);font:var(--text-mono);text-transform:uppercase}
   .opv-diag-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
   .opv-diag-summary__item{min-width:0;border:1px solid var(--border-subtle);border-radius:var(--radius-md);
     background:color-mix(in srgb,var(--foreground) 4%,transparent);padding:7px 8px}
@@ -447,6 +563,8 @@
     .opv-monitor-row{flex-direction:column}
     .opv-monitor-chart{flex:0 0 auto;max-width:100%;height:160px}
     .opv-monitor-cards{grid-template-columns:1fr}
+    .opv-object-flow-head,.opv-object-flow-grid{grid-template-columns:1fr}
+    .opv-object-flow-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
     .pto-ide-frame__pane-meta{display:none}
   }
   @media (max-width:640px){
@@ -530,24 +648,17 @@
 
             <aside id="pangu-explorer-pane" class="pto-ide-frame__pane pto-ide-frame__explorer" data-ide-pane="explorer" aria-hidden="false">
               <header class="pto-ide-frame__pane-header">
-                <span class="pto-ide-frame__pane-title">Explorer</span>
-                <span class="pto-ide-frame__pane-meta">PANGU</span>
+                <span class="pto-ide-frame__pane-title">Training Objects</span>
+                <span class="pto-ide-frame__pane-meta" id="trainingObjectCount">0 objects</span>
               </header>
               <div class="pto-ide-frame__pane-body opv-explorer">
-                <div class="opv-explorer-root">PANGU-MOE-TRAINVIZ</div>
-                <div class="opv-tree" aria-label="Pangu model files">
-                  <div class="opv-tree-row is-open" style="--depth:0"><span class="opv-tree-caret"></span><span class="opv-tree-icon opv-tree-icon--folder"></span><span class="opv-tree-name">data</span></div>
-                  <div class="opv-tree-row" style="--depth:1"><span class="opv-tree-spacer"></span><span class="opv-tree-icon opv-tree-icon--file"></span><span class="opv-tree-name">graph-ultramoe-718b.js</span><span class="opv-tree-badge">JS</span></div>
-                  <div class="opv-tree-row" style="--depth:1"><span class="opv-tree-spacer"></span><span class="opv-tree-icon opv-tree-icon--file"></span><span class="opv-tree-name">strict-1f1b-trace-sim.json</span><span class="opv-tree-badge">JSON</span></div>
-                  <div class="opv-tree-row" style="--depth:1"><span class="opv-tree-spacer"></span><span class="opv-tree-icon opv-tree-icon--file"></span><span class="opv-tree-name">timeseries.js</span><span class="opv-tree-badge">JS</span></div>
-                  <div class="opv-tree-row is-open" style="--depth:0"><span class="opv-tree-caret"></span><span class="opv-tree-icon opv-tree-icon--folder"></span><span class="opv-tree-name">js</span></div>
-                  <div class="opv-tree-row" style="--depth:1"><span class="opv-tree-spacer"></span><span class="opv-tree-icon opv-tree-icon--file"></span><span class="opv-tree-name">analysis-data.js</span><span class="opv-tree-badge">JS</span></div>
-                  <div class="opv-tree-row" style="--depth:1"><span class="opv-tree-spacer"></span><span class="opv-tree-icon opv-tree-icon--file"></span><span class="opv-tree-name">analysis-dock.js</span><span class="opv-tree-badge">JS</span></div>
-                  <div class="opv-tree-row" style="--depth:1"><span class="opv-tree-spacer"></span><span class="opv-tree-icon opv-tree-icon--file"></span><span class="opv-tree-name">training-metrics-chart.js</span><span class="opv-tree-badge">JS</span></div>
-                  <div class="opv-tree-row is-active" style="--depth:0"><span class="opv-tree-spacer"></span><span class="opv-tree-icon opv-tree-icon--file"></span><span class="opv-tree-name">op-rank-time.html</span><span class="opv-tree-badge">HTML</span></div>
-                  <div class="opv-tree-row" style="--depth:0"><span class="opv-tree-spacer"></span><span class="opv-tree-icon opv-tree-icon--file"></span><span class="opv-tree-name">pangu-palette.js</span><span class="opv-tree-badge">JS</span></div>
-                  <div class="opv-tree-row is-muted" style="--depth:0"><span class="opv-tree-spacer"></span><span class="opv-tree-icon opv-tree-icon--file"></span><span class="opv-tree-name">SPEC-op-rank-time-A.md</span><span class="opv-tree-badge">MD</span></div>
-                </div>
+                <div class="opv-explorer-root">OBJECT-ID TOPOLOGY</div>
+                <label class="opv-id-search" aria-label="标识解析器">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+                  <input id="trainingObjectSearch" type="search" placeholder="grad / tp_col / loss_scale / q_proj">
+                </label>
+                <div class="opv-object-type-filters" id="trainingObjectTypeFilters" aria-label="对象类型过滤"></div>
+                <div class="opv-registry-list" id="trainingObjectList" aria-label="训练对象列表"></div>
               </div>
             </aside>
 
@@ -556,6 +667,7 @@
                 <div id="app"></div>
                 <div class="opv-anomaly-layer" id="anomalyLayer" aria-label="异常徽标"></div>
                 <div class="opv-ep-label-layer" id="epLabelLayer" aria-label="EP bucket 标注"></div>
+                <div class="opv-training-object-overlay" id="trainingObjectOverlay" aria-label="训练对象覆盖标识"></div>
                 <div class="opv-object-panel" id="objectPanel" aria-label="对象筛选与高亮" hidden>
                   <div class="opv-object-panel__head">
                     <span class="opv-object-panel__title">对象聚焦</span>
@@ -642,6 +754,7 @@
               <div class="pto-ide-frame__pane-body opv-pane-body opv-focus">
                 <div class="opv-inspector-tabs" id="inspectorTabs" role="group" aria-label="Inspector views">
                   <button class="opv-inspector-tab is-active" type="button" data-inspector-tab="diagnostics">诊断</button>
+                  <button class="opv-inspector-tab" type="button" data-inspector-tab="object">对象</button>
                   <button class="opv-inspector-tab" type="button" data-inspector-tab="focus">聚焦</button>
                 </div>
                 <section id="inspectorDiagnostics" class="opv-inspector-panel" aria-label="总诊断">
@@ -671,6 +784,7 @@
                     <span class="maptag" id="fTag">—</span>
                   </div>
                 </section>
+                <section id="inspectorObject" class="opv-inspector-panel" hidden aria-label="对象标识详情"></section>
               </div>
             </aside>
 
@@ -688,6 +802,7 @@
           <div class="pto-ide-frame__pane-body">
             <div id="analysisDock" class="opv-analysis-dock">
               <section id="analysisPanelLoss" class="opv-analysis-panel" data-analysis-panel="loss"></section>
+              <section id="analysisPanelObjectFlow" class="opv-analysis-panel" data-analysis-panel="object-flow"></section>
               <section id="analysisPanelTimeline" class="opv-analysis-panel" data-analysis-panel="timeline">
                 <div id="swimlaneView" class="opv-swimlane"></div>
               </section>
@@ -784,10 +899,11 @@
 <script src="./pangu-palette.js"></script>
 
 <!-- 真实架构数据(经典脚本,只读) -->
-<script src="data/graph-ultramoe-718b.js?v=20260625-v11-arch"></script>
+<script src="data/graph-openpangu-r-72b.js?v=20260707-r72b-arch"></script>
 
 <!-- 训练指标时序 + Loss 趋势图（经典脚本，迭代级主时间） -->
 <script src="data/timeseries.js"></script>
+<script src="data/training-object-registry.js"></script>
 <script src="js/training-metrics-chart.js"></script>
 
 <script type="importmap">
@@ -941,7 +1057,7 @@ function applyUiTheme(theme){
   applyThreeTheme(theme);
 }
 const themeParam=new URLSearchParams(location.search).get('theme');
-const savedTheme=(themeParam==='light'||themeParam==='dark')?themeParam:(localStorage.getItem('op-rank-time-theme')||'dark');
+const savedTheme=(themeParam==='light'||themeParam==='dark')?themeParam:'light';
 localStorage.setItem('op-rank-time-theme',savedTheme);
 applyUiTheme(savedTheme);
 setAnalysisDockOpen(localStorage.getItem('op-rank-time-analysis-open')!=='false');
@@ -970,8 +1086,8 @@ document.getElementById('infoClose').addEventListener('click',()=>setInfo(false)
 document.addEventListener('click',e=>{if(!infoPanel.hidden&&!infoPanel.contains(e.target)&&!infoToggle.contains(e.target))setInfo(false);});
 addEventListener('keydown',e=>{if(e.key==='Escape')setInfo(false);});
 
-/* ===== 真实图(全展开,只读) ===== */
-const G = window.buildUltraMoE718BGraph({moeExpanded:true, expertExpanded:true});
+/* ===== 72B 真实图(全展开,只读) ===== */
+const G = window.buildOpenPanguR72BGraph({moeExpanded:true, expertExpanded:true});
 const MODEL_CONFIG={
   name:'openPangu-R-72B-2512',
   displayName:'openPangu-R-72B MoE',
@@ -1003,6 +1119,343 @@ const rankRangeForNode=node=>{
 };
 const byId = new Map(G.nodes.map(n=>[n.id,n]));
 const EXPERT_IDS = G.nodes.filter(n=>/^expert_group_/.test(n.id)).map(n=>n.id);
+const TRAIN_REGISTRY=window.TRAINING_OBJECT_REGISTRY||{modelFacts:{},strategies:[],objectTypes:{},objects:[],flows:[],sourceManifest:{local:[]}};
+const TRAIN_OBJECTS=TRAIN_REGISTRY.objects||[];
+const TRAIN_TYPES=TRAIN_REGISTRY.objectTypes||{};
+const TRAIN_OBJECT_BY_ID=new Map(TRAIN_OBJECTS.map(obj=>[obj.id,obj]));
+const TRAIN_OBJECT_GROUPS=TRAIN_OBJECTS.reduce((map,obj)=>{
+  const key=obj.anchor||obj.type||'object';
+  const list=map.get(key)||[];
+  list.push(obj);
+  map.set(key,list);
+  return map;
+},new Map());
+const TRAIN_ANCHOR_NODE={
+  qkv_weight:'mla',
+  oproj_weight:'mla',
+  attention:'mla',
+  attn_norm:'mla',
+  moe_norm:'moe_prenorm',
+  decoder:'moe_layer',
+  residual_pp_boundary:'moe_residual',
+  gate:'gate',
+  w_gate:'w_gate',
+  a2a_dispatch:'a2a_dispatch',
+  a2a_combine:'a2a_combine',
+  experts:'expert_group_01',
+  expert_up_weight:'w_expert',
+  final_norm:'final_norm',
+  logits:'logits',
+  lm_head:'lm_head',
+  lm_head_weight:'lm_head_weight',
+};
+const TRAIN_OBJECT_TYPE_FALLBACK={
+  weight:'#94a3b8',bias:'#9ca3af',opt:'#8b5cf6',activation:'#22d3ee',residual:'#f59e0b',
+  gradient:'#fb7185',loss:'#38bdf8',lr:'#facc15',scale:'#a855f7',comm:'#22c55e',metric:'#f472b6'
+};
+const TRAIN_OBJECT_MEANING={
+  weight:'可训练参数；前向读取，反向产生对应梯度。',
+  bias:'可训练偏置参数；随同一算子/分片参与更新。',
+  opt:'优化器状态；与同名参数同分片保存一阶/二阶动量。',
+  activation:'前向激活；反向需要回读或重算。',
+  residual:'残差张量；跨子层或 PP 边界传递隐藏状态。',
+  gradient:'反向梯度；DP/TP 等通信后用于参数更新。',
+  loss:'训练目标标量；从 logits 汇聚后驱动反向。',
+  lr:'学习率调度状态；控制 optimizer step。',
+  scale:'混合精度 loss scale；用于 scale/unscale 梯度。',
+  comm:'通信对象；表示跨 rank 的 send/recv/all-reduce/all-to-all。',
+  metric:'监控指标；用于定位训练稳定性和负载异常。'
+};
+const TRAIN_TYPE_ORDER=['activation','residual','gradient','comm','loss','metric','lr','scale','opt','weight','bias'];
+const trainingObjectState={
+  selectedId:TRAIN_OBJECT_BY_ID.has('router_weight')?'router_weight':TRAIN_OBJECTS[0]?.id,
+  query:'',
+  activeTypes:new Set(Object.keys(TRAIN_TYPES)),
+  strategy:'all',
+  microbatch:2,
+  flowPhase:'all',
+  revealed:false
+};
+let trainingObjectOverlayBuilt=false;
+let trainingObjectFlowMount=null;
+
+function trainTagKind(tag){
+  const value=String(tag||'').toLowerCase();
+  if(value.startsWith('tp'))return 'tp';
+  if(value.startsWith('pp'))return 'pp';
+  if(value.startsWith('ep'))return 'ep';
+  if(value.startsWith('dp'))return 'dp';
+  if(value.startsWith('cp'))return 'cp';
+  if(value.startsWith('sp'))return 'sp';
+  return 'other';
+}
+function trainTypeInfo(type){return TRAIN_TYPES[type]||{label:type||'Object',glyph:'?'};}
+function trainTypeColor(type){
+  const info=trainTypeInfo(type);
+  const sem=info.colorKey&&SEM_COLOR?.[info.colorKey];
+  return sem!=null?toHex(sem):(TRAIN_OBJECT_TYPE_FALLBACK[type]||'#94a3b8');
+}
+function trainTagsHtml(tags=[]){
+  return tags.map(tag=>`<span class="opv-train-tag" data-kind="${esc(trainTagKind(tag))}" title="${esc(trainTagExplain(tag))}">${esc(tag)}</span>`).join('');
+}
+function cssAttrValue(value){
+  return String(value??'').replace(/\\/g,'\\\\').replace(/"/g,'\\"');
+}
+function trainTagExplain(tag){
+  const value=String(tag||'');
+  const kind=trainTagKind(value);
+  if(kind==='tp')return `${value}: Tensor Parallel，同一层矩阵/张量在 rank 间切分。`;
+  if(kind==='pp')return `${value}: Pipeline Parallel，按 layer/stage 切分模型并传递激活/梯度。`;
+  if(kind==='ep')return `${value}: Expert Parallel，MoE experts/token dispatch 的分片维度。`;
+  if(kind==='dp')return `${value}: Data Parallel，完整模型副本之间同步梯度。`;
+  if(kind==='cp')return `${value}: Context Parallel，长上下文按序列片段切分。`;
+  if(kind==='sp')return `${value}: Sequence Parallel，序列维度上的张量/激活切分。`;
+  if(value.startsWith('mb'))return `${value}: microbatch，流水线中的微批次槽位。`;
+  return `${value}: 训练对象附加标识。`;
+}
+function trainObjectLabel(obj){
+  const info=trainTypeInfo(obj?.type);
+  return obj?`${info.label}: ${obj.label}`:'No object';
+}
+function trainObjectLayer(obj){
+  const m=String(obj?.path||'').match(/layers\.(\d+)/);
+  if(m)return Number(m[1]);
+  if(['final_norm','lm_head','logits','lm_head_weight'].includes(obj?.anchor))return 'output';
+  if(['embedding','embedding_weight'].includes(obj?.anchor))return 'input';
+  return FIRST_MOE_LAYER;
+}
+function trainObjectAnchorNode(obj){
+  return TRAIN_ANCHOR_NODE[obj?.anchor]||obj?.anchor||'moe_layer';
+}
+function trainObjectAnchorLabel(obj){
+  const id=trainObjectAnchorNode(obj);
+  return byId.get(id)?.label||clusterById.get(id)?.label||id;
+}
+function trainObjectPlacement(obj){
+  const layer=trainObjectLayer(obj);
+  const layerLabel=typeof layer==='number'?`L${layer}`:String(layer||'layer');
+  return `${layerLabel} · ${trainObjectAnchorLabel(obj)}`;
+}
+function trainObjectMeaning(obj){
+  return TRAIN_OBJECT_MEANING[obj?.type]||'训练过程中可定位、可关联的对象。';
+}
+function trainTagLegendHtml(tags=[]){
+  if(!tags.length)return '<div class="opv-note">这个对象没有额外并行标签。</div>';
+  return `<div class="opv-tag-explain-list">${tags.map(tag=>`<div class="opv-tag-explain">
+    <span class="opv-train-tag" data-kind="${esc(trainTagKind(tag))}">${esc(tag)}</span>
+    <span>${esc(trainTagExplain(tag))}</span>
+  </div>`).join('')}</div>`;
+}
+function trainTypeRank(type){
+  const index=TRAIN_TYPE_ORDER.indexOf(type);
+  return index>=0?index:TRAIN_TYPE_ORDER.length-2;
+}
+function sortedTrainingTypeEntries(){
+  return Object.entries(TRAIN_TYPES).sort(([a],[b])=>trainTypeRank(a)-trainTypeRank(b)||a.localeCompare(b));
+}
+function sortedTrainingGroups(map){
+  return [...map.entries()].sort(([a],[b])=>trainTypeRank(a)-trainTypeRank(b)||a.localeCompare(b));
+}
+function trainObjectAnalysisLinks(obj){
+  if(!obj)return [];
+  const tags=(obj.tags||[]).join(' ').toLowerCase();
+  const anchor=String(obj.anchor||'').toLowerCase();
+  const isMoe=/moe|expert|gate|a2a/.test(anchor)||tags.includes('ep');
+  const isTimeline=['activation','residual','gradient','comm','opt'].includes(obj.type);
+  return [
+    {id:'object-flow',label:'Objects',reason:'查看这个对象与同源 weight / gradient / optimizer state 以及前向、反向、通信流的关系。'},
+    {id:'loss',label:'Monitor',reason:['loss','metric','lr','scale'].includes(obj.type)?'直接对应训练稳定性曲线、loss scale 或学习率状态。':'作为训练 step 上下文，观察该对象被选中时 loss / acc / MFU / NPU 是否同步异常。'},
+    {id:'timeline',label:'Timeline',reason:isTimeline?'查看它在 1F1B 中何时产生、被消费、跨 PP/TP/EP/DP 通信。':'查看该参数对应的 forward/backward/update 时间位置。'},
+    {id:'moe-load',label:'MoE Load',reason:isMoe?'直接关联 router、expert 或 A2A dispatch/combine 的负载热力。':'弱关联：用于判断同层 MoE 负载是否影响这个对象所在路径。'},
+    {id:'card-load',label:'Card Load',reason:'把对象上的 TP / PP / EP / DP 标签映射到 rank/card，查看该分片落在哪些卡和并行组。'}
+  ];
+}
+function trainObjectAnalysisLinksHtml(obj){
+  return `<div class="opv-analysis-link-list">${trainObjectAnalysisLinks(obj).map(link=>`
+    <button class="opv-analysis-link" type="button" data-train-analysis-view="${esc(link.id)}">
+      <span class="opv-analysis-link__name">${esc(link.label)}</span>
+      <span class="opv-analysis-link__reason">${esc(link.reason)}</span>
+    </button>
+  `).join('')}</div>`;
+}
+function trainObjectFocus(obj){
+  const tags=(obj?.tags||[]).join(' ').toLowerCase();
+  const anchor=obj?.anchor||'';
+  if(obj?.type==='gradient'||anchor.includes('dp')||tags.includes('dp'))return 'comm:dp';
+  if(anchor.includes('a2a')||tags.includes('ep')||anchor.includes('expert'))return 'comm:ep';
+  if(anchor.includes('pp')||tags.includes('pp_boundary'))return 'comm:pp';
+  if(tags.includes('tp')||['qkv_weight','oproj_weight','attention','lm_head'].includes(anchor))return 'comm:tp';
+  if(obj?.type==='loss'||anchor==='logits'||anchor==='lm_head')return 'data:logits';
+  if(obj?.type==='activation'||obj?.type==='residual')return anchor.includes('a2a')?'data:dispatch':'data:hidden';
+  if(obj?.type==='comm')return 'comm:ep';
+  return 'all';
+}
+function trainObjectMatchesQuery(obj){
+  const q=trainingObjectState.query.trim().toLowerCase();
+  if(!q)return true;
+  return [obj.id,obj.type,obj.label,obj.path,obj.shape,obj.note,obj.anchor,...(obj.tags||[])]
+    .some(value=>String(value||'').toLowerCase().includes(q));
+}
+function trainObjectMatchesStrategy(obj){
+  if(trainingObjectState.strategy==='all')return true;
+  const strategy=(TRAIN_REGISTRY.strategies||[]).find(item=>item.id===trainingObjectState.strategy);
+  if(!strategy)return true;
+  if((strategy.anchors||[]).includes(obj.anchor))return true;
+  return (obj.tags||[]).some(tag=>trainTagKind(tag)===strategy.id||String(tag).toLowerCase().includes(strategy.id));
+}
+function visibleTrainingObjects(){
+  return TRAIN_OBJECTS.filter(obj=>trainingObjectState.activeTypes.has(obj.type)&&trainObjectMatchesQuery(obj)&&trainObjectMatchesStrategy(obj));
+}
+function selectedTrainingObject(){return TRAIN_OBJECT_BY_ID.get(trainingObjectState.selectedId)||TRAIN_OBJECTS[0]||null;}
+function objectFlowRows(obj){
+  if(!obj)return [];
+  return (TRAIN_REGISTRY.flows||[]).filter(flow=>{
+    if(trainingObjectState.flowPhase!=='all'&&flow.type!==trainingObjectState.flowPhase)return false;
+    return flow.source===obj.id||flow.target===obj.id||(obj.linked||[]).includes(flow.source)||(obj.linked||[]).includes(flow.target);
+  });
+}
+function renderTrainingObjectFilters(){
+  const root=document.getElementById('trainingObjectTypeFilters');
+  if(!root)return;
+  root.innerHTML=sortedTrainingTypeEntries().map(([type,info])=>{
+    const active=trainingObjectState.activeTypes.has(type);
+    return `<button class="opv-object-filter${active?' is-active':''}" type="button" data-train-type="${esc(type)}">${esc(info.label||type)}</button>`;
+  }).join('');
+}
+function renderTrainingObjectExplorer(){
+  const list=document.getElementById('trainingObjectList');
+  const count=document.getElementById('trainingObjectCount');
+  if(!list)return;
+  const visible=visibleTrainingObjects();
+  if(count)count.textContent=`${visible.length}/${TRAIN_OBJECTS.length} objects`;
+  const byType=visible.reduce((map,obj)=>{
+    const key=obj.type||'object';
+    const group=map.get(key)||[];
+    group.push(obj);
+    map.set(key,group);
+    return map;
+  },new Map());
+  list.innerHTML=sortedTrainingGroups(byType).map(([type,items])=>{
+    const info=trainTypeInfo(type);
+    return `<section class="opv-registry-group">
+      <div class="opv-registry-group__head"><span>${esc(info.label||type)}</span><span>${items.length}</span></div>
+      ${items.map(obj=>`
+        <button class="opv-registry-row${obj.id===trainingObjectState.selectedId?' is-selected':''}" type="button" data-train-object="${esc(obj.id)}">
+          <span class="opv-registry-row__glyph" style="--object-color:${esc(trainTypeColor(obj.type))}">${esc(info.glyph||'?')}</span>
+          <span class="opv-registry-row__main">
+            <span class="opv-registry-row__label">${esc(obj.label)}</span>
+            <span class="opv-registry-row__placement">${esc(trainObjectPlacement(obj))}</span>
+            <span class="opv-registry-row__path">${esc(obj.path)}</span>
+            <span class="opv-train-tag-row">${trainTagsHtml(obj.tags||[])}</span>
+          </span>
+        </button>
+      `).join('')}
+    </section>`;
+  }).join('')||'<div class="opv-note">没有匹配对象。</div>';
+}
+function setTrainingObjectStrategy(id){
+  trainingObjectState.strategy=id||'all';
+  renderTrainingObjectExplorer();
+  renderTrainingObjectOverlay();
+  renderTrainingObjectFlow();
+}
+function setTrainingObjectFlowPhase(id){
+  trainingObjectState.flowPhase=id||'all';
+  renderTrainingObjectInspector();
+  renderTrainingObjectFlow();
+}
+function activateTrainingObjectAnalysis(viewId,obj=selectedTrainingObject()){
+  if(!viewId)return;
+  analysisDockController?.setActiveView?.(viewId);
+  if(viewId==='timeline'){
+    const phaseByType={activation:'activation',residual:'activation',gradient:'gradient',comm:'communication',opt:'optimizer'};
+    if(phaseByType[obj?.type])trainingObjectState.flowPhase=phaseByType[obj.type];
+    if(typeof syncCommToggleButton==='function')syncCommToggleButton();
+    requestAnimationFrame(()=>{if(typeof paintSwimlane==='function')paintSwimlane();});
+  }else if(viewId==='moe-load'){
+    const focus=trainObjectFocus(obj);
+    setObjectFocus(focus==='comm:ep'?'comm:ep':'op:experts');
+  }else if(viewId==='card-load'){
+    setObjectFocus('hw:cards');
+  }else if(viewId==='object-flow'){
+    renderTrainingObjectFlow();
+  }
+  renderTrainingObjectInspector();
+  renderTrainingObjectFlow();
+  if(statusRight)statusRight.textContent=`Bottom pane · ${viewId} · ${obj?trainObjectPlacement(obj):'object context'}`;
+}
+function selectTrainingObject(id,{focus=true,openInspector=true}={}){
+  if(!TRAIN_OBJECT_BY_ID.has(id))return;
+  trainingObjectState.selectedId=id;
+  if(focus||openInspector)trainingObjectState.revealed=true;
+  const obj=selectedTrainingObject();
+  if(focus){
+    analysisDockController?.setActiveView?.('object-flow');
+    const mode=trainObjectFocus(obj);
+    if(mode&&mode!=='all')setObjectFocus(mode);
+    const layer=trainObjectLayer(obj);
+    if(typeof layer==='number')dispatch({source:'object',layer,op:trainObjectAnchorNode(obj),metric:obj.type});
+    if(mode?.startsWith('comm:')&&typeof setCameraView==='function')setCameraView('right',Math.PI/2,Math.PI/2,{target:sideViewTarget(),zoomRatio:1.32});
+    else if(typeof setCameraView==='function')setCameraView('front',0,Math.PI/2,{target:frontViewTarget(),zoomRatio:1.35});
+    if(statusRight)statusRight.textContent=`Object selected · ${trainObjectPlacement(obj)} · ${trainObjectMeaning(obj)}`;
+  }
+  if(openInspector)setInspectorTab('object');
+  renderTrainingObjectExplorer();
+  renderTrainingObjectInspector();
+  renderTrainingObjectOverlay();
+  renderTrainingObjectFlow();
+}
+function initTrainingObjectUi(){
+  renderTrainingObjectFilters();
+  renderTrainingObjectExplorer();
+  renderTrainingObjectInspector();
+  renderTrainingObjectOverlay();
+  const search=document.getElementById('trainingObjectSearch');
+  search?.addEventListener('input',event=>{
+    trainingObjectState.query=event.currentTarget.value||'';
+    renderTrainingObjectExplorer();
+    renderTrainingObjectOverlay();
+    renderTrainingObjectFlow();
+  });
+  document.getElementById('trainingObjectTypeFilters')?.addEventListener('click',event=>{
+    const btn=event.target.closest('[data-train-type]');
+    if(!btn)return;
+    const type=btn.dataset.trainType;
+    if(trainingObjectState.activeTypes.has(type)&&trainingObjectState.activeTypes.size>1)trainingObjectState.activeTypes.delete(type);
+    else trainingObjectState.activeTypes.add(type);
+    renderTrainingObjectFilters();
+    renderTrainingObjectExplorer();
+    renderTrainingObjectOverlay();
+    renderTrainingObjectFlow();
+  });
+  document.addEventListener('click',event=>{
+    const objectBtn=event.target.closest('[data-train-object]');
+    if(objectBtn){
+      selectTrainingObject(objectBtn.dataset.trainObject);
+      return;
+    }
+    const overlayBtn=event.target.closest('[data-train-object-badge]');
+    if(overlayBtn){
+      selectTrainingObject(overlayBtn.dataset.trainObjectBadge);
+      return;
+    }
+    const strategyBtn=event.target.closest('[data-train-strategy]');
+    if(strategyBtn){
+      setTrainingObjectStrategy(strategyBtn.dataset.trainStrategy);
+      return;
+    }
+    const phaseBtn=event.target.closest('[data-train-flow-phase]');
+    if(phaseBtn){
+      setTrainingObjectFlowPhase(phaseBtn.dataset.trainFlowPhase);
+      return;
+    }
+    const analysisBtn=event.target.closest('[data-train-analysis-view]');
+    if(analysisBtn){
+      activateTrainingObjectAnalysis(analysisBtn.dataset.trainAnalysisView);
+    }
+  });
+  if(trainingObjectState.selectedId)selectTrainingObject(trainingObjectState.selectedId,{focus:false,openInspector:false});
+}
 
 /* ===== 配色：语义 hue 锁定 + theme-aware S/L 曲线 ===== */
 const RANK_COLOR_KEYS=Array.from({length:32},(_,rank)=>Array.from({length:7},(_,variant)=>`rank:r${rank}:v${variant}`)).flat();
@@ -1033,7 +1486,7 @@ const weightFillColor=()=>hexInt((document.documentElement.dataset.theme||savedT
 function applySemanticPalette(){
   const id=SELECTED_PALETTE_ID;
   const lightVariantId=SELECTED_LIGHT_VARIANT_ID;
-  const theme=document.documentElement.dataset.theme||savedTheme||'dark';
+  const theme=document.documentElement.dataset.theme||savedTheme||'light';
   const palette=typeof window.buildPanguSemanticColors==='function'
     ?window.buildPanguSemanticColors({keys:SEMANTIC_KEYS,paletteId:id,theme,lightVariantId})
     :baseDsMap(SEMANTIC_KEYS);
@@ -1066,7 +1519,7 @@ const OPACITY={
   ghostOp:0.30, ghostParam:0.18      // 折叠 / 次要层：算子透明度下限 0.30，参数酌情低一档（仍留透明避免 58 层叠成实墙）
 };
 
-const initialSceneTheme=SCENE_THEMES[savedTheme]||SCENE_THEMES.dark;
+const initialSceneTheme=SCENE_THEMES[savedTheme]||SCENE_THEMES.light;
 const TH={
   board:initialSceneTheme.board,pkg:initialSceneTheme.pkg,outline:initialSceneTheme.outline,
   tray:initialSceneTheme.tray,grid:initialSceneTheme.grid,gridMinor:initialSceneTheme.gridMinor
@@ -1074,7 +1527,7 @@ const TH={
 function setSceneThemeTokens(t){
   TH.board=t.board;TH.pkg=t.pkg;TH.outline=t.outline;TH.tray=t.tray;TH.grid=t.grid;TH.gridMinor=t.gridMinor;
 }
-const curTheme=()=>document.documentElement.dataset.theme||savedTheme||'dark';
+const curTheme=()=>document.documentElement.dataset.theme||savedTheme||'light';
 const sceneLabelColor=()=>curTheme()==='light'?0x0f0f10:0xdbe2ee;
 const sceneMutedColor=()=>curTheme()==='light'?0x111111:0xaab2bd;
 function mixHex(a,b,t){
@@ -1516,6 +1969,239 @@ function lineTagsFor(a,b,layerA,layerB){
   if((a==='lm_head'&&b==='logits_allgather')||a==='logits_allgather'||b==='logits_allgather')tags.add('comm:logits');
   if((a==='dense_block'&&b==='dense_block')||(a==='dense_block'&&b==='mla')||(a==='moe_residual'&&b==='mla')||(a==='moe_residual'&&b==='final_norm'))tags.add('data:hidden');
   return [...tags];
+}
+function trainingObjectWorld(obj){
+  if(!obj)return null;
+  const anchor=trainObjectAnchorNode(obj);
+  const group=TRAIN_OBJECT_GROUPS.get(obj.anchor||obj.type)||[obj];
+  const index=Math.max(0,group.findIndex(item=>item.id===obj.id));
+  const count=Math.max(1,group.length);
+  const layer=trainObjectLayer(obj);
+  let base=nodePos(anchor,layer);
+  if(!base&&anchor==='moe_layer')base=clusterCenterPos('moe_layer',typeof layer==='number'?layer:FIRST_MOE_LAYER);
+  if(!base&&/^expert_group_/.test(anchor))base=nodePos(anchor,typeof layer==='number'?layer:LAST_MOE_LAYER);
+  if(!base)base=nodePos('gate',LAST_MOE_LAYER);
+  if(!base)return null;
+  const angle=(index/count)*Math.PI*2-Math.PI/2;
+  const radius=count>3?0.34:0.22;
+  return base.clone().add(new THREE.Vector3(Math.cos(angle)*radius,Math.sin(angle)*radius*0.62,0.24+index*0.018));
+}
+function renderTrainingObjectOverlay(){
+  const root=document.getElementById('trainingObjectOverlay');
+  if(!root)return;
+  const visibleIds=new Set(visibleTrainingObjects().map(obj=>obj.id));
+  const selectedObj=trainingObjectState.revealed?selectedTrainingObject():null;
+  const selectedColor=selectedObj?trainTypeColor(selectedObj.type):'#94a3b8';
+  root.innerHTML=`<svg class="opv-training-object-links" aria-hidden="true">
+      <line class="opv-training-object-link" data-train-object-link x1="0" y1="0" x2="0" y2="0"></line>
+    </svg>
+    <div class="opv-training-object-anchor" data-train-object-anchor style="--object-color:${esc(selectedColor)}">
+      <span class="opv-training-object-anchor__dot"></span>
+      <span class="opv-training-object-anchor__label">${selectedObj?esc(trainObjectPlacement(selectedObj)):''}</span>
+    </div>`+TRAIN_OBJECTS.map(obj=>{
+    const info=trainTypeInfo(obj.type);
+    const selected=trainingObjectState.revealed&&obj.id===trainingObjectState.selectedId;
+    const dimmed=!visibleIds.has(obj.id);
+    const placement=trainObjectPlacement(obj);
+    return `<button class="opv-training-object-badge${selected?' is-selected':''}${dimmed?' is-dimmed':''}" type="button"
+      data-train-object-badge="${esc(obj.id)}" style="--object-color:${esc(trainTypeColor(obj.type))}" title="${esc(obj.path)}">
+      <span class="opv-training-object-badge__glyph">${esc(info.glyph||'?')}</span>
+      <span class="opv-training-object-badge__body">
+        <span class="opv-training-object-badge__label">${esc(obj.label)}</span>
+        <span class="opv-training-object-badge__meta">${esc(placement)} · ${esc(info.label||obj.type)}</span>
+        <span class="opv-training-object-badge__meaning">${esc(trainObjectMeaning(obj))}</span>
+      </span>
+    </button>`;
+  }).join('');
+  trainingObjectOverlayBuilt=true;
+  syncTrainingObjectOverlayPositions();
+}
+function syncTrainingObjectOverlayPositions(){
+  const root=document.getElementById('trainingObjectOverlay');
+  if(!root||!trainingObjectOverlayBuilt)return;
+  const rect=renderer.domElement.getBoundingClientRect();
+  const rootRect=root.getBoundingClientRect();
+  const link=root.querySelector('[data-train-object-link]');
+  const anchorEl=root.querySelector('[data-train-object-anchor]');
+  let selectedAnchor=null;
+  let selectedEl=null;
+  TRAIN_OBJECTS.forEach(obj=>{
+    const el=root.querySelector(`[data-train-object-badge="${cssAttrValue(obj.id)}"]`);
+    if(!el)return;
+    const world=trainingObjectWorld(obj);
+    if(!world){el.style.display='none';return;}
+    const projected=world.clone().project(camera);
+    const inView=projected.z<1&&projected.x>=-1.08&&projected.x<=1.08&&projected.y>=-1.08&&projected.y<=1.08;
+    if(!inView){el.style.display='none';return;}
+    const isSelected=el.classList.contains('is-selected');
+    el.style.display=isSelected?'grid':'inline-flex';
+    el.dataset.side=projected.x>0.56?'left':'right';
+    const x=(projected.x+1)*0.5*rect.width;
+    const y=(1-projected.y)*0.5*rect.height;
+    el.style.left=x+'px';
+    el.style.top=y+'px';
+    if(isSelected){
+      selectedAnchor={x,y,obj,side:el.dataset.side};
+      selectedEl=el;
+    }
+  });
+  if(selectedAnchor&&selectedEl&&anchorEl&&link){
+    const color=trainTypeColor(selectedAnchor.obj.type);
+    anchorEl.style.setProperty('--object-color',color);
+    anchorEl.querySelector('.opv-training-object-anchor__label').textContent=trainObjectPlacement(selectedAnchor.obj);
+    anchorEl.style.left=selectedAnchor.x+'px';
+    anchorEl.style.top=selectedAnchor.y+'px';
+    anchorEl.classList.add('is-active');
+    const box=selectedEl.getBoundingClientRect();
+    const targetX=selectedAnchor.side==='left'?box.right-rootRect.left-10:box.left-rootRect.left+10;
+    const targetY=box.bottom-rootRect.top-4;
+    link.setAttribute('x1',String(selectedAnchor.x));
+    link.setAttribute('y1',String(selectedAnchor.y));
+    link.setAttribute('x2',String(targetX));
+    link.setAttribute('y2',String(targetY));
+    link.style.setProperty('--object-color',color);
+    link.classList.add('is-active');
+  }else{
+    anchorEl?.classList.remove('is-active');
+    link?.classList.remove('is-active');
+  }
+}
+function renderTrainingObjectInspector(){
+  const root=document.getElementById('inspectorObject');
+  if(!root)return;
+  const obj=selectedTrainingObject();
+  if(!obj){root.innerHTML='<p class="opv-note">未加载训练对象 registry。</p>';return;}
+  const info=trainTypeInfo(obj.type);
+  const linked=(obj.linked||[]).map(id=>TRAIN_OBJECT_BY_ID.get(id)).filter(Boolean);
+  const flows=objectFlowRows(obj);
+  root.innerHTML=`<div class="opv-object-inspector">
+    <div class="opv-object-inspector__head">
+      <span class="opv-registry-row__glyph" style="--object-color:${esc(trainTypeColor(obj.type))}">${esc(info.glyph||'?')}</span>
+      <div>
+        <div class="opv-object-inspector__title">${esc(trainObjectLabel(obj))}</div>
+        <div class="opv-object-inspector__path">${esc(obj.path)}</div>
+      </div>
+    </div>
+    <div class="opv-train-tag-row">${trainTagsHtml(obj.tags||[])}</div>
+    <p class="opv-object-inspector__note">${esc(obj.note||'')}</p>
+    <div class="opv-object-guide">
+      <div class="opv-object-guide__row"><span>图上位置</span><b>${esc(trainObjectPlacement(obj))}</b></div>
+      <div class="opv-object-guide__row"><span>对象含义</span><b>${esc(trainObjectMeaning(obj))}</b></div>
+    </div>
+    <dl class="opv-object-detail-grid">
+      <dt>Shape</dt><dd>${esc(obj.shape||'—')}</dd>
+      <dt>Anchor</dt><dd>${esc(obj.anchor||'—')} -> ${esc(trainObjectAnchorNode(obj))} / ${esc(trainObjectAnchorLabel(obj))}</dd>
+      <dt>Layer</dt><dd>${esc(trainObjectLayer(obj))}</dd>
+      <dt>Focus</dt><dd>${esc(trainObjectFocus(obj))}</dd>
+    </dl>
+    <div>
+      <div class="opv-section-label">标签说明</div>
+      ${trainTagLegendHtml(obj.tags||[])}
+    </div>
+    <div>
+      <div class="opv-section-label">关联底部 pane</div>
+      ${trainObjectAnalysisLinksHtml(obj)}
+    </div>
+    <div>
+      <div class="opv-section-label">关联对象</div>
+      <div class="opv-object-link-list">
+        ${linked.map(item=>`<button class="opv-object-link" type="button" data-train-object="${esc(item.id)}">
+          <span class="opv-registry-row__glyph" style="--object-color:${esc(trainTypeColor(item.type))}">${esc(trainTypeInfo(item.type).glyph||'?')}</span>
+          <span class="opv-object-link__text">${esc(item.path)}</span>
+        </button>`).join('')||'<div class="opv-note">没有同源关联对象。</div>'}
+      </div>
+    </div>
+    <div>
+      <div class="opv-section-label">流式关系</div>
+      <div class="opv-object-flow-list">
+        ${flows.map(flow=>`<div class="opv-object-flow-row">
+          <span class="opv-object-flow-row__kind">${esc(flow.type)}</span>
+          <span class="opv-object-flow-row__text">${esc(flow.label)} · ${esc(flow.source)} -> ${esc(flow.target)}</span>
+        </div>`).join('')||'<div class="opv-note">当前 phase 过滤下没有流式关系。</div>'}
+      </div>
+    </div>
+  </div>`;
+}
+function renderTrainingObjectFlow(){
+  if(!trainingObjectFlowMount)return;
+  const obj=selectedTrainingObject();
+  const visible=visibleTrainingObjects();
+  const flows=objectFlowRows(obj);
+  const linked=(obj?.linked||[]).map(id=>TRAIN_OBJECT_BY_ID.get(id)).filter(Boolean);
+  const facts=TRAIN_REGISTRY.modelFacts||{};
+  const strategyCards=[{id:'all',label:'All',summary:'显示所有对象、关联和训练流。'},...(TRAIN_REGISTRY.strategies||[])];
+  const phaseCards=[
+    {id:'all',label:'All'}, {id:'activation',label:'Forward'}, {id:'gradient',label:'Backward'}, {id:'communication',label:'Comm'}, {id:'optimizer',label:'Optim'}
+  ];
+  trainingObjectFlowMount.innerHTML=`<div class="opv-object-flow-view">
+    <div class="opv-object-flow-head">
+      <div class="opv-object-flow-stats">
+        <div class="opv-object-flow-stat"><span>Scenario</span><b>${esc(facts.scenario||'train.txt')}</b></div>
+        <div class="opv-object-flow-stat"><span>Selected</span><b>${esc(obj?.label||'—')}</b></div>
+        <div class="opv-object-flow-stat"><span>Visible</span><b>${visible.length}/${TRAIN_OBJECTS.length}</b></div>
+        <div class="opv-object-flow-stat"><span>Flows</span><b>${flows.length}</b></div>
+        <div class="opv-object-flow-stat"><span>Microbatch</span><b>mb:${trainingObjectState.microbatch}</b></div>
+      </div>
+      <label class="opv-mb-control">microbatch
+        <input id="trainingMbRange" type="range" min="0" max="7" step="1" value="${trainingObjectState.microbatch}">
+        <b>mb:${trainingObjectState.microbatch}</b>
+      </label>
+    </div>
+    <div class="opv-object-flow-grid">
+      <section class="opv-object-flow-panel">
+        <h3>对象标识</h3>
+        ${obj?`<div class="opv-object-flow-card">
+          <div class="opv-object-flow-card__title"><span>${esc(trainObjectLabel(obj))}</span><span>${esc(obj.shape||'')}</span></div>
+          <div class="opv-object-flow-card__body">${esc(obj.path)}</div>
+          <div class="opv-object-flow-card__body">${esc(trainObjectPlacement(obj))} · ${esc(trainObjectMeaning(obj))}</div>
+          <div class="opv-train-tag-row">${trainTagsHtml(obj.tags||[])}</div>
+        </div>`:''}
+        <h3>策略过滤</h3>
+        <div class="opv-analysis-controls">
+          ${strategyCards.map(strategy=>`<button class="opv-analysis-chip${trainingObjectState.strategy===strategy.id?' is-active':''}" type="button" data-train-strategy="${esc(strategy.id)}">${esc(strategy.label)}</button>`).join('')}
+        </div>
+        <p class="opv-note">${esc((strategyCards.find(item=>item.id===trainingObjectState.strategy)||strategyCards[0])?.summary||'')}</p>
+        <h3>关联底部 pane</h3>
+        ${trainObjectAnalysisLinksHtml(obj)}
+      </section>
+      <section class="opv-object-flow-panel">
+        <h3>权重 / 梯度 / 优化器同源关系</h3>
+        ${linked.map(item=>`<button class="opv-object-link" type="button" data-train-object="${esc(item.id)}">
+          <span class="opv-registry-row__glyph" style="--object-color:${esc(trainTypeColor(item.type))}">${esc(trainTypeInfo(item.type).glyph||'?')}</span>
+          <span class="opv-object-link__text">${esc(item.path)}</span>
+        </button>`).join('')||'<div class="opv-note">选择权重、梯度或优化器状态可查看同源对象。</div>'}
+      </section>
+      <section class="opv-object-flow-panel">
+        <h3>前向 / 反向 / 通信流</h3>
+        <div class="opv-analysis-controls">
+          ${phaseCards.map(phase=>`<button class="opv-analysis-chip${trainingObjectState.flowPhase===phase.id?' is-active':''}" type="button" data-train-flow-phase="${esc(phase.id)}">${esc(phase.label)}</button>`).join('')}
+        </div>
+        <div class="opv-object-flow-list" style="margin-top:8px">
+          ${flows.map(flow=>`<div class="opv-object-flow-row">
+            <span class="opv-object-flow-row__kind">${esc(flow.type)}</span>
+            <span class="opv-object-flow-row__text">${esc(flow.label)} · ${esc(flow.source)} -> ${esc(flow.target)}</span>
+          </div>`).join('')||'<div class="opv-note">当前对象在此 phase 下没有直接流。</div>'}
+        </div>
+      </section>
+    </div>
+  </div>`;
+  trainingObjectFlowMount.querySelector('#trainingMbRange')?.addEventListener('input',event=>{
+    trainingObjectState.microbatch=Number(event.currentTarget.value)||0;
+    renderTrainingObjectFlow();
+    if(statusRight)statusRight.textContent=`Object flow microbatch · mb:${trainingObjectState.microbatch}`;
+  });
+}
+function createTrainingObjectFlowView(panel){
+  return {
+    id:'object-flow',
+    label:'Objects',
+    title:'Object Flow / Identifier Topology',
+    meta:()=>`${TRAIN_OBJECTS.length} objects · ${TRAIN_REGISTRY.modelFacts?.scenario||'train.txt spec'}`,
+    panel,
+    mount(){trainingObjectFlowMount=panel;renderTrainingObjectFlow();},
+    render(){renderTrainingObjectFlow();},
+    resize(){}
+  };
 }
 function rememberArch(mesh,id,layer,base,labelOverride,descOverride){
   mesh.userData={
@@ -3770,6 +4456,7 @@ function renderSwimlane(){if(activeAnalysisView==='timeline')paintSwimlane();}
 /* ===== Analysis Dock：Timeline / MoE Load / Rank Load / Card Load ===== */
 const analysisPanels={
   loss:document.getElementById('analysisPanelLoss'),
+  objectFlow:document.getElementById('analysisPanelObjectFlow'),
   timeline:document.getElementById('analysisPanelTimeline'),
   moe:document.getElementById('analysisPanelMoe'),
   card:document.getElementById('analysisPanelCard')
@@ -4068,6 +4755,7 @@ function handleAnalysisSelection(selection){
 }
 const moeView=createMoeLoadView({panel:analysisPanels.moe,viewModel:moeLoadViewModel,onSelect:handleAnalysisSelection});
 const cardView=createCardLoadView({panel:analysisPanels.card,viewModel:cardLoadViewModel,onSelect:handleAnalysisSelection});
+const objectFlowView=createTrainingObjectFlowView(analysisPanels.objectFlow);
 // step(主时间) → MoE 热力/异常派生：loop 内按帧合并，重 DOM 重挂只在 MoE tab 活动时做
 let moeStepPending=focusContext.step, moeStepApplied=null, moeViewDirty=false;
 // 坍缩强度 = load_balance_loss 从健康基线(0.42)掉了多少 → 0(均衡)..1(坍缩)。loss 与 MoE 同源。
@@ -4098,6 +4786,7 @@ analysisDockController=createAnalysisDock({
   initialView:localStorage.getItem('op-rank-time-analysis-view')||'loss',
   views:[
     lossView,
+    objectFlowView,
     {
       id:'timeline',
       label:'Timeline',
@@ -4210,6 +4899,7 @@ pbCounter=pbControl.querySelector('.pto-floating-playback__counter');
 pbOpname=pbControl.querySelector('.pto-floating-playback__opname');
 statusLeft=document.getElementById('statusLeft');
 statusRight=document.getElementById('statusRight');
+initTrainingObjectUi();
 const stepLayerLabel=document.getElementById('stepLayerLabel');
 const innerTickLabel=document.getElementById('innerTickLabel');
 const innerTickBack=document.getElementById('innerTickBack');
@@ -4585,7 +5275,7 @@ function syncEpOverlayPositions(){
   syncList(ppLabelEls,showPp);
   syncList(dpLabelEls,showDp);
 }
-let ALL_ANOMALIES=[], selectedAnomalyId=null;
+let ALL_ANOMALIES=[], selectedAnomalyId=null, anomalyPreviewId=null;
 const pct=v=>Math.round(v*100);
 const SEV_NAME={1:'关注',2:'警告',3:'严重'};
 function sevForRatio(v,warn,crit){return v>=crit?3:v>=warn?2:1;}
@@ -4691,12 +5381,18 @@ function anomalyAnchorWorld(a){
   if(a.anchor.kind==='card'&&a.anchor.nodeId&&nodeCenter[a.anchor.nodeId])return nodeCenter[a.anchor.nodeId];
   return null;
 }
+function anomalyActiveId(){return selectedAnomalyId||anomalyPreviewId||null;}
 function refreshAnomalySelection(){
-  const selIs3D=anomalyEls.has(selectedAnomalyId);
+  const activeId=anomalyActiveId();
+  anomalyLayer?.classList.toggle('is-active',!!activeId);
+  const selIs3D=anomalyEls.has(activeId);
   anomalyEls.forEach(({el},id)=>{
-    el.classList.toggle('is-selected',id===selectedAnomalyId);
-    el.classList.toggle('is-dimmed',selIs3D&&id!==selectedAnomalyId);
+    const active=id===activeId;
+    el.hidden=!active;
+    el.classList.toggle('is-selected',active);
+    el.classList.toggle('is-dimmed',selIs3D&&!active);
   });
+  if(typeof syncAnomalyBoxVisibility==='function')syncAnomalyBoxVisibility();
 }
 // P1 诊断卡（inspector）
 const diagCard=document.getElementById('diagCard'),diagSev=document.getElementById('diagSev'),
@@ -4706,6 +5402,7 @@ const diagCard=document.getElementById('diagCard'),diagSev=document.getElementBy
 const inspectorTabs=document.getElementById('inspectorTabs');
 const inspectorDiagnostics=document.getElementById('inspectorDiagnostics');
 const inspectorFocus=document.getElementById('inspectorFocus');
+const inspectorObject=document.getElementById('inspectorObject');
 const diagSummary=document.getElementById('diagSummary');
 const diagList=document.getElementById('diagList');
 let activeInspectorTab='diagnostics', selectedFindingId=null, INSPECTOR_FINDINGS=[];
@@ -4718,12 +5415,14 @@ const stageRangeLabel=stage=>{
 };
 const modeLink=(objectFocus,opts={})=>({objectFocus,view:'right',...opts});
 function setInspectorTab(id){
-  activeInspectorTab=id==='focus'?'focus':'diagnostics';
+  activeInspectorTab=['diagnostics','focus','object'].includes(id)?id:'diagnostics';
   inspectorDiagnostics.hidden=activeInspectorTab!=='diagnostics';
   inspectorFocus.hidden=activeInspectorTab!=='focus';
+  if(inspectorObject)inspectorObject.hidden=activeInspectorTab!=='object';
   inspectorTabs?.querySelectorAll('[data-inspector-tab]').forEach(btn=>{
     btn.classList.toggle('is-active',btn.dataset.inspectorTab===activeInspectorTab);
   });
+  if(activeInspectorTab==='object')renderTrainingObjectInspector();
 }
 inspectorTabs?.addEventListener('click',event=>{
   const btn=event.target.closest('[data-inspector-tab]');
@@ -4925,6 +5624,8 @@ function beginInspectorFindingPreview(finding,btn){
   diagPreviewBtn?.classList.remove('is-previewing');
   diagPreviewBtn=btn||null;
   diagPreviewBtn?.classList.add('is-previewing');
+  anomalyPreviewId=finding.sourceAnomalyId||null;
+  refreshAnomalySelection();
   activateFindingLink(finding,{preview:true});
 }
 function endInspectorFindingPreview({restore=true}={}){
@@ -4932,6 +5633,8 @@ function endInspectorFindingPreview({restore=true}={}){
   diagPreviewBtn=null;
   const prev=diagPreviewState;
   diagPreviewState=null;
+  anomalyPreviewId=null;
+  refreshAnomalySelection();
   setHoverStaticObject(null);
   if(!restore||!prev)return;
   focusNode=prev.focusNode;
@@ -5001,6 +5704,7 @@ function showDiagnosis(a){
 }
 function hideDiagnosis(){if(diagCard)diagCard.hidden=true;}
 function selectInspectorFinding(finding){
+  anomalyPreviewId=null;
   selectedFindingId=finding.id;
   if(finding.sourceAnomalyId){
     const anomaly=ALL_ANOMALIES.find(a=>a.id===finding.sourceAnomalyId);
@@ -5016,6 +5720,7 @@ function selectInspectorFinding(finding){
   renderInspectorDiagnostics();
 }
 function selectAnomaly(a){
+  anomalyPreviewId=null;
   if(selectedAnomalyId!==a.id){
     clearThreeDrillTarget({restoreObjectFocus:false});
     clearSwimHighlight();
@@ -5035,7 +5740,7 @@ function selectAnomaly(a){
   renderInspectorDiagnostics();
 }
 function selectAnomalyById(id){const a=ALL_ANOMALIES.find(x=>x.id===id);if(a)selectAnomaly(a);}
-function clearAnomalySelection(){selectedAnomalyId=null;hideDiagnosis();refreshAnomalySelection();selectedFindingId=null;renderInspectorDiagnostics();}
+function clearAnomalySelection(){selectedAnomalyId=null;anomalyPreviewId=null;hideDiagnosis();refreshAnomalySelection();selectedFindingId=null;renderInspectorDiagnostics();}
 function buildAnomalyBadges(){
   ALL_ANOMALIES=computeAnomalies();
   anomalyLayer.innerHTML=''; anomalyEls.clear();
@@ -5065,6 +5770,12 @@ anomalyBox.renderOrder=900; anomalyBoxBrk.renderOrder=901;
 scene.add(anomalyBox); scene.add(anomalyBoxBrk);
 updateLineResolution();
 const BOX_EDGES=[[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
+function syncAnomalyBoxVisibility(){
+  const id=anomalyActiveId();
+  const show=anomalyZoneAnchorValid&&(id==='loss-collapse'||id==='moe-zone');
+  anomalyBox.visible=show;
+  anomalyBoxBrk.visible=show;
+}
 function boxCornersOf(cx,cy,cz,sx,sy,sz){
   const x0=cx-sx/2,x1=cx+sx/2,y0=cy-sy/2,y1=cy+sy/2,z0=cz-sz/2,z1=cz+sz/2;
   return [[x0,y0,z0],[x1,y0,z0],[x1,y1,z0],[x0,y1,z0],[x0,y0,z1],[x1,y0,z1],[x1,y1,z1],[x0,y1,z1]];
@@ -5086,12 +5797,13 @@ function updateAnomalyBox(){
   const L=Math.min(sx,sy,sz)*0.24,bpos=[];
   c.forEach((v,ci)=>{BOX_EDGES.forEach(([a,b])=>{if(a===ci||b===ci){const o=c[a===ci?b:a],d=[o[0]-v[0],o[1]-v[1],o[2]-v[2]],len=Math.hypot(...d)||1;bpos.push(v[0],v[1],v[2],v[0]+d[0]/len*L,v[1]+d[1]/len*L,v[2]+d[2]/len*L);}});});
   boxBrkGeo.setPositions(bpos);
-  anomalyBox.visible=true; anomalyBoxBrk.visible=true;
   anomalyZoneAnchor.set(cx,cy+sy/2,cz); anomalyZoneAnchorValid=true;   // 盒顶中点 → zone 徽标贴这
+  syncAnomalyBoxVisibility();
 }
 function animateAnomalyBox(now){
   if(!anomalyBox.visible)return;
-  const sel=selectedAnomalyId==='loss-collapse'||selectedAnomalyId==='moe-zone';
+  const id=anomalyActiveId();
+  const sel=id==='loss-collapse'||id==='moe-zone';
   const k=0.5+Math.sin(now*0.003)*0.5;
   boxDashMat.dashOffset=-now*0.0006;
   boxDashMat.uniforms.opacity.value=(sel?0.92:0.66)+k*0.08;
@@ -5100,8 +5812,14 @@ function animateAnomalyBox(now){
 }
 function syncAnomalyPositions(){
   if(!anomalyEls.size)return;
+  const activeId=anomalyActiveId();
+  if(!activeId){
+    anomalyEls.forEach(({el})=>{el.style.display='none';});
+    return;
+  }
   const r=renderer.domElement.getBoundingClientRect();
-  anomalyEls.forEach(({el,anomaly})=>{
+  anomalyEls.forEach(({el,anomaly},id)=>{
+    if(id!==activeId){el.style.display='none';return;}
     const w=anomalyAnchorWorld(anomaly); if(!w){el.style.display='none';return;}
     const p=w.clone().project(camera);
     const inView=p.z<1&&p.x>=-1.06&&p.x<=1.06&&p.y>=-1.06&&p.y<=1.06;
@@ -5127,6 +5845,7 @@ function loop(now){
   if(innerPlaying&&now-ambientTickAt>INNER_PLAY_INTERVAL){ambientTickAt=now;advanceInnerTick(1);}
   syncAnomalyPositions();
   syncEpOverlayPositions();
+  syncTrainingObjectOverlayPositions();
   animateAnomalyBox(now);
   renderer.render(scene,camera);
   syncAxisCamera();
