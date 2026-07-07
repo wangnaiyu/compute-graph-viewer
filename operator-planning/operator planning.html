@@ -1058,6 +1058,53 @@
     }
     .core-card.is-active { background: color-mix(in srgb, var(--operator-blue) 20%, transparent); color: var(--operator-blue); }
     .core-card.is-former { background: color-mix(in srgb, var(--warning) 25%, transparent); color: var(--warning); }
+    .tiling-code-panel {
+      width: 100%;
+    }
+    .tiling-code-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+      gap: 12px;
+      align-items: stretch;
+    }
+    .tiling-code-block {
+      min-width: 0;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 8px;
+    }
+    .tiling-code-block__head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .tiling-code-block__head h4 {
+      margin: 0;
+      color: var(--foreground);
+      font: 700 12px / 1.25 var(--font-sans);
+    }
+    .tiling-code-block__head span {
+      color: var(--foreground-muted);
+      font: var(--text-label);
+      white-space: nowrap;
+    }
+    .tiling-code-pre {
+      min-height: 280px;
+      max-height: 380px;
+      margin: 0;
+      padding: 12px;
+      overflow: auto;
+      border: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
+      border-radius: var(--radius-md);
+      background: color-mix(in srgb, var(--foreground) 5%, transparent);
+      color: var(--foreground-secondary);
+      font: 500 11px / 1.55 var(--font-mono);
+      white-space: pre;
+    }
+    .tiling-code-pre--host {
+      min-height: 220px;
+    }
     .tile-bar {
       height: 12px;
       overflow: hidden;
@@ -1131,90 +1178,301 @@
     }
     .api-canvas {
       display: grid;
-      grid-template-columns: minmax(250px, 0.8fr) minmax(280px, 1fr);
-      grid-template-rows: minmax(210px, 0.85fr) minmax(240px, 1fr);
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-auto-rows: minmax(0, auto);
       gap: 12px;
-      min-height: 610px;
+      min-height: 640px;
+      align-items: stretch;
     }
-    .fm-grid-wrap,
-    .matrix-wrap,
-    .filter-wrap,
-    .mapping-wrap {
-      height: 100%;
-      min-height: 0;
-    }
-    .feature-grid {
+    .load3d-stage {
+      grid-column: 1 / -1;
       display: grid;
-      gap: 4px;
-      justify-content: start;
-      align-content: start;
-      padding: 12px;
+      gap: 12px;
     }
-    .feature-cell,
-    .matrix-cell,
-    .format-cell {
-      width: 28px;
-      height: 28px;
-      display: grid;
-      place-items: center;
-      border: 1px solid var(--viz-grid);
-      border-radius: 5px;
-      background: var(--viz-cell);
-      color: var(--foreground-secondary);
-      font: 700 10px / 1 var(--font-mono);
-      cursor: pointer;
-    }
-    .feature-cell.is-pad,
-    .matrix-cell.is-pad { background: var(--viz-pad); color: var(--foreground-muted); }
-    .feature-cell.is-window { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--operator-red) 70%, transparent); }
-    .feature-cell.is-sampled,
-    .matrix-cell.is-filled { background: var(--viz-active); color: white; }
-    .feature-cell.is-selected,
-    .matrix-cell.is-selected {
-      outline: 2px solid var(--operator-amber);
-      outline-offset: 2px;
-    }
-    .matrix-grid {
-      display: grid;
-      grid-template-columns: repeat(12, 24px);
-      gap: 3px;
-      padding: 12px;
-      overflow: auto;
-    }
-    .matrix-cell {
-      width: 24px;
-      height: 24px;
-      border-radius: 4px;
-    }
-    .filter-box {
-      display: grid;
-      grid-template-columns: repeat(3, 46px);
-      gap: 7px;
-      padding: 18px;
-      justify-content: center;
-    }
-    .filter-cell {
-      height: 40px;
-      display: grid;
-      place-items: center;
-      border: 1px solid var(--viz-grid);
-      border-radius: 7px;
-      background: color-mix(in srgb, var(--operator-red) 18%, transparent);
-      color: var(--foreground-secondary);
-      font: var(--text-mono);
-    }
-    .filter-cell.is-sampled {
-      background: color-mix(in srgb, var(--operator-red) 68%, transparent);
-      color: white;
-    }
-    .mapping-text {
-      display: grid;
-      gap: 10px;
-      padding: 12px;
+    .load3d-stage__lead {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px 12px;
       color: var(--foreground-secondary);
       font: var(--text-body-sm);
     }
-    .mapping-text code {
+    .load3d-chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .load3d-chip {
+      min-height: 22px;
+      padding: 0 8px;
+      display: inline-flex;
+      align-items: center;
+      border-radius: var(--radius-pill);
+      background: color-mix(in srgb, var(--foreground) 6%, transparent);
+      color: var(--foreground-secondary);
+      font: var(--text-label);
+    }
+    .load3d-chip.is-accent {
+      background: color-mix(in srgb, var(--operator-blue) 16%, transparent);
+      color: var(--foreground);
+    }
+    .load3d-scene {
+      display: grid;
+      gap: 12px;
+      padding: 12px;
+    }
+    .load3d-diagram {
+      position: relative;
+      display: grid;
+      grid-template-columns: minmax(300px, 1fr) 120px minmax(260px, 0.92fr);
+      gap: 16px;
+      align-items: center;
+      min-height: 360px;
+      perspective: 1500px;
+    }
+    .load3d-volume-wrap,
+    .load3d-slab-wrap {
+      position: relative;
+      min-width: 0;
+    }
+    .load3d-label {
+      margin-bottom: 10px;
+      color: var(--foreground-secondary);
+      font: var(--text-label);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .load3d-volume,
+    .load3d-slab {
+      position: relative;
+      min-height: 280px;
+      border-radius: calc(var(--radius-lg) + 2px);
+      background:
+        linear-gradient(180deg, color-mix(in srgb, var(--foreground) 6%, transparent), color-mix(in srgb, var(--foreground) 2%, transparent)),
+        color-mix(in srgb, var(--foreground) 2%, transparent);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+      overflow: hidden;
+    }
+    .load3d-volume {
+      min-height: 420px;
+      display: grid;
+    }
+    .load3d-layer {
+      position: absolute;
+      inset: 20px 22px 18px 22px;
+      border-radius: calc(var(--radius-lg) - 1px);
+      transform-style: preserve-3d;
+      transform:
+        translate3d(calc(var(--layer-index) * 18px), calc(var(--layer-index) * -10px), calc(var(--layer-index) * -38px))
+        rotateX(62deg)
+        rotateZ(-35deg);
+      transform-origin: center center;
+      opacity: calc(1 - (var(--layer-index) * 0.18));
+      background:
+        linear-gradient(180deg, rgb(255 255 255 / 0.06), rgb(255 255 255 / 0.02)),
+        color-mix(in srgb, var(--operator-blue) 10%, transparent);
+      border: 1px solid color-mix(in srgb, var(--foreground) 12%, transparent);
+      box-shadow:
+        0 18px 28px rgba(0, 0, 0, 0.22),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    }
+    .load3d-layer.is-front {
+      opacity: 1;
+      border-color: color-mix(in srgb, var(--operator-blue) 34%, transparent);
+      background:
+        linear-gradient(180deg, rgb(255 255 255 / 0.08), rgb(255 255 255 / 0.03)),
+        color-mix(in srgb, var(--operator-blue) 13%, transparent);
+    }
+    .load3d-plane {
+      position: absolute;
+      inset: 12px;
+      display: grid;
+      grid-template-columns: repeat(var(--grid-cols), minmax(0, 1fr));
+      grid-template-rows: repeat(var(--grid-rows), minmax(0, 1fr));
+      gap: 4px;
+      transform: translateZ(1px);
+    }
+    .load3d-cell {
+      position: relative;
+      min-height: 38px;
+      display: grid;
+      place-items: center;
+      border-radius: 6px;
+      border: 1px solid color-mix(in srgb, var(--foreground) 12%, transparent);
+      background: color-mix(in srgb, var(--operator-blue) 12%, transparent);
+      color: var(--foreground-secondary);
+      font: 700 10px / 1 var(--font-mono);
+      overflow: hidden;
+    }
+    .load3d-cell::after {
+      position: absolute;
+      inset: 0;
+      content: "";
+      background: linear-gradient(180deg, rgb(255 255 255 / 0.12), transparent 62%);
+      pointer-events: none;
+    }
+    .load3d-cell.is-pad {
+      background: color-mix(in srgb, var(--foreground) 5%, transparent);
+      color: var(--foreground-muted);
+    }
+    .load3d-cell.is-window {
+      border-color: color-mix(in srgb, var(--operator-red) 72%, transparent);
+      box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--operator-red) 62%, transparent);
+    }
+    .load3d-cell.is-sampled {
+      background: color-mix(in srgb, var(--operator-cyan) 42%, transparent);
+      color: white;
+    }
+    .load3d-cell.is-selected {
+      outline: 2px solid var(--operator-amber);
+      outline-offset: 1px;
+    }
+    .load3d-window {
+      position: absolute;
+      left: var(--window-left);
+      top: var(--window-top);
+      width: var(--window-width);
+      height: var(--window-height);
+      border-radius: 14px;
+      border: 1px solid color-mix(in srgb, var(--operator-amber) 68%, transparent);
+      background: color-mix(in srgb, var(--operator-amber) 12%, transparent);
+      box-shadow:
+        0 0 0 1px color-mix(in srgb, var(--operator-amber) 24%, transparent),
+        0 16px 24px rgba(0, 0, 0, 0.24);
+      transform: rotateX(62deg) rotateZ(-35deg) translateZ(36px);
+      backdrop-filter: blur(2px);
+      pointer-events: none;
+    }
+    .load3d-window__label {
+      position: absolute;
+      right: 12px;
+      bottom: 10px;
+      color: white;
+      font: 700 10px / 1 var(--font-mono);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .load3d-volume__axis {
+      position: absolute;
+      color: var(--foreground-muted);
+      font: var(--text-label);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      pointer-events: none;
+    }
+    .load3d-volume__axis--hw {
+      left: 22px;
+      bottom: 12px;
+    }
+    .load3d-volume__axis--c0 {
+      right: 20px;
+      top: 16px;
+    }
+    .load3d-link {
+      width: 100%;
+      height: 220px;
+      overflow: visible;
+      pointer-events: none;
+      opacity: 0.9;
+    }
+    .load3d-link path {
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .load3d-link .path-main {
+      stroke: color-mix(in srgb, var(--operator-blue) 72%, transparent);
+      stroke-dasharray: 4 5;
+    }
+    .load3d-link .path-sample {
+      stroke: color-mix(in srgb, var(--operator-amber) 82%, transparent);
+    }
+    .load3d-slab {
+      display: grid;
+      gap: 10px;
+      padding: 10px;
+    }
+    .load3d-volume-svg,
+    .load3d-slab-svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    .load3d-row {
+      position: relative;
+      display: grid;
+      grid-template-columns: 56px minmax(0, 1fr) auto;
+      gap: 8px;
+      align-items: center;
+      min-height: 36px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid color-mix(in srgb, var(--foreground) 10%, transparent);
+      background:
+        linear-gradient(90deg, color-mix(in srgb, var(--operator-cyan) 18%, transparent), color-mix(in srgb, var(--operator-blue) 10%, transparent));
+      box-shadow: 0 12px 20px rgba(0, 0, 0, 0.16);
+      transform: translate3d(calc(var(--row-index) * 5px), calc(var(--row-index) * -4px), calc(var(--row-index) * -18px));
+    }
+    .load3d-row + .load3d-row {
+      margin-top: -6px;
+    }
+    .load3d-row__index {
+      color: var(--foreground-muted);
+      font: 700 10px / 1 var(--font-mono);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .load3d-row__payload {
+      min-width: 0;
+      display: grid;
+      gap: 2px;
+    }
+    .load3d-row__payload b {
+      overflow: hidden;
+      color: var(--foreground);
+      font: 700 11px / 1.25 var(--font-sans);
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .load3d-row__payload span {
+      color: var(--foreground-muted);
+      font: var(--text-caption);
+    }
+    .load3d-row__tag {
+      min-height: 20px;
+      padding: 0 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--radius-pill);
+      background: color-mix(in srgb, var(--foreground) 7%, transparent);
+      color: var(--foreground-secondary);
+      font: var(--text-label);
+      white-space: nowrap;
+    }
+    .load3d-insight,
+    .load3d-params {
+      min-height: 0;
+    }
+    .load3d-insight .section-body,
+    .load3d-params .section-body {
+      display: grid;
+      gap: 10px;
+      padding: 12px;
+    }
+    .load3d-summary {
+      display: grid;
+      gap: 8px;
+    }
+    .load3d-summary p {
+      margin: 0;
+      color: var(--foreground-secondary);
+      font: var(--text-body-sm);
+      line-height: 1.55;
+    }
+    .load3d-summary code {
       display: block;
       padding: 10px;
       border-radius: var(--radius-md);
@@ -1222,6 +1480,38 @@
       color: var(--foreground);
       font: var(--text-mono);
       white-space: normal;
+    }
+    .load3d-facts {
+      display: grid;
+      gap: 8px;
+    }
+    .load3d-fact {
+      display: grid;
+      grid-template-columns: 100px minmax(0, 1fr);
+      gap: 8px;
+      align-items: center;
+      padding: 9px 10px;
+      border-radius: var(--radius-md);
+      background: color-mix(in srgb, var(--foreground) 4%, transparent);
+    }
+    .load3d-fact span {
+      color: var(--foreground-muted);
+      font: var(--text-label);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .load3d-fact b {
+      min-width: 0;
+      color: var(--foreground);
+      font: 700 12px / 1.35 var(--font-sans);
+    }
+    .load3d-note {
+      padding: 10px 12px;
+      border-radius: var(--radius-md);
+      background: color-mix(in srgb, var(--operator-blue) 10%, transparent);
+      color: var(--foreground-secondary);
+      font: var(--text-body-sm);
+      line-height: 1.55;
     }
 
     .pipeline-grid {
@@ -1430,13 +1720,22 @@
       .api-layout,
       .api-canvas,
       .format-layout,
-      .tiling-layout {
+      .tiling-layout,
+      .tiling-code-layout,
+      .load3d-diagram {
         grid-template-columns: 1fr;
       }
       .hardware-target-grid { grid-template-columns: 1fr; }
       .view { min-height: auto; }
-      .api-canvas { grid-template-rows: auto; }
+      .api-canvas { grid-auto-rows: auto; }
       .compare-grid { grid-template-columns: 1fr; }
+      .load3d-volume,
+      .load3d-slab {
+        min-height: 240px;
+      }
+      .load3d-link {
+        height: 140px;
+      }
     }
   </style>
 </head>
@@ -2043,6 +2342,161 @@
         return { label: 'Ready', cls: 'scheme-verdict--ready' };
       }
 
+      function escapeHtml(value) {
+        return String(value)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
+
+      function codeDtype(dtype) {
+        if (dtype === 'float') return 'float';
+        if (dtype === 'bf16') return 'bfloat16_t';
+        if (dtype === 'int8') return 'int8_t';
+        return 'half';
+      }
+
+      function tilingCodeForScheme(scheme, outcome) {
+        const dtypeC = codeDtype(scheme.dtype);
+        const inputNames = Array.from({ length: Math.max(1, scheme.inputs) }, (_, i) => String.fromCharCode(120 + i));
+        const outputName = String.fromCharCode(120 + inputNames.length);
+        const sig = inputNames.concat(outputName).map((name) => `GM_ADDR ${name}`).join(', ');
+        const tilingKey = outcome.formerNum === 0 ? 0 : 2;
+        let kernel = '';
+        kernel += '// =====================================================\n';
+        kernel += '// Generated by CANN Tiling Planner\n';
+        kernel += `// SOC: ${outcome.soc.name}   dtype: ${scheme.dtype}   TilingKey: ${tilingKey}\n`;
+        kernel += '// =====================================================\n\n';
+        kernel += '#include "kernel_operator.h"\n';
+        kernel += 'using namespace AscendC;\n\n';
+        kernel += `constexpr int32_t USE_CORE_NUM = ${scheme.blockDim};\n`;
+        kernel += `constexpr int32_t TILE_NUM     = ${scheme.tileNum};\n`;
+        kernel += `constexpr int32_t BUFFER_NUM   = ${scheme.bufferNum};\n\n`;
+
+        if (outcome.formerNum === 0) {
+          kernel += `constexpr int32_t TOTAL_LENGTH = ${outcome.totalAligned};\n`;
+          kernel += `constexpr int32_t BLOCK_LENGTH = ${outcome.perCoreDisplay};\n`;
+          kernel += `constexpr int32_t TILE_LENGTH  = ${outcome.tileLen};\n\n`;
+          kernel += 'class KernelOp {\n';
+          kernel += 'public:\n';
+          kernel += '    __aicore__ inline KernelOp() {}\n\n';
+          kernel += `    __aicore__ inline void Init(${sig}) {\n`;
+          inputNames.forEach((name) => {
+            kernel += `        ${name}Gm.SetGlobalBuffer((__gm__ ${dtypeC}*)${name} + BLOCK_LENGTH * GetBlockIdx(), BLOCK_LENGTH);\n`;
+          });
+          kernel += `        ${outputName}Gm.SetGlobalBuffer((__gm__ ${dtypeC}*)${outputName} + BLOCK_LENGTH * GetBlockIdx(), BLOCK_LENGTH);\n`;
+          inputNames.forEach((name) => {
+            kernel += `        pipe.InitBuffer(inQueue${name.toUpperCase()}, BUFFER_NUM, TILE_LENGTH * sizeof(${dtypeC}));\n`;
+          });
+          kernel += `        pipe.InitBuffer(outQueue${outputName.toUpperCase()}, BUFFER_NUM, TILE_LENGTH * sizeof(${dtypeC}));\n`;
+          kernel += '    }\n\n';
+          kernel += '    __aicore__ inline void Process() {\n';
+          kernel += '        int32_t loopCount = TILE_NUM * BUFFER_NUM;\n';
+          kernel += '        for (int32_t i = 0; i < loopCount; i++) {\n';
+          kernel += '            CopyIn(i);\n';
+          kernel += '            Compute(i);\n';
+          kernel += '            CopyOut(i);\n';
+          kernel += '        }\n';
+          kernel += '    }\n\n';
+          kernel += 'private:\n';
+          kernel += '    TPipe pipe;\n';
+          inputNames.forEach((name) => {
+            kernel += `    TQue<QuePosition::VECIN, BUFFER_NUM> inQueue${name.toUpperCase()};\n`;
+          });
+          kernel += `    TQue<QuePosition::VECOUT, BUFFER_NUM> outQueue${outputName.toUpperCase()};\n`;
+          inputNames.concat(outputName).forEach((name) => {
+            kernel += `    GlobalTensor<${dtypeC}> ${name}Gm;\n`;
+          });
+          kernel += '};\n';
+        } else {
+          kernel += `// Tail-core split: ${outcome.formerNum} former cores (${outcome.formerLength} elems each)\n`;
+          kernel += `//                  ${outcome.tailNum} tail cores (${outcome.tailLength} elems each)\n\n`;
+          kernel += 'class KernelOp {\n';
+          kernel += 'public:\n';
+          kernel += `    __aicore__ inline void Init(${sig}, const TilingData& t) {\n`;
+          kernel += '        if (GetBlockIdx() < t.formerNum) {\n';
+          kernel += '            this->coreLength = t.formerLength;\n';
+          kernel += '            this->tileLength = t.formerTileLength;\n';
+          kernel += '            this->tileNum    = t.formerTileNum;\n';
+          inputNames.forEach((name) => {
+            kernel += `            ${name}Gm.SetGlobalBuffer(\n`;
+            kernel += `                (__gm__ ${dtypeC}*)${name} + t.formerLength * GetBlockIdx(),\n`;
+            kernel += '                t.formerLength);\n';
+          });
+          kernel += '        } else {\n';
+          kernel += '            this->coreLength = t.tailLength;\n';
+          kernel += '            this->tileLength = t.tailTileLength;\n';
+          kernel += '            this->tileNum    = t.tailTileNum;\n';
+          inputNames.forEach((name) => {
+            kernel += `            ${name}Gm.SetGlobalBuffer(\n`;
+            kernel += `                (__gm__ ${dtypeC}*)${name} + t.formerLength * t.formerNum\n`;
+            kernel += '                    + t.tailLength * (GetBlockIdx() - t.formerNum),\n';
+            kernel += '                t.tailLength);\n';
+          });
+          kernel += '        }\n';
+          kernel += '        // InitBuffer uses formerTileLength (the larger) so tail cores fit too\n';
+          inputNames.forEach((name) => {
+            kernel += `        pipe.InitBuffer(inQueue${name.toUpperCase()}, BUFFER_NUM,\n`;
+            kernel += `                        t.formerTileLength * sizeof(${dtypeC}));\n`;
+          });
+          kernel += '    }\n';
+          kernel += '};\n';
+        }
+
+        let host = '';
+        host += '// op_host/tiling.h\n';
+        host += '#include "register/tilingdata_base.h"\n\n';
+        host += 'namespace optiling {\n';
+        host += 'BEGIN_TILING_DATA_DEF(TilingData)\n';
+        if (outcome.formerNum === 0) {
+          host += '  TILING_DATA_FIELD_DEF(uint32_t, totalLength);\n';
+          host += '  TILING_DATA_FIELD_DEF(uint32_t, tileNum);\n';
+        } else {
+          host += '  TILING_DATA_FIELD_DEF(uint32_t, formerNum);\n';
+          host += '  TILING_DATA_FIELD_DEF(uint32_t, tailNum);\n';
+          host += '  TILING_DATA_FIELD_DEF(uint32_t, formerLength);\n';
+          host += '  TILING_DATA_FIELD_DEF(uint32_t, tailLength);\n';
+          host += '  TILING_DATA_FIELD_DEF(uint32_t, formerTileNum);\n';
+          host += '  TILING_DATA_FIELD_DEF(uint32_t, formerTileLength);\n';
+          host += '  TILING_DATA_FIELD_DEF(uint32_t, tailTileNum);\n';
+          host += '  TILING_DATA_FIELD_DEF(uint32_t, tailTileLength);\n';
+          host += '  TILING_DATA_FIELD_DEF(uint32_t, alignNum);\n';
+        }
+        host += 'END_TILING_DATA_DEF;\n';
+        host += 'REGISTER_TILING_DATA_CLASS(CustomOp, TilingData)\n';
+        host += '}\n';
+        host += `\n// op_host/tiling.cpp — SetTilingKey(${tilingKey});\n`;
+        return { kernel, host };
+      }
+
+      function renderTilingCode(selected, outcome) {
+        const code = tilingCodeForScheme(selected, outcome);
+        return `
+          <section class="viz-panel tiling-code-panel">
+            <header class="section-head">
+              <h3>Tiling Code</h3>
+              <div class="top-actions">
+                <button class="btn btn-sm btn-ghost" type="button" id="copyTilingCode">Copy code</button>
+                <button class="btn btn-sm btn-ghost" type="button" id="downloadTilingCode">Download .cpp</button>
+              </div>
+            </header>
+            <div class="section-body">
+              <div class="tiling-code-layout">
+                <div class="tiling-code-block">
+                  <div class="tiling-code-block__head"><h4>Generated kernel skeleton</h4><span>${outcome.soc.name} · ${selected.dtype}</span></div>
+                  <pre class="tiling-code-pre" id="kernelSkeletonCode">${escapeHtml(code.kernel)}</pre>
+                </div>
+                <div class="tiling-code-block">
+                  <div class="tiling-code-block__head"><h4>Tiling struct (host side)</h4><span>op_host/tiling.h</span></div>
+                  <pre class="tiling-code-pre tiling-code-pre--host" id="hostTilingCode">${escapeHtml(code.host)}</pre>
+                </div>
+              </div>
+            </div>
+          </section>
+        `;
+      }
+
       function renderSchemePicker() {
         return `
           <section class="viz-panel scheme-picker">
@@ -2279,9 +2733,34 @@
                     </div>
               </section>
             </div>
+            ${renderTilingCode(selected, outcome)}
           </div>
         `;
         bindTilingControls();
+        $('#copyTilingCode')?.addEventListener('click', async () => {
+          const text = [$('#kernelSkeletonCode')?.textContent || '', $('#hostTilingCode')?.textContent || ''].join('\n\n');
+          try {
+            await navigator.clipboard.writeText(text);
+          } catch (error) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            textarea.remove();
+          }
+        });
+        $('#downloadTilingCode')?.addEventListener('click', () => {
+          const text = [$('#kernelSkeletonCode')?.textContent || '', $('#hostTilingCode')?.textContent || ''].join('\n\n');
+          const blob = new Blob([text], { type: 'text/x-c++src;charset=utf-8' });
+          const link = document.createElement('a');
+          link.href = URL.createObjectURL(blob);
+          link.download = `${selected.name.replace(/\s+/g, '-')}-tiling.cpp`;
+          document.body.appendChild(link);
+          link.click();
+          URL.revokeObjectURL(link.href);
+          link.remove();
+        });
         $$('[data-delete-tiling-scheme]').forEach((btn) => {
           btn.addEventListener('click', (event) => {
             event.stopPropagation();
@@ -2377,10 +2856,233 @@
         }).join('')}</div>`;
       }
 
+      const LOAD3D_ISO = {
+        angle: Math.PI / 6,
+        unit: 46,
+        zUnit: 29
+      };
+      LOAD3D_ISO.cos = Math.cos(LOAD3D_ISO.angle);
+      LOAD3D_ISO.sin = Math.sin(LOAD3D_ISO.angle);
+
+      function isoPoint(originX, originY, unit, zUnit, c, r, k) {
+        return {
+          x: originX + (c - r) * LOAD3D_ISO.cos * unit,
+          y: originY + (c + r) * LOAD3D_ISO.sin * unit - (k * zUnit)
+        };
+      }
+
+      function svgQuad(points, fill, stroke, strokeWidth, extra = '') {
+        return `<polygon points="${points.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}" ${extra}></polygon>`;
+      }
+
+      function svgCube(originX, originY, unit, zUnit, c, r, k, palette) {
+        const g = 0.12;
+        const c0 = c + g, c1 = c + 1 - g, r0 = r + g, r1 = r + 1 - g, k0 = k + g, k1 = k + 1 - g;
+        const T0 = isoPoint(originX, originY, unit, zUnit, c0, r0, k1);
+        const T1 = isoPoint(originX, originY, unit, zUnit, c1, r0, k1);
+        const T2 = isoPoint(originX, originY, unit, zUnit, c1, r1, k1);
+        const T3 = isoPoint(originX, originY, unit, zUnit, c0, r1, k1);
+        const E3 = isoPoint(originX, originY, unit, zUnit, c1, r0, k0);
+        const E2 = isoPoint(originX, originY, unit, zUnit, c1, r1, k0);
+        const S3 = isoPoint(originX, originY, unit, zUnit, c0, r1, k0);
+        return `
+          <g class="load3d-cube">
+            ${svgQuad([T1, E3, E2, T2], palette.east, palette.edge, 1)}
+            ${svgQuad([T3, T2, E2, S3], palette.south, palette.edge, 1)}
+            ${svgQuad([T0, T1, T2, T3], palette.top, palette.edge, palette.topLw || 1)}
+          </g>
+        `;
+      }
+
+      function renderLoad3dVolumeSvg(sampled, win, cols, rows) {
+        const p = state.api;
+        const depth = Math.max(5, Math.min(8, p.repeatTime + 3));
+        const viewW = 900;
+        const viewH = 440;
+        const unit = 42;
+        const zUnit = 28;
+        const originX = 356;
+        const originY = 280;
+        const sampledMap = new Set(sampled.map((item) => item.key));
+        const cubes = [];
+
+        for (let k = depth - 1; k >= 0; k -= 1) {
+          for (let r = 0; r < rows; r += 1) {
+            for (let c = 0; c < cols; c += 1) {
+              const srcH = r - p.padTop;
+              const srcW = c - p.padLeft;
+              const key = `${srcH},${srcW}`;
+              const inWindow = r >= win.h && c >= win.w && r <= win.h + (p.filterH - 1) * p.dilationH && c <= win.w + (p.filterW - 1) * p.dilationW;
+              const isPad = srcH < 0 || srcW < 0 || srcH >= p.H || srcW >= p.W;
+              const isSampled = sampledMap.has(key);
+              const isBorder = r === 0 || c === 0 || r === rows - 1 || c === cols - 1;
+              const showShell = isBorder || inWindow || (k < 2 && sampledMap.has(key));
+              if (!showShell) continue;
+
+              const base = isPad
+                ? { top: 'rgba(78,78,78,0.95)', east: 'rgba(60,60,60,0.95)', south: 'rgba(52,52,52,0.95)', edge: 'rgba(24,24,24,0.72)' }
+                : { top: '#4a4a4a', east: '#3d3d3d', south: '#313131', edge: 'rgba(17,17,17,0.75)' };
+              const ghost = {
+                top: 'rgba(172,184,196,0.08)',
+                east: 'rgba(172,184,196,0.04)',
+                south: 'rgba(172,184,196,0.03)',
+                edge: 'rgba(190,200,212,0.22)',
+                topLw: 1
+              };
+              const active = {
+                top: 'rgba(77,151,255,0.92)',
+                east: 'rgba(63,126,214,0.92)',
+                south: 'rgba(53,104,176,0.92)',
+                edge: 'rgba(18,34,64,0.60)',
+                topLw: 1.3
+              };
+              const palette = inWindow
+                ? (k === 0 ? active : ghost)
+                : (isBorder ? base : (isSampled ? { ...active, top: 'rgba(77,151,255,0.32)', east: 'rgba(63,126,214,0.22)', south: 'rgba(53,104,176,0.18)', edge: 'rgba(116,140,190,0.24)' } : base));
+              cubes.push({ c, r, k, key, show: svgCube(originX, originY, unit, zUnit, c, r, k, palette) });
+            }
+          }
+        }
+
+        cubes.sort((a, b) => (a.c + a.r + a.k) - (b.c + b.r + b.k));
+        const zAxes = `
+          <text x="136" y="92" class="load3d-svg__axis load3d-svg__axis--accent">K = ${depth} ↑</text>
+          <text x="98" y="382" class="load3d-svg__axis">M</text>
+          <text x="700" y="378" class="load3d-svg__axis">N</text>
+        `;
+        const highlight = sampled.filter((item) => item.key === (state.selectedSource || sampled[0]?.key));
+        const focus = highlight[0] || sampled[0];
+        const focusLabel = focus ? `${focus.srcH},${focus.srcW}` : 'n/a';
+        return `
+          <svg class="load3d-volume-svg" viewBox="0 0 ${viewW} ${viewH}" role="img" aria-label="Load3D 等距体块示意">
+            <defs>
+              <linearGradient id="load3d-volume-bg" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="rgba(255,255,255,0.04)"></stop>
+                <stop offset="100%" stop-color="rgba(255,255,255,0.01)"></stop>
+              </linearGradient>
+            </defs>
+            <rect x="20" y="22" width="860" height="390" rx="20" fill="url(#load3d-volume-bg)" stroke="rgba(255,255,255,0.04)"></rect>
+            ${cubes.map((cube) => cube.show).join('')}
+            ${highlight.map((item) => {
+              const srcH = item.srcH + p.padTop;
+              const srcW = item.srcW + p.padLeft;
+              const x = item.key === (state.selectedSource || item.key) ? 1 : 0;
+              const ghostRows = Array.from({ length: depth - 1 }, (_, idx) => {
+                const k = idx + 1;
+                return svgCube(originX, originY, unit, zUnit, srcW, srcH, k, {
+                  top: 'rgba(172,184,196,0.06)',
+                  east: 'rgba(172,184,196,0.03)',
+                  south: 'rgba(172,184,196,0.02)',
+                  edge: 'rgba(185,195,205,0.18)',
+                  topLw: 1
+                });
+              }).join('');
+              return `
+                <g opacity="1">
+                  ${ghostRows}
+                  ${x ? svgCube(originX, originY, unit, zUnit, srcW, srcH, 0, {
+                    top: 'rgba(77,151,255,0.92)',
+                    east: 'rgba(63,126,214,0.92)',
+                    south: 'rgba(53,104,176,0.92)',
+                    edge: 'rgba(18,34,64,0.66)',
+                    topLw: 1.3
+                  }) : ''}
+                </g>
+              `;
+            }).join('')}
+            ${zAxes}
+            <text x="46" y="54" class="load3d-svg__note">feature map volume</text>
+            <text x="46" y="76" class="load3d-svg__subnote">selected source ${focusLabel} · repeatMode ${p.repeatMode}</text>
+          </svg>
+        `;
+      }
+
+      function renderLoad3dSlabSvg(sampled) {
+        const rows = sampled.length;
+        const viewW = 320;
+        const viewH = 420;
+        const lineGap = 56;
+        const baseY = 78;
+        const blocks = sampled.map((item, idx) => {
+          const y = baseY + idx * lineGap;
+          const x = 28 + idx * 4;
+          return `
+            <g transform="translate(${x}, ${y})">
+              <rect x="0" y="0" width="240" height="42" rx="12" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.06)"></rect>
+              <polygon points="12,10 128,10 148,26 32,26" fill="rgba(77,151,255,0.22)" stroke="rgba(77,151,255,0.28)"></polygon>
+              <polygon points="128,10 228,10 212,26 148,26" fill="rgba(77,151,255,0.14)" stroke="rgba(77,151,255,0.24)"></polygon>
+              <polygon points="32,26 148,26 148,36 32,36" fill="rgba(172,184,196,0.10)" stroke="rgba(185,195,205,0.16)"></polygon>
+              <text x="10" y="16" fill="rgba(231,231,231,0.82)" font-size="10" font-weight="700" font-family="var(--font-mono)">row ${idx + 1}</text>
+              <text x="10" y="32" fill="rgba(181,188,198,0.70)" font-size="9" font-family="var(--font-mono)">${item.key}</text>
+              <text x="156" y="16" fill="rgba(231,231,231,0.92)" font-size="10" font-weight="700" font-family="var(--font-sans)">filter[${item.kh},${item.kw}]</text>
+              <text x="156" y="32" fill="rgba(181,188,198,0.72)" font-size="9" font-family="var(--font-mono)">source ${item.srcH}, ${item.srcW}</text>
+            </g>
+          `;
+        }).join('');
+        return `
+          <svg class="load3d-slab-svg" viewBox="0 0 ${viewW} ${viewH}" role="img" aria-label="Load3D im2col slab">
+            <rect x="12" y="18" width="292" height="382" rx="18" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.05)"></rect>
+            <text x="26" y="46" fill="rgba(231,231,231,0.90)" font-size="14" font-weight="700" font-family="var(--font-sans)">im2col target slab</text>
+            <text x="26" y="66" fill="rgba(181,188,198,0.72)" font-size="10" font-family="var(--font-mono)">source points are projected row by row</text>
+            ${blocks}
+          </svg>
+        `;
+      }
+
+      function renderLoad3dScene() {
+        const p = state.api;
+        const sampled = sampleCoords();
+        const win = currentWindow();
+        const rows = p.H + p.padTop + p.padBottom;
+        const cols = p.W + p.padLeft + p.padRight;
+        const sampleSummary = sampled.map((item) => `${item.kh},${item.kw} → ${item.srcH},${item.srcW}`).join(' · ');
+        return `
+          <section class="viz-panel load3d-stage">
+            <header class="section-head">
+              <h3>Load3D 2.5D 映射</h3>
+              <span class="section-meta">fixed view · iso stack</span>
+            </header>
+            <div class="load3d-scene">
+              <div class="load3d-stage__lead">
+                <div class="load3d-chip-row">
+                  <span class="load3d-chip is-accent">Load3D</span>
+                  <span class="load3d-chip">repeatMode ${p.repeatMode}</span>
+                  <span class="load3d-chip">stride ${p.strideH}×${p.strideW}</span>
+                  <span class="load3d-chip">dilation ${p.dilationH}×${p.dilationW}</span>
+                </div>
+                <div>${sampled.length} 个滑窗点被展开为目标矩阵行</div>
+              </div>
+              <div class="load3d-diagram">
+                <div class="load3d-volume-wrap">
+                  <div class="load3d-label">Feature map volume</div>
+                  <div class="load3d-volume">
+                    ${renderLoad3dVolumeSvg(sampled, win, cols, rows)}
+                  </div>
+                </div>
+                <svg class="load3d-link" viewBox="0 0 120 220" aria-hidden="true">
+                  <path class="path-main" d="M18 36 C 58 36, 54 78, 86 104 S 96 170, 102 196"></path>
+                  <path class="path-sample" d="M28 82 C 58 74, 66 118, 96 142"></path>
+                </svg>
+                <div class="load3d-slab-wrap">
+                  <div class="load3d-label">im2col target slab</div>
+                  <div class="load3d-slab">
+                    ${renderLoad3dSlabSvg(sampled)}
+                  </div>
+                </div>
+              </div>
+              <div class="load3d-note">参考 tiling 路径里的固定视角等距投影，这里用 2.5D 来解释 Load3D：左侧是源体块，选中的 2x2 窗口沿固定视角向上抬起，右侧把采样点排成目标 slab 的行。repeatMode 改变的是投影推进顺序，不是图形旋转。</div>
+            </div>
+          </section>
+        `;
+      }
+
       function renderApi() {
         const p = currentOperator();
         if (!p.apis.includes(state.selectedApi)) state.selectedApi = p.apis[0] || 'Load3D';
         const isLoad3D = state.selectedApi === 'Load3D';
+        const sampled = sampleCoords();
+        const win = currentWindow();
+        const sampleSummary = sampled.map((item) => `${item.kh},${item.kw} → ${item.srcH},${item.srcW}`).join(' · ');
         $('#apiView').innerHTML = `
           <div class="api-layout">
             <aside class="view-side">
@@ -2394,30 +3096,35 @@
               </div>
             </aside>
             <section class="api-canvas">
-              <article class="viz-panel fm-grid-wrap">
-                <header class="section-head"><h3>Feature Map</h3><span class="section-meta">NC1HWC0 simplified</span></header>
-                <div class="feature-grid" id="featureGrid"></div>
+              ${renderLoad3dScene()}
+              <article class="viz-panel load3d-insight">
+                <header class="section-head"><h3>三维读法</h3><span class="section-meta">what changes when you tweak the knobs</span></header>
+                <div class="section-body">
+                  <div class="load3d-summary">
+                    <p>Load3D 不是把 feature map 直接摊平成一张表，而是先把采样窗放到三维体上，再把命中的点按滑窗顺序投影到 im2col 目标行。</p>
+                    <code>${sampleSummary}</code>
+                  </div>
+                  <div class="load3d-facts">
+                    <div class="load3d-fact"><span>window</span><b>${p.filterH} × ${p.filterW}，从 ${win.h},${win.w} 开始</b></div>
+                    <div class="load3d-fact"><span>repeat</span><b>${p.repeatTime} 次重复写入，mode ${p.repeatMode}</b></div>
+                    <div class="load3d-fact"><span>padding</span><b>top ${p.padTop} / left ${p.padLeft} / bottom ${p.padBottom} / right ${p.padRight}</b></div>
+                  </div>
+                </div>
               </article>
-              <article class="viz-panel matrix-wrap">
-                <header class="section-head"><h3>Im2col / Target Matrix</h3><span class="section-meta" id="matrixMeta">repeatMode ${state.api.repeatMode}</span></header>
-                <div class="matrix-grid" id="matrixGrid"></div>
-              </article>
-              <article class="viz-panel filter-wrap">
-                <header class="section-head"><h3>Filter Window</h3><span class="section-meta">stride / dilation</span></header>
-                <div class="filter-box" id="filterBox"></div>
-              </article>
-              <article class="viz-panel mapping-wrap">
-                <header class="section-head"><h3>Mapping Explanation</h3><span class="section-meta">click any cell</span></header>
-                <div class="mapping-text" id="mappingText"></div>
+              <article class="viz-panel load3d-params">
+                <header class="section-head"><h3>映射规则</h3><span class="section-meta">source → window → row</span></header>
+                <div class="section-body">
+                  <div class="load3d-note">选中的 source cell 会在三维体上高亮。窗内点先被采样，再沿着对角方向进入目标 slab，因此你看到的是“体素被抽取并排成行”，不是 2D 平铺。</div>
+                  <div class="load3d-summary">
+                    <p>当前状态更像一个立体切片的工作台：左侧负责定位源体素，中间负责投影方向，右侧负责把每个采样点落到矩阵行。</p>
+                    <code>source[h,w] → filter window → sampled points → im2col row</code>
+                  </div>
+                </div>
               </article>
             </section>
           </div>
         `;
         renderApiControls();
-        renderFeatureGrid();
-        renderFilterBox();
-        renderMatrix();
-        renderMapping();
         $$('[data-api-select]').forEach((btn) => {
           btn.addEventListener('click', () => {
             state.selectedApi = btn.dataset.apiSelect;
