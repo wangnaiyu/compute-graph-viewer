@@ -511,6 +511,49 @@
     .check-row.is-warning b { color: var(--warning); }
     .check-row.is-danger b { color: var(--danger); }
     .check-row.is-ok b { color: var(--success); }
+    .check-list {
+      display: grid;
+      gap: 8px;
+    }
+    .check-row--diagnostic {
+      min-height: auto;
+      padding: 9px;
+      display: grid;
+      grid-template-columns: minmax(112px, 0.7fr) minmax(0, 1fr);
+      align-items: start;
+      border: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
+      border-radius: var(--radius-md);
+      background: color-mix(in srgb, var(--foreground) 4%, transparent);
+    }
+    .check-row__label {
+      display: grid;
+      gap: 5px;
+      min-width: 0;
+    }
+    .check-row__label span {
+      color: var(--foreground-secondary);
+      font: var(--text-label);
+    }
+    .check-row__label b {
+      color: var(--foreground);
+      font: 800 12px / 1.25 var(--font-sans);
+    }
+    .check-row__detail {
+      display: grid;
+      gap: 5px;
+      min-width: 0;
+      color: var(--foreground-muted);
+      font: var(--text-caption);
+    }
+    .check-row__detail small {
+      display: block;
+      color: var(--foreground-muted);
+      line-height: 1.4;
+    }
+    .check-row__detail strong {
+      color: var(--foreground-secondary);
+      font-weight: 700;
+    }
     .check-action {
       display: block;
       margin-top: 2px;
@@ -659,7 +702,7 @@
       min-height: 124px;
       padding: 10px 9px;
       display: grid;
-      grid-template-rows: auto 1fr auto;
+      grid-template-rows: auto auto 1fr auto;
       gap: 8px;
       border: 1px solid color-mix(in srgb, var(--foreground) 9%, transparent);
       border-radius: var(--radius-md);
@@ -731,6 +774,51 @@
       display: grid;
       gap: 5px;
     }
+    .scheme-verdict {
+      min-width: 0;
+      min-height: 24px;
+      padding: 5px 7px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      border: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
+      border-radius: var(--radius-sm);
+      background: color-mix(in srgb, var(--foreground) 4%, transparent);
+      color: var(--foreground-muted);
+      font: var(--text-caption);
+    }
+    .scheme-verdict b {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      color: var(--foreground-secondary);
+      font: 800 10px / 1 var(--font-sans);
+      white-space: nowrap;
+    }
+    .scheme-verdict b::before {
+      width: 6px;
+      height: 6px;
+      content: "";
+      border-radius: 50%;
+      background: currentColor;
+      box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 12%, transparent);
+    }
+    .scheme-verdict--ready {
+      border-color: color-mix(in srgb, var(--success) 18%, transparent);
+      background: color-mix(in srgb, var(--success) 6%, transparent);
+    }
+    .scheme-verdict--ready b { color: var(--success); }
+    .scheme-verdict--review {
+      border-color: color-mix(in srgb, var(--warning) 20%, transparent);
+      background: color-mix(in srgb, var(--warning) 7%, transparent);
+    }
+    .scheme-verdict--review b { color: var(--warning); }
+    .scheme-verdict--invalid {
+      border-color: color-mix(in srgb, var(--danger) 20%, transparent);
+      background: color-mix(in srgb, var(--danger) 7%, transparent);
+    }
+    .scheme-verdict--invalid b { color: var(--danger); }
     .scheme-option__row {
       display: grid;
       grid-template-columns: 58px minmax(0, 1fr);
@@ -946,6 +1034,15 @@
       display: grid;
       grid-template-columns: repeat(auto-fill, 54px);
       gap: 6px;
+    }
+    .core-explain {
+      margin: 7px 0 0;
+      color: var(--foreground-muted);
+      font: var(--text-caption);
+    }
+    .core-explain b {
+      color: var(--foreground-secondary);
+      font-weight: 700;
     }
     .core-card {
       width: 54px;
@@ -1798,12 +1895,48 @@
           ? `均分：每个激活核处理 ${fmt(tailLength)} 个元素`
           : `${formerNum} 个 former 核各处理 ${fmt(formerLength)} 个元素，${tailNum} 个 tail 核各处理 ${fmt(tailLength)} 个元素（差值 ${alignElems} 个元素）`;
         const checksList = [
-          ['UB 容量', ubUsed <= ubCap ? `${bytesFmt(ubUsed)} / ${soc.ubKB} KB` : `溢出：${bytesFmt(ubUsed)}`, ubUsed <= ubCap ? 'is-ok' : 'is-danger', ubUsed <= ubCap ? '' : '减小 TILE_NUM、BUFFER_NUM 或 GM 输入流数量'],
-          ['TILE_LENGTH 对齐', tileAligned ? `${soc.alignBytes}B 已对齐（${tileBytes}B）` : `未按 ${soc.alignBytes}B 对齐`, tileAligned ? 'is-ok' : 'is-warning', tileAligned ? '' : '调整 BLOCK_DIM 或 TILE_NUM，让 tile 长度落到对齐单元'],
-          ['GM 输入流压力', queueLimitOk ? `${scheme.inputs * bufferNum} 个队列，未超过限制` : `${scheme.inputs * bufferNum} 个队列，超过限制`, queueLimitOk ? 'is-ok' : 'is-warning', queueLimitOk ? '' : '减少输入流或关闭 Double Buffer'],
-          ['Tail 核处理', formerNum === 0 ? '没有 tail 分支' : `${formerNum} former + ${tailNum} tail`, formerNum === 0 ? 'is-ok' : 'is-warning', formerNum === 0 ? '' : '确认 tail policy 使用 former/tail 或 padding'],
-          ['Vector 宽度', tileBigEnough ? `tile ${tileLen} >= ${soc.vectorWidthBytes / dtypeBytes}` : `tile ${tileLen} 低于 ${soc.vectorWidthBytes / dtypeBytes} 元素`, tileBigEnough ? 'is-ok' : 'is-warning', tileBigEnough ? '' : '增大 TILE_LENGTH：减少 TILE_NUM 或减少 BLOCK_DIM'],
-          ['末尾覆盖', wasteElems === 0 ? '无遗漏' : `${wasteElems} 个元素需要 mask 或 padding`, wasteElems === 0 ? 'is-ok' : 'is-warning', wasteElems === 0 ? '' : '选择 padding policy，并在 kernel tail 分支中验证']
+          {
+            label: 'UB 容量',
+            value: ubUsed <= ubCap ? `${bytesFmt(ubUsed)} / ${soc.ubKB} KB` : `溢出：${bytesFmt(ubUsed)}`,
+            cls: ubUsed <= ubCap ? 'is-ok' : 'is-danger',
+            impact: ubUsed <= ubCap ? 'UB 预算足够，当前 tile 和 buffer 配置可以落入单核容量。' : '单核 UB 容量不足，可能导致 buffer 分配失败或需要重新切分。',
+            action: ubUsed <= ubCap ? '保持当前 BUFFER_NUM，继续检查对齐和 tail。' : '优先减小 BUFFER_NUM；仍溢出时降低 tileLength 或减少输入流。'
+          },
+          {
+            label: 'TILE_LENGTH 对齐',
+            value: tileAligned ? `${soc.alignBytes}B 已对齐（${tileBytes}B）` : `未按 ${soc.alignBytes}B 对齐`,
+            cls: tileAligned ? 'is-ok' : 'is-warning',
+            impact: tileAligned ? '搬运粒度与硬件对齐单元一致，DataCopy 边界更稳定。' : 'tile 尾部可能触发非对齐搬运或额外 mask/padding 逻辑。',
+            action: tileAligned ? '无需调整；可继续比较 core 利用率。' : '调整 BLOCK_DIM 或 TILE_NUM，让 TILE_LENGTH 落到对齐单元倍数。'
+          },
+          {
+            label: 'GM 输入流压力',
+            value: queueLimitOk ? `${scheme.inputs * bufferNum} 个队列，未超过限制` : `${scheme.inputs * bufferNum} 个队列，超过限制`,
+            cls: queueLimitOk ? 'is-ok' : 'is-warning',
+            impact: queueLimitOk ? '队列占用在当前 demo 规则内，不会挤压 pipe 编排。' : '队列数量过高会增加 pipe 管理压力，并可能压缩 UB 可用空间。',
+            action: queueLimitOk ? '保持当前输入流与 buffer 组合。' : '减少输入流数量，或关闭 Double Buffer 后重新评估 overlap 收益。'
+          },
+          {
+            label: 'Tail 核处理',
+            value: formerNum === 0 ? '没有 tail 分支' : `${formerNum} former + ${tailNum} tail`,
+            cls: formerNum === 0 ? 'is-ok' : 'is-warning',
+            impact: formerNum === 0 ? '多核工作量均分，kernel 边界分支较少。' : '不同 core 工作量不一致，需要 kernel 明确区分 former/tail 或 padding。',
+            action: formerNum === 0 ? '可使用普通均分 kernel 路径。' : '确认 tail policy 选择 former/tail 或 padding，并验证 tail core 的搬运长度。'
+          },
+          {
+            label: 'Vector 宽度',
+            value: tileBigEnough ? `tile ${tileLen} >= ${soc.vectorWidthBytes / dtypeBytes}` : `tile ${tileLen} 低于 ${soc.vectorWidthBytes / dtypeBytes} 元素`,
+            cls: tileBigEnough ? 'is-ok' : 'is-warning',
+            impact: tileBigEnough ? 'tile 至少覆盖一个 vector 宽度，便于保持向量执行效率。' : 'tile 过短会降低 vector lane 利用率，循环调度开销占比变高。',
+            action: tileBigEnough ? '保持当前 TILE_NUM / BUFFER_NUM 组合。' : '减少 TILE_NUM、减少 BLOCK_DIM，或增大每核 workload。'
+          },
+          {
+            label: '末尾覆盖',
+            value: wasteElems === 0 ? '无遗漏' : `${wasteElems} 个元素需要 mask 或 padding`,
+            cls: wasteElems === 0 ? 'is-ok' : 'is-warning',
+            impact: wasteElems === 0 ? 'total length 已按对齐单元覆盖，没有末尾遗漏。' : '末尾元素没有进入对齐 workload，可能影响正确性或输出覆盖。',
+            action: wasteElems === 0 ? '无需额外处理。' : '选择 padding policy，并在 kernel tail 分支中验证 mask / padding。'
+          }
         ];
         return {
           soc,
@@ -1899,6 +2032,17 @@
         return `${outcome.formerNum} + ${outcome.tailNum}, ${scheme.paddingPolicy || 'padding'}`;
       }
 
+      function checkClass(row) {
+        return Array.isArray(row) ? row[2] : row.cls;
+      }
+
+      function schemeVerdict(outcome) {
+        const states = outcome.checks.map(checkClass);
+        if (states.includes('is-danger')) return { label: 'Invalid', cls: 'scheme-verdict--invalid' };
+        if (states.includes('is-warning')) return { label: 'Needs review', cls: 'scheme-verdict--review' };
+        return { label: 'Ready', cls: 'scheme-verdict--ready' };
+      }
+
       function renderSchemePicker() {
         return `
           <section class="viz-panel scheme-picker">
@@ -1913,6 +2057,7 @@
                   const queueCount = scheme.inputs * scheme.bufferNum;
                   const queueLimit = s.soc.maxQueuePerPos * 2;
                   const selectedScheme = scheme.name === state.tilingScheme;
+                  const verdict = schemeVerdict(s);
                   return `
                     <article class="scheme-option ${selectedScheme ? 'is-active' : ''}" role="button" tabindex="0" data-tiling-scheme="${scheme.name}">
                       <div class="scheme-option__top">
@@ -1922,6 +2067,7 @@
                           ${scheme.custom ? `<button class="scheme-option__delete" type="button" data-delete-tiling-scheme="${scheme.name}" aria-label="删除 ${scheme.name}" title="删除">×</button>` : ''}
                         </div>
                       </div>
+                      <div class="scheme-verdict ${verdict.cls}"><span>Verdict</span><b>${verdict.label}</b></div>
                       <div class="scheme-option__facts">
                         <div class="scheme-option__row"><span>UB</span><b>${s.ubPct.toFixed(0)}%</b></div>
                         <div class="scheme-option__row"><span>Alignment</span><b class="${s.tileAligned ? 'is-ok' : 'is-warning'}">${s.tileAligned ? `${s.soc.alignBytes}B aligned` : `Not aligned to ${s.soc.alignBytes}B`}</b></div>
@@ -2110,6 +2256,7 @@
                             return `<div class="core-card ${active ? 'is-active' : ''} ${former ? 'is-former' : ''}" title="core ${i} · ${active ? len + ' 个元素' : '空闲'}">${active ? fmt(len) : ''}</div>`;
                           }).join('')}
                         </div>
+                        <p class="core-explain"><b>${selected.blockDim}/${outcome.soc.cores} ${outcome.soc.coreLabel} active</b>，${outcome.soc.cores - selected.blockDim} 个核空闲。</p>
                         <div class="section-head" style="margin-top:10px;padding-left:0;padding-right:0;background:transparent;border-bottom:0;border:none"><h3>硬件利用 · 核内</h3><span class="section-meta">${selected.tileNum} tiles × ${selected.bufferNum} buffers</span></div>
                         <div class="intra-core-grid" aria-label="单核内部 tile 切分">
                           ${Array.from({ length: outcome.loopCount }, (_, i) => `<div class="intra-tile" title="loop ${i + 1} · ${outcome.tileLen} elements"><span>loop ${i + 1}</span>${fmt(outcome.tileLen)}</div>`).join('')}
@@ -2213,7 +2360,21 @@
       }
 
       function checks(rows) {
-        return `<div>${rows.map(([label, value, cls, action]) => `<div class="check-row ${cls}"><span>${label}</span><span><b>${value}</b>${action ? `<small class="check-action">${action}</small>` : ''}</span></div>`).join('')}</div>`;
+        return `<div class="check-list">${rows.map((row) => {
+          if (!Array.isArray(row)) {
+            return `
+              <div class="check-row check-row--diagnostic ${row.cls}">
+                <div class="check-row__label"><span>${row.label}</span><b>${row.value}</b></div>
+                <div class="check-row__detail">
+                  <small><strong>影响</strong> ${row.impact}</small>
+                  <small><strong>建议</strong> ${row.action}</small>
+                </div>
+              </div>
+            `;
+          }
+          const [label, value, cls, action] = row;
+          return `<div class="check-row ${cls}"><span>${label}</span><span><b>${value}</b>${action ? `<small class="check-action">${action}</small>` : ''}</span></div>`;
+        }).join('')}</div>`;
       }
 
       function renderApi() {
