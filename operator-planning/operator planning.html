@@ -432,6 +432,128 @@
       width: 100%;
       accent-color: var(--primary);
     }
+    .api-learn-controls {
+      --learn-line: color-mix(in srgb, var(--foreground) 12%, transparent);
+      --learn-text: var(--foreground);
+      --learn-muted: var(--foreground-secondary);
+      --learn-faint: var(--foreground-tertiary);
+      --learn-cyan-soft: color-mix(in srgb, var(--operator-cyan) 18%, transparent);
+      display: grid;
+      gap: 10px;
+      align-content: start;
+    }
+    .api-learn-controls .group {
+      display: grid;
+      gap: 9px;
+      padding: 11px;
+      border: 1px solid var(--learn-line);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.032);
+    }
+    .api-learn-controls .group-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      color: var(--learn-text);
+      font-size: 12px;
+      font-weight: 720;
+      letter-spacing: 0.02em;
+    }
+    .api-learn-controls .hint-text {
+      color: var(--learn-faint);
+      font-size: 11px;
+      line-height: 1.45;
+    }
+    .api-learn-controls .field {
+      display: grid;
+      gap: 5px;
+    }
+    .api-learn-controls .field label {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      color: var(--learn-muted);
+      font-size: 12px;
+    }
+    .api-learn-controls .field output {
+      display: inline;
+      color: var(--learn-text);
+      font-variant-numeric: tabular-nums;
+    }
+    .api-learn-controls .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .api-learn-controls .input,
+    .api-learn-controls select {
+      width: 100%;
+      height: 34px;
+      border: 1px solid var(--learn-line);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.055);
+      color: var(--learn-text);
+      outline: none;
+      padding: 0 10px;
+      font-size: 12px;
+    }
+    .api-learn-controls select option {
+      color: #101820;
+      background: #f7fafc;
+    }
+    .api-learn-controls .input:focus,
+    .api-learn-controls select:focus {
+      border-color: rgba(72, 199, 232, 0.45);
+      box-shadow: 0 0 0 3px rgba(72, 199, 232, 0.12);
+    }
+    .api-learn-controls .seg {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 7px;
+    }
+    .api-learn-controls .seg button,
+    .api-learn-controls .preset {
+      min-height: 34px;
+      border: 1px solid var(--learn-line);
+      border-radius: 11px;
+      color: var(--learn-muted);
+      background: rgba(255, 255, 255, 0.045);
+      transition: transform 120ms ease, border-color 120ms ease, background 120ms ease, color 120ms ease;
+      white-space: nowrap;
+    }
+    .api-learn-controls .seg button:active,
+    .api-learn-controls .preset:active {
+      transform: translateY(1px);
+    }
+    .api-learn-controls .seg button.active {
+      color: var(--learn-text);
+      border-color: rgba(72, 199, 232, 0.35);
+      background: var(--learn-cyan-soft);
+    }
+    .api-learn-controls .presets {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 7px;
+    }
+    .api-learn-controls .preset {
+      padding: 0 8px;
+      font-size: 11px;
+      text-align: left;
+    }
+    .api-learn-controls .derived {
+      display: grid;
+      gap: 6px;
+      padding-top: 9px;
+      border-top: 1px solid var(--learn-line);
+      color: var(--learn-muted);
+      font-size: 11px;
+      line-height: 1.45;
+    }
+    .api-learn-controls .derived strong {
+      color: var(--learn-text);
+      font-weight: 720;
+    }
     .number-control,
     .stepper-control {
       display: grid;
@@ -1197,6 +1319,241 @@
       gap: 8px 12px;
       color: var(--foreground-secondary);
       font: var(--text-body-sm);
+    }
+    .op-load3d-stage {
+      grid-column: 1 / -1;
+      overflow: hidden;
+    }
+    .op-load3d-body {
+      display: grid;
+      gap: 12px;
+      padding: 12px;
+      min-width: 0;
+    }
+    .op-load3d-input {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 300px;
+      gap: 12px;
+      min-width: 0;
+    }
+    .op-load3d-views {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.16fr);
+      gap: 12px;
+      min-width: 0;
+    }
+    .op-load3d-canvas-card,
+    .op-load3d-inspector,
+    .op-load3d-matrix {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      background:
+        radial-gradient(circle at 20% 12%, color-mix(in srgb, var(--operator-cyan) 10%, transparent), transparent 32%),
+        linear-gradient(135deg, color-mix(in srgb, var(--foreground) 5%, transparent), rgba(10, 14, 18, 0.34));
+    }
+    .op-load3d-canvas-card::before,
+    .op-load3d-inspector::before,
+    .op-load3d-matrix::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.26;
+      background-image: radial-gradient(circle, rgba(255,255,255,0.13) 1px, transparent 1px);
+      background-size: 34px 28px;
+    }
+    .op-load3d-canvas {
+      position: relative;
+      z-index: 1;
+      display: block;
+      width: 100%;
+      height: 340px;
+    }
+    .op-load3d-inspector {
+      z-index: 1;
+      display: grid;
+      align-content: start;
+      gap: 12px;
+      padding: 14px;
+    }
+    .op-load3d-inspector h4 {
+      margin: 0;
+      color: var(--foreground);
+      font: var(--text-title-sm);
+    }
+    .op-load3d-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .op-load3d-pill {
+      min-height: 24px;
+      padding: 0 10px;
+      display: inline-flex;
+      align-items: center;
+      border-radius: var(--radius-pill);
+      border: 1px solid color-mix(in srgb, var(--foreground) 12%, transparent);
+      color: var(--foreground-secondary);
+      font: var(--text-label);
+      background: color-mix(in srgb, var(--foreground) 5%, transparent);
+    }
+    .op-load3d-pill.is-hot {
+      border-color: color-mix(in srgb, var(--operator-cyan) 55%, transparent);
+      background: color-mix(in srgb, var(--operator-cyan) 24%, transparent);
+      color: var(--foreground);
+    }
+    .op-load3d-kv {
+      display: grid;
+      border-top: 1px solid var(--border-subtle);
+    }
+    .op-load3d-kv-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border-subtle);
+      color: var(--foreground-secondary);
+      font: var(--text-body-sm);
+    }
+    .op-load3d-kv-row code {
+      color: var(--foreground);
+      font: var(--text-code);
+    }
+    .op-load3d-formula {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      gap: 6px;
+      padding: 10px;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      background: rgba(0,0,0,0.18);
+      color: var(--foreground-secondary);
+      font: var(--text-body-sm);
+    }
+    .op-load3d-matrix {
+      min-width: 0;
+      padding: 14px;
+    }
+    .op-load3d-matrix-head {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: start;
+      gap: 12px;
+      margin-bottom: 12px;
+      color: var(--foreground-secondary);
+      font: var(--text-body-sm);
+    }
+    .op-load3d-matrix-head strong {
+      color: var(--foreground);
+    }
+    .op-load3d-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 12px;
+      align-items: center;
+      margin-top: 8px;
+      color: var(--foreground-secondary);
+      font: var(--text-label);
+    }
+    .op-load3d-legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .op-load3d-swatch {
+      width: 14px;
+      height: 14px;
+      border-radius: 4px;
+      border: 1px solid rgba(255,255,255,0.16);
+    }
+    .op-load3d-swatch.row { background: rgba(72,199,232,0.20); }
+    .op-load3d-swatch.col { background: rgba(255,191,77,0.16); }
+    .op-load3d-swatch.written { background: rgba(72,199,232,0.34); }
+    .op-load3d-swatch.pad { background: repeating-linear-gradient(45deg, rgba(190,200,212,0.16) 0 7px, rgba(190,200,212,0.07) 7px 14px); }
+    .op-load3d-swatch.active { background: #ffbf4d; }
+    .op-load3d-grid {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: repeat(var(--cols), minmax(var(--cell-min), 1fr));
+      width: min(100%, calc(var(--cols) * var(--cell-ideal)));
+      max-width: 100%;
+      border: 1px solid color-mix(in srgb, var(--foreground) 12%, transparent);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+    .op-load3d-cell {
+      aspect-ratio: 1 / 1;
+      min-width: 0;
+      display: grid;
+      place-items: center;
+      border-right: 1px solid rgba(255,255,255,0.07);
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      color: rgba(226,235,244,0.62);
+      font: 700 clamp(8px, 1.1vw, 11px) var(--font-mono);
+      background: rgba(255,255,255,0.018);
+    }
+    .op-load3d-cell.is-current-row { background: rgba(72,199,232,0.18); }
+    .op-load3d-cell.is-current-col { box-shadow: inset 0 0 0 999px rgba(255,191,77,0.08); }
+    .op-load3d-cell.is-written { background: rgba(72,199,232,0.30); color: rgba(235,246,252,0.72); }
+    .op-load3d-cell.is-pad {
+      color: rgba(230,236,244,0.58);
+      background:
+        repeating-linear-gradient(45deg, rgba(210,220,230,0.10) 0 7px, rgba(210,220,230,0.03) 7px 14px),
+        rgba(255,255,255,0.018);
+    }
+    .op-load3d-cell.is-active {
+      z-index: 2;
+      color: #211603;
+      background: #ffbf4d;
+      box-shadow: inset 0 0 0 2px rgba(255,244,214,0.78), 0 0 18px rgba(255,191,77,0.38);
+    }
+    .op-load3d-empty {
+      position: relative;
+      z-index: 1;
+      min-height: 280px;
+      display: grid;
+      place-items: center;
+      padding: 28px;
+      color: var(--foreground-secondary);
+      text-align: center;
+      font: var(--text-body);
+    }
+    .api-load3d-toggle {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px;
+    }
+    .api-load3d-toggle button {
+      min-height: 28px;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      background: color-mix(in srgb, var(--foreground) 6%, transparent);
+      color: var(--foreground-secondary);
+      font: var(--text-label);
+    }
+    .api-load3d-toggle button.is-active {
+      border-color: color-mix(in srgb, var(--operator-cyan) 60%, transparent);
+      background: color-mix(in srgb, var(--operator-cyan) 26%, transparent);
+      color: var(--foreground);
+    }
+    @media (max-width: 1500px) {
+      .op-load3d-input {
+        grid-template-columns: 1fr;
+      }
+      .op-load3d-canvas {
+        height: 300px;
+      }
+    }
+    @media (max-width: 980px) {
+      .op-load3d-views {
+        grid-template-columns: 1fr;
+      }
     }
     .load3d-chip-row {
       display: flex;
@@ -1984,13 +2341,13 @@
         selectedSource: '1,1',
         selectedMatrix: null,
         api: {
-          H: 4, W: 4, C1: 2, C0: 16,
+          H: 4, W: 4, Ci: 3, C1: 2, C0: 16,
           padTop: 1, padBottom: 1, padLeft: 1, padRight: 1,
           filterH: 2, filterW: 2,
           strideH: 1, strideW: 1,
           dilationH: 1, dilationW: 1,
           leftTopH: 0, leftTopW: 0,
-          repeatMode: 0, repeatTime: 3, channelSize: 16, padValue: 0
+          repeatMode: 0, repeatTime: 3, jumpStride: 1, channelSize: 16, padValue: 0, showChannelPadding: true
         },
         pipeline: 'auto',
         format: {
@@ -2856,6 +3213,360 @@
         }).join('')}</div>`;
       }
 
+      function load3dParams() {
+        const p = state.api;
+        const Ci = p.Ci ?? p.C1 ?? 1;
+        return {
+          Hi: p.H,
+          Wi: p.W,
+          Ci,
+          C0: p.C0,
+          Hk: p.filterH,
+          Wk: p.filterW,
+          strideH: p.strideH,
+          strideW: p.strideW,
+          padTop: p.padTop,
+          padRight: p.padRight ?? 0,
+          padBottom: p.padBottom ?? 0,
+          padLeft: p.padLeft,
+          padValue: p.padValue ?? 0,
+          dilationH: p.dilationH,
+          dilationW: p.dilationW,
+          repeatMode: p.repeatMode,
+          repeatTime: p.repeatTime,
+          showChannelPadding: p.showChannelPadding !== false
+        };
+      }
+
+      function load3dShape(p) {
+        const effectiveKernelH = (p.Hk - 1) * p.dilationH + 1;
+        const effectiveKernelW = (p.Wk - 1) * p.dilationW + 1;
+        const Ho = Math.floor((p.Hi + p.padTop + p.padBottom - effectiveKernelH) / p.strideH) + 1;
+        const Wo = Math.floor((p.Wi + p.padLeft + p.padRight - effectiveKernelW) / p.strideW) + 1;
+        const C1 = Math.ceil(p.Ci / p.C0);
+        const physicalSlots = C1 * p.C0;
+        return {
+          effectiveKernelH,
+          effectiveKernelW,
+          Ho,
+          Wo,
+          C1,
+          physicalSlots,
+          paddingChannels: physicalSlots - p.Ci,
+          valid: Ho > 0 && Wo > 0,
+          rows: Math.max(0, Ho * Wo),
+          cols: Math.max(0, p.Hk * p.Wk * p.Ci)
+        };
+      }
+
+      function load3dPatches(p, shape) {
+        if (!shape.valid) return [];
+        const patches = [];
+        for (let oh = 0; oh < shape.Ho; oh += 1) {
+          for (let ow = 0; ow < shape.Wo; ow += 1) {
+            const baseH = oh * p.strideH - p.padTop;
+            const baseW = ow * p.strideW - p.padLeft;
+            const row = oh * shape.Wo + ow;
+            const elements = [];
+            for (let kh = 0; kh < p.Hk; kh += 1) {
+              for (let kw = 0; kw < p.Wk; kw += 1) {
+                for (let c = 0; c < p.Ci; c += 1) {
+                  const srcH = baseH + kh * p.dilationH;
+                  const srcW = baseW + kw * p.dilationW;
+                  const col = ((kh * p.Wk) + kw) * p.Ci + c;
+                  const isPadding = srcH < 0 || srcH >= p.Hi || srcW < 0 || srcW >= p.Wi;
+                  elements.push({ oh, ow, row, kh, kw, c, col, srcH, srcW, srcC: c, isPadding });
+                }
+              }
+            }
+            patches.push({ oh, ow, row, baseH, baseW, elements });
+          }
+        }
+        return patches;
+      }
+
+      function load3dTotalSteps(patches) {
+        return patches.reduce((sum, patch) => sum + patch.elements.length, 0);
+      }
+
+      function load3dContext(patches) {
+        if (!patches.length) return { patch: null, element: null, step: 0, maxStep: 0 };
+        const maxStep = Math.max(0, load3dTotalSteps(patches) - 1);
+        let cursor = Math.max(0, Math.min(maxStep, state.apiStep || 0));
+        let patch = patches[0];
+        let element = patch.elements[0];
+        for (const candidate of patches) {
+          if (cursor < candidate.elements.length) {
+            patch = candidate;
+            element = candidate.elements[cursor];
+            break;
+          }
+          cursor -= candidate.elements.length;
+        }
+        return { patch, element, step: Math.max(0, Math.min(maxStep, state.apiStep || 0)), maxStep };
+      }
+
+      function load3dSourceLabel(h, w, c, isPadding) {
+        return isPadding ? 'PAD' : `x${h}${w}${c}`;
+      }
+
+      function load3dTensorPoint(originX, originY, unit, depthX, depthY, col, row, depth) {
+        return {
+          x: originX + col * unit + depth * depthX,
+          y: originY + row * unit - depth * depthY
+        };
+      }
+
+      function load3dDrawQuad(ctx, p0, p1, p2, p3, fill, stroke, lineWidth = 1) {
+        ctx.beginPath();
+        ctx.moveTo(p0.x, p0.y);
+        ctx.lineTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+        ctx.lineTo(p3.x, p3.y);
+        ctx.closePath();
+        ctx.fillStyle = fill;
+        ctx.fill();
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = lineWidth;
+        ctx.stroke();
+      }
+
+      function load3dDrawVoxel(ctx, originX, originY, unit, depthX, depthY, col, row, depth, faces) {
+        const gap = 0.065;
+        const point = (cc, rr, dd) => load3dTensorPoint(originX, originY, unit, depthX, depthY, cc, rr, dd);
+        const c0 = col + gap;
+        const c1 = col + 1 - gap;
+        const r0 = row + gap;
+        const r1 = row + 1 - gap;
+        const d0 = depth + gap;
+        const d1 = depth + 1 - gap;
+        const f0 = point(c0, r0, d0);
+        const f1 = point(c1, r0, d0);
+        const f2 = point(c1, r1, d0);
+        const f3 = point(c0, r1, d0);
+        const b0 = point(c0, r0, d1);
+        const b1 = point(c1, r0, d1);
+        const b2 = point(c1, r1, d1);
+        load3dDrawQuad(ctx, f0, f1, b1, b0, faces.top, faces.topEdge || faces.edge, faces.topLineWidth || faces.lineWidth || 1);
+        load3dDrawQuad(ctx, f1, f2, b2, b1, faces.east, faces.edge, faces.lineWidth || 1);
+        load3dDrawQuad(ctx, f0, f1, f2, f3, faces.south, faces.edge, faces.lineWidth || 1);
+        return { center: { x: (f0.x + f1.x + f2.x + f3.x) / 4, y: (f0.y + f1.y + f2.y + f3.y) / 4 } };
+      }
+
+      function load3dFrame(ctx, originX, originY, unit, depthX, depthY, cols, rows, depth) {
+        const p = (c, r, d) => load3dTensorPoint(originX, originY, unit, depthX, depthY, c, r, d);
+        const corners = {
+          f0: p(0, 0, 0),
+          f1: p(cols, 0, 0),
+          f2: p(cols, rows, 0),
+          f3: p(0, rows, 0),
+          b0: p(0, 0, depth),
+          b1: p(cols, 0, depth),
+          b2: p(cols, rows, depth),
+          b3: p(0, rows, depth)
+        };
+        ctx.save();
+        ctx.strokeStyle = 'rgba(210,222,242,0.54)';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(corners.f0.x, corners.f0.y);
+        ctx.lineTo(corners.f1.x, corners.f1.y);
+        ctx.lineTo(corners.f2.x, corners.f2.y);
+        ctx.lineTo(corners.f3.x, corners.f3.y);
+        ctx.closePath();
+        ctx.stroke();
+        ctx.strokeStyle = 'rgba(210,222,242,0.42)';
+        ctx.beginPath();
+        ctx.moveTo(corners.b0.x, corners.b0.y);
+        ctx.lineTo(corners.b1.x, corners.b1.y);
+        ctx.lineTo(corners.b2.x, corners.b2.y);
+        ctx.lineTo(corners.b3.x, corners.b3.y);
+        ctx.closePath();
+        ctx.stroke();
+        for (const [a, b] of [['f0','b0'], ['f1','b1'], ['f2','b2'], ['f3','b3']]) {
+          ctx.beginPath();
+          ctx.moveTo(corners[a].x, corners[a].y);
+          ctx.lineTo(corners[b].x, corners[b].y);
+          ctx.stroke();
+        }
+        ctx.fillStyle = 'rgba(236,242,248,0.82)';
+        ctx.font = '700 13px ui-monospace, SFMono-Regular, Menlo, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('Wi', (corners.f2.x + corners.f3.x) / 2, corners.f2.y + 24);
+        ctx.textAlign = 'right';
+        ctx.fillText('Hi', corners.f3.x - 10, (corners.f0.y + corners.f3.y) / 2);
+        ctx.textAlign = 'left';
+        ctx.fillText('Ci', corners.b0.x - 2, corners.b0.y - 14);
+        ctx.restore();
+      }
+
+      function load3dFaces(kind) {
+        const palettes = {
+          base: { top: 'rgba(74,80,88,0.80)', east: 'rgba(59,65,74,0.80)', south: 'rgba(48,54,64,0.80)', edge: 'rgba(10,12,16,0.62)' },
+          pad: { top: 'rgba(90,96,104,0.25)', east: 'rgba(54,60,68,0.25)', south: 'rgba(42,48,56,0.25)', edge: 'rgba(190,200,212,0.18)' },
+          channelPad: { top: 'rgba(74,80,88,0.22)', east: 'rgba(59,65,74,0.20)', south: 'rgba(48,54,64,0.20)', edge: 'rgba(190,200,212,0.14)' },
+          window: { top: 'rgba(72,199,232,0.90)', east: 'rgba(37,143,170,0.90)', south: 'rgba(27,116,143,0.90)', edge: 'rgba(138,235,255,0.90)', lineWidth: 1.15, topLineWidth: 1.4 },
+          sampled: { top: 'rgba(72,199,232,1)', east: 'rgba(35,148,176,1)', south: 'rgba(25,122,150,1)', edge: 'rgba(167,240,255,1)', lineWidth: 1.25, topLineWidth: 1.6 },
+          current: { top: '#ffbf4d', east: '#c98220', south: '#a96819', edge: 'rgba(255,244,214,0.9)', lineWidth: 1.5, topLineWidth: 2 },
+          skipped: { top: 'rgba(255,255,255,0.08)', east: 'rgba(255,255,255,0.055)', south: 'rgba(255,255,255,0.045)', edge: 'rgba(255,255,255,0.18)' }
+        };
+        return palettes[kind] || palettes.base;
+      }
+
+      function load3dDrawNchwCanvas(canvas, p) {
+        if (!canvas) return;
+        const rect = canvas.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = Math.max(1, Math.floor(rect.width * dpr));
+        canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+        const ctx = canvas.getContext('2d');
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, rect.width, rect.height);
+        const layers = Math.min(p.Ci, 4);
+        const fitW = (rect.width - 84) / Math.max(1, p.Wi + layers * 0.52);
+        const fitH = (rect.height - 92) / Math.max(1, p.Hi + layers * 0.38);
+        const unit = Math.max(14, Math.min(34, fitW, fitH));
+        const depthX = unit * 0.52;
+        const depthY = unit * 0.38;
+        const objectW = p.Wi * unit + layers * depthX;
+        const objectH = p.Hi * unit + layers * depthY;
+        const originX = Math.max(44, (rect.width - objectW) / 2 + 10);
+        const originY = Math.max(66 + layers * depthY, (rect.height - objectH) / 2 + layers * depthY + 16);
+        load3dFrame(ctx, originX, originY, unit, depthX, depthY, p.Wi, p.Hi, layers);
+        const cells = [];
+        for (let c = 0; c < layers; c += 1) {
+          for (let h = 0; h < p.Hi; h += 1) {
+            for (let w = 0; w < p.Wi; w += 1) cells.push({ c, h, w, depth: c });
+          }
+        }
+        cells.sort((a, b) => (b.depth - a.depth) || (b.h - a.h) || (a.w - b.w));
+        const faces = { top: 'rgb(74,80,88)', east: 'rgb(59,65,74)', south: 'rgb(48,54,64)', edge: 'rgba(10,12,16,0.72)' };
+        ctx.font = '700 10px ui-monospace, SFMono-Regular, Menlo, monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        for (const cell of cells) {
+          const result = load3dDrawVoxel(ctx, originX, originY, unit, depthX, depthY, cell.w, cell.h, cell.depth, faces);
+          if (cell.c === 0 && p.Hi * p.Wi <= 36) {
+            ctx.fillStyle = 'rgba(235,243,252,0.72)';
+            ctx.fillText(`${cell.h}${cell.w}`, result.center.x, result.center.y + 1);
+          }
+        }
+        ctx.fillStyle = 'rgba(236,242,248,0.78)';
+        ctx.font = '700 12px ui-monospace, SFMono-Regular, Menlo, monospace';
+        ctx.textAlign = 'left';
+        ctx.fillText('input shape', 22, 28);
+        ctx.fillStyle = 'rgba(190,199,211,0.72)';
+        ctx.fillText(`N=1, C=${p.Ci}, H=${p.Hi}, W=${p.Wi}`, 22, 48);
+        if (p.Ci > layers) ctx.fillText(`showing first ${layers} channel slices`, 22, 68);
+      }
+
+      function load3dDrawA1Canvas(canvas, p, shape, patch, element) {
+        if (!canvas || !patch || !element) return;
+        const rect = canvas.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = Math.max(1, Math.floor(rect.width * dpr));
+        canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+        const ctx = canvas.getContext('2d');
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, rect.width, rect.height);
+        const totalH = p.Hi + p.padTop + p.padBottom;
+        const totalW = p.Wi + p.padLeft + p.padRight;
+        const layers = p.showChannelPadding ? p.C0 : p.Ci;
+        const fitW = (rect.width - 96) / Math.max(1, totalW + layers * 0.56);
+        const fitH = (rect.height - 94) / Math.max(1, totalH + layers * 0.42);
+        const unit = Math.max(8, Math.min(30, fitW, fitH));
+        const depthX = unit * 0.56;
+        const depthY = unit * 0.42;
+        const objectW = totalW * unit + layers * depthX;
+        const objectH = totalH * unit + layers * depthY;
+        const originX = Math.max(54, (rect.width - objectW) / 2 + 14);
+        const originY = Math.max(58 + layers * depthY, (rect.height - objectH) / 2 + layers * depthY + 18);
+        const windowCoords = new Set();
+        const skippedCoords = new Set();
+        const sampledKeys = new Set(patch.elements.map((item) => `${item.srcH},${item.srcW},${item.c}`));
+        for (let kh = 0; kh < p.Hk; kh += 1) {
+          for (let kw = 0; kw < p.Wk; kw += 1) {
+            const h = patch.baseH + kh * p.dilationH;
+            const w = patch.baseW + kw * p.dilationW;
+            for (let c = 0; c < p.Ci; c += 1) windowCoords.add(`${h},${w},${c}`);
+          }
+        }
+        if (p.dilationH > 1 || p.dilationW > 1) {
+          const maxH = patch.baseH + (p.Hk - 1) * p.dilationH;
+          const maxW = patch.baseW + (p.Wk - 1) * p.dilationW;
+          for (let h = patch.baseH; h <= maxH; h += 1) {
+            for (let w = patch.baseW; w <= maxW; w += 1) {
+              for (let c = 0; c < p.Ci; c += 1) {
+                const key = `${h},${w},${c}`;
+                if (!windowCoords.has(key)) skippedCoords.add(key);
+              }
+            }
+          }
+        }
+        load3dFrame(ctx, originX, originY, unit, depthX, depthY, totalW, totalH, layers);
+        const items = [];
+        for (let c = 0; c < layers; c += 1) {
+          for (let ph = 0; ph < totalH; ph += 1) {
+            for (let pw = 0; pw < totalW; pw += 1) {
+              const h = ph - p.padTop;
+              const w = pw - p.padLeft;
+              const key = `${h},${w},${c}`;
+              const isPadding = h < 0 || h >= p.Hi || w < 0 || w >= p.Wi;
+              const isChannelPad = p.showChannelPadding && c >= p.Ci;
+              let kind = isChannelPad ? 'channelPad' : (isPadding ? 'pad' : 'base');
+              if (skippedCoords.has(key)) kind = 'skipped';
+              if (windowCoords.has(key)) kind = 'window';
+              if (sampledKeys.has(key)) kind = 'sampled';
+              if (key === `${element.srcH},${element.srcW},${element.c}`) kind = 'current';
+              items.push({ ph, pw, h, w, c, kind, isPadding, isChannelPad, key });
+            }
+          }
+        }
+        items.sort((a, b) => {
+          if (b.c !== a.c) return b.c - a.c;
+          if (b.ph !== a.ph) return b.ph - a.ph;
+          return a.pw - b.pw;
+        });
+        ctx.font = '700 10px ui-monospace, SFMono-Regular, Menlo, monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        for (const item of items) {
+          const result = load3dDrawVoxel(ctx, originX, originY, unit, depthX, depthY, item.pw, item.ph, item.c, load3dFaces(item.kind));
+          if (item.kind !== 'skipped' && !item.isChannelPad && (item.kind === 'current' || item.kind === 'sampled' || item.kind === 'window' || item.isPadding)) {
+            ctx.fillStyle = item.kind === 'current' ? '#211603' : 'rgba(240,247,252,0.86)';
+            ctx.fillText(load3dSourceLabel(item.h, item.w, item.c, item.isPadding), result.center.x, result.center.y + 1);
+          }
+          if (item.kind === 'skipped') {
+            ctx.fillStyle = 'rgba(255,255,255,0.38)';
+            ctx.beginPath();
+            ctx.arc(result.center.x, result.center.y, 2.2, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+        ctx.fillStyle = 'rgba(236,242,248,0.76)';
+        ctx.font = '700 12px ui-monospace, SFMono-Regular, Menlo, monospace';
+        ctx.textAlign = 'left';
+        ctx.fillText('A1 Layout', 22, 28);
+        ctx.fillStyle = 'rgba(72,199,232,0.88)';
+        ctx.fillText(`N=1, C1=${shape.C1}, H=${p.Hi}, W=${p.Wi}, C0=${p.C0}`, 22, 48);
+        ctx.fillStyle = 'rgba(190,199,211,0.68)';
+        ctx.fillText(`Padding: ${p.padTop} ${p.padRight} ${p.padBottom} ${p.padLeft}`, 22, 68);
+        if (!p.showChannelPadding && shape.paddingChannels > 0) ctx.fillText(`C0 padding lanes hidden: ${shape.paddingChannels}`, 22, 88);
+        ctx.fillStyle = 'rgba(255,191,77,0.95)';
+        ctx.textAlign = 'right';
+        ctx.fillText(`Current: row ${element.row}, col ${element.col}`, rect.width - 22, 28);
+      }
+
+      function renderLoad3dNativeCanvases() {
+        const p = load3dParams();
+        const shape = load3dShape(p);
+        if (!shape.valid) return;
+        const patches = load3dPatches(p, shape);
+        const ctx = load3dContext(patches);
+        load3dDrawNchwCanvas(document.getElementById('opLoad3dNchwCanvas'), p);
+        load3dDrawA1Canvas(document.getElementById('opLoad3dA1Canvas'), p, shape, ctx.patch, ctx.element);
+      }
+
       const LOAD3D_ISO = {
         angle: Math.PI / 6,
         unit: 46,
@@ -3030,47 +3741,119 @@
       }
 
       function renderLoad3dScene() {
-        const p = state.api;
-        const sampled = sampleCoords();
-        const win = currentWindow();
-        const rows = p.H + p.padTop + p.padBottom;
-        const cols = p.W + p.padLeft + p.padRight;
-        const sampleSummary = sampled.map((item) => `${item.kh},${item.kw} → ${item.srcH},${item.srcW}`).join(' · ');
+        const p = load3dParams();
+        const shape = load3dShape(p);
+        const patches = load3dPatches(p, shape);
+        const ctx = load3dContext(patches);
+        if (!shape.valid || !ctx.patch || !ctx.element) {
+          return `
+            <section class="viz-panel op-load3d-stage">
+              <header class="section-head">
+                <h3>Load3D 2.5D 学习画布</h3>
+                <span class="section-meta">NCHW → NC1HWC0 → A2</span>
+              </header>
+              <div class="op-load3d-empty">
+                <div>
+                  <strong>当前参数无法产生输出位置</strong>
+                  <div>当前 kernel / dilation / padding 组合让 Ho 或 Wo 小于等于 0。请增大 padding、减小 kernel、减小 dilation 或调整 stride。</div>
+                </div>
+              </div>
+            </section>
+          `;
+        }
+        const { patch, element } = ctx;
+        const currentSourceText = element.isPadding
+          ? `PAD(${p.padValue})`
+          : `x[h=${element.srcH}, w=${element.srcW}, c=${element.srcC}]`;
+        const cols = Math.max(1, shape.cols);
+        const rows = Math.max(1, shape.rows);
+        const cellMin = cols > 28 ? '14px' : cols > 16 ? '22px' : '34px';
+        const cellIdeal = cols > 28 ? '26px' : cols > 16 ? '34px' : '46px';
+        const showText = rows * cols <= 180;
+        const written = new Set();
+        patches.forEach((candidate, patchIndex) => {
+          candidate.elements.forEach((item, elementIndex) => {
+            const step = patches.slice(0, patchIndex).reduce((sum, prior) => sum + prior.elements.length, 0) + elementIndex;
+            if (step <= ctx.step) written.add(`${item.row},${item.col}`);
+          });
+        });
+        const cells = [];
+        for (let row = 0; row < rows; row += 1) {
+          for (let col = 0; col < cols; col += 1) {
+            const mapped = patches[row]?.elements[col];
+            const active = row === element.row && col === element.col;
+            const classes = ['op-load3d-cell'];
+            if (row === element.row) classes.push('is-current-row');
+            if (col === element.col) classes.push('is-current-col');
+            if (written.has(`${row},${col}`)) classes.push('is-written');
+            if (mapped?.isPadding) classes.push('is-pad');
+            if (active) classes.push('is-active');
+            const content = showText && mapped ? (mapped.isPadding ? 'PAD' : `x${mapped.srcH}${mapped.srcW}${mapped.srcC}`) : '';
+            const title = mapped ? `row=${row}, col=${col}, kh=${mapped.kh}, kw=${mapped.kw}, c=${mapped.c}, src=(${mapped.srcH},${mapped.srcW},${mapped.srcC})` : '';
+            cells.push(`<div class="${classes.join(' ')}" title="${title}">${content}</div>`);
+          }
+        }
         return `
-          <section class="viz-panel load3d-stage">
+          <section class="viz-panel op-load3d-stage">
             <header class="section-head">
-              <h3>Load3D 2.5D 映射</h3>
-              <span class="section-meta">fixed view · iso stack</span>
+              <h3>Load3D 2.5D 学习画布</h3>
+              <span class="section-meta">NCHW → NC1HWC0 → A2</span>
             </header>
-            <div class="load3d-scene">
-              <div class="load3d-stage__lead">
-                <div class="load3d-chip-row">
-                  <span class="load3d-chip is-accent">Load3D</span>
-                  <span class="load3d-chip">repeatMode ${p.repeatMode}</span>
-                  <span class="load3d-chip">stride ${p.strideH}×${p.strideW}</span>
-                  <span class="load3d-chip">dilation ${p.dilationH}×${p.dilationW}</span>
-                </div>
-                <div>${sampled.length} 个滑窗点被展开为目标矩阵行</div>
-              </div>
-              <div class="load3d-diagram">
-                <div class="load3d-volume-wrap">
-                  <div class="load3d-label">Feature map volume</div>
-                  <div class="load3d-volume">
-                    ${renderLoad3dVolumeSvg(sampled, win, cols, rows)}
+            <div class="op-load3d-body">
+              <section class="op-load3d-input">
+                <div class="op-load3d-views">
+                  <div class="op-load3d-canvas-card">
+                    <canvas class="op-load3d-canvas" id="opLoad3dNchwCanvas" aria-label="NCHW input tensor"></canvas>
+                  </div>
+                  <div class="op-load3d-canvas-card">
+                    <canvas class="op-load3d-canvas" id="opLoad3dA1Canvas" aria-label="NC1HWC0 A1 layout"></canvas>
                   </div>
                 </div>
-                <svg class="load3d-link" viewBox="0 0 120 220" aria-hidden="true">
-                  <path class="path-main" d="M18 36 C 58 36, 54 78, 86 104 S 96 170, 102 196"></path>
-                  <path class="path-sample" d="M28 82 C 58 74, 66 118, 96 142"></path>
-                </svg>
-                <div class="load3d-slab-wrap">
-                  <div class="load3d-label">im2col target slab</div>
-                  <div class="load3d-slab">
-                    ${renderLoad3dSlabSvg(sampled)}
+                <aside class="op-load3d-inspector">
+                  <h4>当前硬件位置</h4>
+                  <div class="op-load3d-pills">
+                    <span class="op-load3d-pill is-hot">src LocalTensor</span>
+                    <span class="op-load3d-pill">A1</span>
+                    <span class="op-load3d-pill">NC1HWC0 logical view</span>
+                  </div>
+                  <div class="op-load3d-kv">
+                    <div class="op-load3d-kv-row"><span>当前输出位置</span><code>oh=${patch.oh}, ow=${patch.ow}</code></div>
+                    <div class="op-load3d-kv-row"><span>leftTopH / leftTopW</span><code>${patch.baseH}, ${patch.baseW}</code></div>
+                    <div class="op-load3d-kv-row"><span>fetchFilterH / fetchFilterW</span><code>kh=${element.kh}, kw=${element.kw}</code></div>
+                    <div class="op-load3d-kv-row"><span>c1Index / c</span><code>c1=0, c=${element.c}</code></div>
+                    <div class="op-load3d-kv-row"><span>源坐标</span><code>${currentSourceText}</code></div>
+                    <div class="op-load3d-kv-row"><span>是否 padding</span><code>${element.isPadding ? 'true' : 'false'}</code></div>
+                  </div>
+                  <div class="op-load3d-formula">
+                    <div><code>srcH = leftTopH + kh * dilationH</code></div>
+                    <div><code>srcW = leftTopW + kw * dilationW</code></div>
+                    <div>当前点会写入 A2 的第 <code>${element.row}</code> 行、第 <code>${element.col}</code> 列。</div>
+                  </div>
+                </aside>
+              </section>
+              <section class="op-load3d-matrix">
+                <div class="op-load3d-matrix-head">
+                  <div>
+                    <div><strong>A2 logical matrix</strong> · dst LocalTensor · A2</div>
+                    <div>shape = (${shape.Ho} * ${shape.Wo}, ${p.Hk} * ${p.Wk} * ${p.Ci}) = ${shape.rows} x ${shape.cols}</div>
+                    <div>C0 padding lane 只表示物理对齐槽位，不进入逻辑 A2 展开矩阵。</div>
+                    <div class="op-load3d-legend" aria-label="A2 matrix color legend">
+                      <span><i class="op-load3d-swatch row"></i>当前窗口行</span>
+                      <span><i class="op-load3d-swatch col"></i>当前采样列</span>
+                      <span><i class="op-load3d-swatch written"></i>已写入</span>
+                      <span><i class="op-load3d-swatch pad"></i>PAD 来源</span>
+                      <span><i class="op-load3d-swatch active"></i>当前写入 cell</span>
+                    </div>
+                  </div>
+                  <div class="op-load3d-pills">
+                    <span class="op-load3d-pill is-hot">row = oh * Wo + ow = ${element.row}</span>
+                    <span class="op-load3d-pill">col = ((kh * Wk) + kw) * Ci + c = ${element.col}</span>
                   </div>
                 </div>
-              </div>
-              <div class="load3d-note">参考 tiling 路径里的固定视角等距投影，这里用 2.5D 来解释 Load3D：左侧是源体块，选中的 2x2 窗口沿固定视角向上抬起，右侧把采样点排成目标 slab 的行。repeatMode 改变的是投影推进顺序，不是图形旋转。</div>
+                <div class="op-load3d-grid" style="--cols:${cols};--cell-min:${cellMin};--cell-ideal:${cellIdeal};">
+                  ${cells.join('')}
+                </div>
+              </section>
             </div>
           </section>
         `;
@@ -3096,8 +3879,8 @@
               </div>
             </aside>
             <section class="api-canvas">
-              ${renderLoad3dScene()}
-              <article class="viz-panel load3d-insight">
+              ${isLoad3D ? renderLoad3dScene() : ''}
+              ${!isLoad3D ? `<article class="viz-panel load3d-insight">
                 <header class="section-head"><h3>三维读法</h3><span class="section-meta">what changes when you tweak the knobs</span></header>
                 <div class="section-body">
                   <div class="load3d-summary">
@@ -3120,10 +3903,11 @@
                     <code>source[h,w] → filter window → sampled points → im2col row</code>
                   </div>
                 </div>
-              </article>
+              </article>` : ''}
             </section>
           </div>
         `;
+        if (isLoad3D) requestAnimationFrame(renderLoad3dNativeCanvases);
         renderApiControls();
         $$('[data-api-select]').forEach((btn) => {
           btn.addEventListener('click', () => {
@@ -3134,16 +3918,151 @@
       }
 
       function renderApiControls() {
+        const fieldMap = { Hi: 'H', Wi: 'W', Hk: 'filterH', Wk: 'filterW' };
         const fields = [
-          ['strideH', 1, 3, 1], ['strideW', 1, 3, 1], ['dilationH', 1, 3, 1], ['dilationW', 1, 3, 1],
-          ['padTop', 0, 2, 1], ['padLeft', 0, 2, 1], ['repeatMode', 0, 1, 1], ['repeatTime', 1, 5, 1]
+          { key: 'Hi', label: 'Hi', min: 1, max: 8, group: '输入源参数' },
+          { key: 'Wi', label: 'Wi', min: 1, max: 8, group: '输入源参数' },
+          { key: 'Ci', label: 'Ci', min: 1, max: 16, group: '输入源参数' },
+          { key: 'Hk', label: 'Hk', min: 1, max: 5, group: '窗口参数' },
+          { key: 'Wk', label: 'Wk', min: 1, max: 5, group: '窗口参数' },
+          { key: 'strideH', label: 'strideH', min: 1, max: 4, group: '滑动参数' },
+          { key: 'strideW', label: 'strideW', min: 1, max: 4, group: '滑动参数' },
+          { key: 'padTop', label: 'padTop', min: 0, max: 3, group: 'padding 参数' },
+          { key: 'padRight', label: 'padRight', min: 0, max: 3, group: 'padding 参数' },
+          { key: 'padBottom', label: 'padBottom', min: 0, max: 3, group: 'padding 参数' },
+          { key: 'padLeft', label: 'padLeft', min: 0, max: 3, group: 'padding 参数' },
+          { key: 'padValue', label: 'padValue', min: 0, max: 9, group: 'padding 参数' },
+          { key: 'dilationH', label: 'dilationH', min: 1, max: 3, group: 'dilation 参数' },
+          { key: 'dilationW', label: 'dilationW', min: 1, max: 3, group: 'dilation 参数' },
+          { key: 'repeatTime', label: 'repeatTime', min: 1, max: 8, group: 'repeat 参数' },
+          { key: 'jumpStride', label: 'jumpStride', min: 1, max: 16, group: 'repeat 参数' }
         ];
-        $('#apiControls').innerHTML = fields.map(([id, min, max, step]) => rangeField(`api-${id}`, id, min, max, state.api[id], step)).join('');
-        fields.forEach(([id]) => {
-          const input = document.getElementById(`api-${id}`);
+        const presets = [
+          { name: '基础展开', values: { Hi: 4, Wi: 4, Ci: 1, C0: 16, Hk: 2, Wk: 2, strideH: 1, strideW: 1, padTop: 0, padRight: 0, padBottom: 0, padLeft: 0, dilationH: 1, dilationW: 1 } },
+          { name: 'RGB 输入', values: { Hi: 5, Wi: 5, Ci: 3, C0: 16, Hk: 3, Wk: 3, strideH: 1, strideW: 1, padTop: 0, padRight: 0, padBottom: 0, padLeft: 0, dilationH: 1, dilationW: 1 } },
+          { name: 'Padding', values: { Hi: 4, Wi: 4, Ci: 1, C0: 16, Hk: 3, Wk: 3, strideH: 1, strideW: 1, padTop: 1, padRight: 1, padBottom: 1, padLeft: 1, dilationH: 1, dilationW: 1 } },
+          { name: 'Dilation', values: { Hi: 5, Wi: 5, Ci: 1, C0: 16, Hk: 3, Wk: 3, strideH: 1, strideW: 1, padTop: 0, padRight: 0, padBottom: 0, padLeft: 0, dilationH: 2, dilationW: 2 } },
+          { name: 'NC1HWC0', values: { Hi: 5, Wi: 5, Ci: 3, C0: 16, Hk: 3, Wk: 3, strideH: 1, strideW: 1, padTop: 0, padRight: 0, padBottom: 0, padLeft: 0, dilationH: 1, dilationW: 1 } }
+        ];
+        const apiKey = (key) => fieldMap[key] || key;
+        const getValue = (key) => state.api[apiKey(key)] ?? 0;
+        const clampValue = (value, min, max) => Math.max(min, Math.min(max, value));
+        const intValue = (value, fallback) => {
+          const next = Number.parseInt(value, 10);
+          return Number.isFinite(next) ? next : fallback;
+        };
+        const applyValues = (values) => {
+          Object.entries(values).forEach(([key, value]) => {
+            state.api[apiKey(key)] = value;
+          });
+        };
+        const groups = new Map();
+        fields.forEach((field) => {
+          if (!groups.has(field.group)) groups.set(field.group, []);
+          groups.get(field.group).push(field);
+        });
+        const p = load3dParams();
+        const shape = load3dShape(p);
+        const groupHtml = Array.from(groups.entries()).map(([title, groupFields]) => {
+          const body = groupFields.map((field) => `
+            <div class="field">
+              <label for="api-learn-${field.key}">${field.label}<output>${getValue(field.key)}</output></label>
+              <input class="input" id="api-learn-${field.key}" type="number" min="${field.min}" max="${field.max}" value="${getValue(field.key)}">
+            </div>
+          `).join('');
+          const extra = title === '输入源参数' ? `
+            <div class="field">
+              <label for="api-learn-C0">C0<output>${state.api.C0}</output></label>
+              <select id="api-learn-C0">
+                <option value="16" ${state.api.C0 === 16 ? 'selected' : ''}>16</option>
+                <option value="32" ${state.api.C0 === 32 ? 'selected' : ''}>32</option>
+              </select>
+            </div>
+            <div class="field" style="grid-column: 1 / -1;">
+              <label>padding channel<output>${state.api.showChannelPadding ? 'on' : 'off'}</output></label>
+              <div class="seg">
+                <button type="button" data-api-learn-channel-padding="1" class="${state.api.showChannelPadding ? 'active' : ''}">显示</button>
+                <button type="button" data-api-learn-channel-padding="0" class="${!state.api.showChannelPadding ? 'active' : ''}">隐藏</button>
+              </div>
+            </div>
+          ` : '';
+          const repeatMode = title === 'repeat 参数' ? `
+            <div class="field">
+              <label>repeatMode<output>${state.api.repeatMode}</output></label>
+              <div class="seg">
+                <button type="button" data-api-learn-repeat="0" class="${state.api.repeatMode === 0 ? 'active' : ''}">mode 0</button>
+                <button type="button" data-api-learn-repeat="1" class="${state.api.repeatMode === 1 ? 'active' : ''}">mode 1</button>
+              </div>
+            </div>
+            <div class="hint-text">${state.api.repeatMode === 0 ? 'mode 0：强调 filter 内部 W 方向推进。' : 'mode 1：强调滑窗 leftTop H 方向推进。'} 学习视角，不是完整微指令仿真。</div>
+          ` : '';
+          return `
+            <section class="group">
+              <div class="group-title">${title}</div>
+              <div class="grid-2">${body}${extra}</div>
+              ${repeatMode}
+            </section>
+          `;
+        }).join('');
+        $('#apiControls').innerHTML = `
+          <div class="api-learn-controls">
+            <section class="group">
+              <div class="group-title">预设</div>
+              <div class="presets">
+                ${presets.map((preset, index) => `<button class="preset" type="button" data-api-learn-preset="${index}">${preset.name}</button>`).join('')}
+              </div>
+            </section>
+            ${groupHtml}
+            <section class="group">
+              <div class="group-title">派生值</div>
+              <div class="derived">
+                <div><strong>C1</strong> = ceil(${p.Ci} / ${p.C0}) = ${shape.C1}</div>
+                <div><strong>物理槽位</strong> = ${shape.physicalSlots}，padding channel = ${shape.paddingChannels}</div>
+                <div><strong>effective kernel</strong> = ${shape.effectiveKernelH} x ${shape.effectiveKernelW}</div>
+                <div><strong>A2 shape</strong> = ${shape.rows} x ${shape.cols}</div>
+              </div>
+            </section>
+          </div>
+        `;
+        fields.forEach((field) => {
+          const input = document.getElementById(`api-learn-${field.key}`);
           input.addEventListener('input', () => {
-            state.api[id] = Number(input.value);
-            document.getElementById(`api-${id}Out`).textContent = input.value;
+            state.api[apiKey(field.key)] = clampValue(intValue(input.value, getValue(field.key)), field.min, field.max);
+            const nextParams = load3dParams();
+            const nextShape = load3dShape(nextParams);
+            state.apiStep = Math.min(state.apiStep, Math.max(0, load3dTotalSteps(load3dPatches(nextParams, nextShape)) - 1));
+            renderApi();
+            renderInspector();
+          });
+        });
+        $('#api-learn-C0')?.addEventListener('change', (event) => {
+          state.api.C0 = Number(event.target.value);
+          renderApi();
+          renderInspector();
+        });
+        $$('[data-api-learn-channel-padding]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            state.api.showChannelPadding = btn.dataset.apiLearnChannelPadding === '1';
+            renderApi();
+            renderInspector();
+          });
+        });
+        $$('[data-api-learn-repeat]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            state.api.repeatMode = Number(btn.dataset.apiLearnRepeat);
+            state.apiStep = 0;
+            renderApi();
+            renderInspector();
+          });
+        });
+        $$('[data-api-learn-preset]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            applyValues(presets[Number(btn.dataset.apiLearnPreset)].values);
+            state.api.padValue = 0;
+            state.api.repeatMode = 0;
+            state.api.repeatTime = 1;
+            state.api.jumpStride = 1;
+            state.apiStep = 0;
             renderApi();
             renderInspector();
           });
