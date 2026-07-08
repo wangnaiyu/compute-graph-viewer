@@ -2309,8 +2309,25 @@
         return { minLeft, maxRight, avgY };
       }
 
+      function graphOutlineBounds() {
+        const groups = graphGroups();
+        const boundaryBoxes = groups
+          .filter((group) => group.classList.contains(BOUNDARY_CLASS))
+          .map(groupBounds)
+          .filter(Boolean);
+        const boxes = boundaryBoxes.length
+          ? boundaryBoxes
+          : groups.map(groupBounds).filter(Boolean);
+        if (!boxes.length) return null;
+        return {
+          minLeft: Math.min(...boxes.map((box) => box.x)),
+          maxRight: Math.max(...boxes.map((box) => box.x + box.width))
+        };
+      }
+
       function computeSideInputPlacements(entries) {
         const bySide = new Map();
+        const outline = graphOutlineBounds();
         entries.forEach((entry) => {
           const side = entry.config.side || "left";
           if (!bySide.has(side)) bySide.set(side, []);
@@ -2321,8 +2338,8 @@
           const side = sideEntries[0]?.config.side || "left";
           const laneGap = 116;
           const maxWidth = Math.max(...sideEntries.map((entry) => entry.width));
-          const minLeft = Math.min(...sideEntries.map((entry) => entry.aggregate.minLeft));
-          const maxRight = Math.max(...sideEntries.map((entry) => entry.aggregate.maxRight));
+          const minLeft = outline?.minLeft ?? Math.min(...sideEntries.map((entry) => entry.aggregate.minLeft));
+          const maxRight = outline?.maxRight ?? Math.max(...sideEntries.map((entry) => entry.aggregate.maxRight));
           const laneX = side === "right"
             ? maxRight + laneGap + maxWidth / 2
             : minLeft - laneGap - maxWidth / 2;
