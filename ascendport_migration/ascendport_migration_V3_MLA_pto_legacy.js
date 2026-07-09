@@ -1207,8 +1207,8 @@ const GNODES=[
   {id:'idx', x:26,  y:150, w:120,h:40, unit:'mem', t:'indices[b,topk]', s:'GM→UB', d:'稀疏 TopK 索引,指示每个 query 应该 attend 到哪些 KV。原为 CPU/GPU 预计算,昇腾映射到 Unified Buffer。', lines:[28,32]},
   {id:'qk', x:200, y:86,  w:120,h:44, unit:'cube', t:'QK^T 点积', s:'Cube · Mmad', d:'Q·K^T 的 FP8 矩阵乘,是算力主体。CUDA 里是手写循环累加,昇腾直接映射到 Cube 矩阵单元(Mmad)。', lines:[35,45]},
   {id:'sm', x:200, y:158, w:120,h:44, unit:'vector', t:'Softmax', s:'Vector · Exp/Reduce', d:'在线 Softmax:逐块更新 max 与 sum,exp 归一化。CUDA 用 __shfl_xor_sync 规约,昇腾映射到 Vector ReduceMax/Sum。', lines:[48,60]},
-  {id:'shf',x:26, y:230, w:120,h:44, unit:'risk', t:'block_reduce 规约', s:'__shfl_xor_sync', d:'靠 warp 内 lane 间硬件 shuffle 做 max/sum 规约。达芬奇无线程/warp 概念 —— 无直接对应物,S2 决策改写为 Vector 片上归约。', lines:[16,28]},
-  {id:'sync',x:26, y:300, w:120,h:40, unit:'risk', t:'__syncthreads', s:'线程块同步', d:'CUDA 线程块级同步屏障。昇腾无线程模型,需改写为 EnQue/DeQue 的流水同步(见 S6)。', lines:[30,45]},
+  {id:'shf',x:26, y:230, w:120,h:44, unit:'risk', gpuOnly:true, t:'block_reduce 规约', s:'GPU-only · 无直接适配', d:'依赖 warp 内 lane 间硬件 shuffle 做 max/sum 规约。达芬奇无线程/warp 概念,不是可直接映射的昇腾算子,S2 决策需替代为 Vector 片上归约。', lines:[16,28]},
+  {id:'sync',x:26, y:300, w:120,h:40, unit:'risk', gpuOnly:true, t:'__syncthreads', s:'GPU-only · 无直接适配', d:'CUDA 线程块级同步屏障。昇腾无线程块同步模型,不是可直接映射的昇腾算子,需改写为 EnQue/DeQue 的流水同步(见 S6)。', lines:[30,45]},
   {id:'vac', x:200, y:230, w:120,h:44, unit:'vector', t:'V 累加', s:'Vector · Axpy', d:'加权累加 V:out += weight * V[k]。逐 token 累加,映射到 Vector 单元的 Axpy 操作。', lines:[62,70]},
   {id:'out',x:200,y:300, w:120,h:44, unit:'mem', t:'Output + LSE', s:'UB→GM', d:'注意力输出与 log-sum-exp 写回 Global Memory。LSE 用于后续层或 loss 计算。', lines:[72,76]},
 ];
@@ -1233,10 +1233,10 @@ function renderGraph(animate){
     const u=eff(n.id); const col=unitColor(u);
     const risk=(u==='risk');
     nodes+=`<g class="gnode${animate?' enter':''}" data-id="${n.id}" style="${animate?`animation-delay:${i*70}ms`:''}">
-      ${risk?`<rect x="${n.x-3}" y="${n.y-3}" width="${n.w+6}" height="${n.h+6}" rx="11" fill="none" stroke="${col}" stroke-width="1.5" class="risk-pulse"/>`:''}
-      <rect x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="9" fill="${col}22" stroke="${col}" stroke-width="1.4"/>
+      ${risk?`<rect x="${n.x-3}" y="${n.y-3}" width="${n.w+6}" height="${n.h+6}" rx="8" fill="none" stroke="${col}" stroke-width="1.1" class="risk-pulse"/>`:''}
+      <rect x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="${risk ? 8 : 9}" fill="${risk ? 'var(--surface-3)' : `${col}22`}" stroke="${risk ? 'var(--danger)' : col}" stroke-width="${risk ? 1.05 : 1.4}"/>
       <text class="nt" x="${n.x+11}" y="${n.y+ (n.h>42?19:18)}" fill="#eef" font-size="13">${n.t}</text>
-      <text class="ns2" x="${n.x+11}" y="${n.y+(n.h>42?33:31)}" fill="${col}" font-size="12" font-family="ui-monospace,Menlo,Consolas,monospace">${n.s}</text>
+      <text class="ns2" x="${n.x+11}" y="${n.y+(n.h>42?33:31)}" fill="${risk ? 'var(--danger)' : col}" font-size="12" font-family="ui-monospace,Menlo,Consolas,monospace">${n.s}</text>
       ${(graphMapped&&n.unit==='risk')?`<text x="${n.x+n.w-8}" y="${n.y+13}" text-anchor="end" fill="${col}" font-size="12" font-weight="700">✓改写</text>`:''}
     </g>`;
   });
@@ -1251,7 +1251,7 @@ function renderGraph(animate){
 function selectNode(id){
   document.querySelectorAll('.gnode').forEach(e=>e.classList.toggle('sel',e.dataset.id===id));
   const n=GNODES.find(x=>x.id===id); let u=n.unit; if(graphMapped&&u==='risk')u='vector';
-  const label={mem:'片上搬运',cube:'Cube 矩阵',vector:'Vector 向量',scalar:'Scalar 标量',risk:'SIMT 专属 · 需重写'}[u];
+  const label={mem:'片上搬运',cube:'Cube 矩阵',vector:'Vector 向量',scalar:'Scalar 标量',risk:'GPU-only · 无直接适配'}[u];
   const col=unitColor(u);
   let note=n.d;
   if(graphMapped&&n.unit==='risk') note='【已在 S2 改写】'+n.d.replace(/S2 决策.*$/,'现映射为 Vector 片上归约,见 S6 的 SelectTopK / TopK 原语。');
@@ -1280,7 +1280,7 @@ const OPMAP=[
   {cuda:'__shfl_xor_sync 规约', op:null, unit:'risk', node:'shf', rewrite:true},
   {cuda:'__syncthreads 同步', op:null, unit:'risk', node:'sync', rewrite:true},
 ];
-const UNIT_LABEL={mem:'片上搬运',cube:'Cube 矩阵',vector:'Vector 向量',scalar:'Scalar 标量',risk:'SIMT · 需重写'};
+const UNIT_LABEL={mem:'片上搬运',cube:'Cube 矩阵',vector:'Vector 向量',scalar:'Scalar 标量',risk:'GPU-only · 无直接适配'};
 function renderOpMapTable(){
   const choice = state.choices['S2'] || 'vector';
   let rows='';

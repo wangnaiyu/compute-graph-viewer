@@ -463,6 +463,30 @@
       --model-graphviz-report-priority-on-dark: var(--foreground);
       --model-graphviz-report-priority-on-light: var(--background);
     }
+    .gcanvas .pto-model-graphviz-node.is-gpu-only rect {
+      fill: color-mix(in srgb, var(--surface-3) 86%, var(--danger) 8%);
+      stroke: color-mix(in srgb, var(--danger) 64%, transparent);
+      stroke-width: 1.05px;
+      filter: none;
+    }
+    .gcanvas .pto-model-graphviz-node.is-gpu-only.is-rewritten rect {
+      fill: color-mix(in srgb, var(--surface-3) 82%, var(--vec) 12%);
+      stroke: color-mix(in srgb, var(--vec) 66%, transparent);
+    }
+    .gcanvas .pto-model-graphviz-node.is-gpu-only .pto-model-graphviz-node-label {
+      fill: var(--foreground);
+      font-size: var(--font-size-title-sm);
+      font-weight: var(--font-weight-semibold);
+    }
+    .gcanvas .pto-model-graphviz-node.is-gpu-only .pto-model-graphviz-node-type {
+      fill: var(--danger);
+      font-size: var(--font-size-body-sm);
+      font-weight: var(--font-weight-medium);
+      opacity: 1;
+    }
+    .gcanvas .pto-model-graphviz-node.is-gpu-only.is-rewritten .pto-model-graphviz-node-type {
+      fill: var(--vec);
+    }
     .gnode { cursor: pointer; }
     .gnode rect { transition: filter var(--duration-fast), stroke-width var(--duration-fast); }
     .gnode:hover rect { filter: brightness(1.18); }
@@ -1187,7 +1211,7 @@
                         <span><i style="background:var(--cube)"></i>Cube 矩阵</span>
                         <span><i style="background:var(--vec)"></i>Vector 向量</span>
                         <span><i style="background:var(--scalar)"></i>Scalar 标量</span>
-                        <span><i style="background:var(--risk)"></i>SIMT 专属 · 需重写</span>
+                        <span><i style="background:var(--risk)"></i>GPU-only · 无直接适配</span>
                       </div>
                       <div class="gcanvas" id="gcanvas"></div>
                       <div class="gp-detail" id="gdetail">
@@ -1336,15 +1360,16 @@
         cube: 'Cube 矩阵',
         vector: 'Vector 向量',
         scalar: 'Scalar 标量',
-        risk: 'SIMT 专属 · 需重写'
+        risk: 'GPU-only · 无直接适配'
       };
       const graphColorKey = {
         mem: 'sem:comm',
         cube: 'sem:linear',
         vector: 'sem:act',
         scalar: 'sem:norm',
-        risk: 'sem:moe'
+        risk: 'io:constant'
       };
+      const gpuOnlyGraphNodeIds = new Set(['shf', 'sync']);
 
       function pct(value, total) {
         return total > 0 ? value / total * 100 : 0;
@@ -1366,18 +1391,21 @@
           const unit = effectiveGraphUnit(node);
           const rewritten = graphMapped && node.unit === 'risk';
           const isTensor = node.unit === 'mem';
+          const isGpuOnly = node.gpuOnly || gpuOnlyGraphNodeIds.has(node.id);
           const visualY = node.id === 'q' && idxNode
             ? idxNode.y
             : (node.id === 'idx' && qNode ? qNode.y : node.y);
           return {
             id: node.id,
             label: node.t,
-            typeLabel: rewritten ? 'Vector · 已改写' : (isTensor ? node.s : graphUnitLabel[unit]),
+            typeLabel: rewritten && isGpuOnly
+              ? 'GPU-only → Vector 替代'
+              : (isGpuOnly ? 'GPU-only · 无直接适配' : (isTensor ? node.s : graphUnitLabel[unit])),
             kind: isTensor ? 'tensor' : 'op',
-            hideTypeLabel: !isTensor,
+            hideTypeLabel: !isTensor && !isGpuOnly,
             x: ox + (node.x + node.w / 2) * sx,
             y: oy + (visualY + node.h / 2) * sy,
-            width: Math.max(isTensor ? 178 : 188, node.w * 1.42),
+            width: Math.max(isGpuOnly ? 210 : (isTensor ? 178 : 188), node.w * 1.42),
             height: Math.max(isTensor ? 52 : 56, node.h * 1.18),
             colorKey: graphColorKey[unit] || `unit:${unit}`,
           };
@@ -1393,6 +1421,20 @@
           nodes,
           edges,
         };
+      }
+
+      function decorateGpuOnlyGraphNodes() {
+        const canvas = document.getElementById('gcanvas');
+        if (!canvas) return;
+        gpuOnlyGraphNodeIds.forEach((id) => {
+          const group = canvas.querySelector(`.pto-model-graphviz-node[data-node-id="${id}"]`);
+          if (!group) return;
+          group.classList.add('is-gpu-only');
+          group.classList.toggle('is-rewritten', graphMapped);
+          const rect = group.querySelector('rect');
+          rect?.setAttribute('rx', '8');
+          rect?.setAttribute('ry', '8');
+        });
       }
 
       function updateGraphDetail(id) {
@@ -1437,6 +1479,7 @@
           minReadableZoom: 0.58,
           onSelect: ({ nodeId }) => applyGraphSelection(nodeId, 'pattern'),
         });
+        decorateGpuOnlyGraphNodes();
         const detail = document.getElementById('gdetail');
         if (detail) {
           detail.innerHTML = '<b>点击任意节点查看解析详情</b><br><span>计算图由 model-graphviz pattern 渲染，节点语义映射到昇腾执行单元。</span>';
