@@ -1080,7 +1080,8 @@ const launchItems = [
     status: "hi-fi",
     desc: "三栏联动查看源码、AIV/UB 架构和 tensor 生命周期,定位地址复用、峰值与潜在踩踏。",
     href: "ascend-hardware-map/memory-reuse-analysis.html",
-    previewFrame: "ascend-hardware-map/memory-reuse-analysis.html?preview=1",
+    preview: "assets/preview-memory-reuse-analysis.png",
+    fit: "contain",
     tags: ["Memory Reuse", "UB", "Lifecycle"]
   },
   {
@@ -1149,6 +1150,7 @@ const launchItems = [
   },
   {
     title: "训练任务管理",
+    hidden: true,
     group: "模型训练推理",
     status: "hi-fi",
     desc: "把训练任务的状态、资源和阶段编排成一条可管理的流水线。",
@@ -1172,7 +1174,8 @@ const launchItems = [
     status: "hi-fi",
     desc: "在 DeepSeek V3.2 模型图上叠加 profiling 与报告,定位问题节点。",
     href: "graphviz/deepseek_v32_report_overlay_demo_v2.html",
-    previewFrame: "graphviz/deepseek_v32_report_overlay_demo_v2.html?preview=1",
+    preview: "assets/preview-deepseek-v32-report-overlay.png",
+    fit: "contain",
     tags: ["Graph", "Report", "Profiling"],
     variants: [
       { label: "新版", href: "graphviz/deepseek_v32_report_overlay_demo_v2.html" },
@@ -1185,7 +1188,8 @@ const launchItems = [
     status: "hi-fi",
     desc: "浏览编译 Pass 快照,按节点分组、语义染色,锁定关注的计算流。",
     href: "pass-ir/index.html",
-    previewFrame: "pass-ir/index.html?preview=1",
+    preview: "assets/preview-pass-ir.png",
+    fit: "contain",
     tags: ["Pass IR", "Graph"],
     variants: [
       { label: "图查看器", href: "pass-ir/index.html" },
@@ -1276,7 +1280,8 @@ const launchItems = [
     status: "hi-fi",
     desc: "用 MindStudio Next 和计算图证据工作台做智能性能定位。",
     href: "Profiling_Insight_and_Tool/AI_Profiling_Tool/MindStudioNext.html",
-    previewFrame: "Profiling_Insight_and_Tool/AI_Profiling_Tool/MindStudioNext.html?preview=1",
+    preview: "assets/preview-mindstudio-next.png",
+    fit: "contain",
     tags: ["AI", "Profiling"],
     variants: [
       { label: "MindStudio Next", href: "Profiling_Insight_and_Tool/AI_Profiling_Tool/MindStudioNext.html" },
@@ -1289,11 +1294,13 @@ const launchItems = [
     status: "hi-fi",
     desc: "汇总性能调优高频问题、Issue 与指导,按问题快速查方案。",
     href: "Profiling_Insight_and_Tool/Issue_PDF_analysis/user_issue_analysis.html",
-    previewFrame: "Profiling_Insight_and_Tool/Issue_PDF_analysis/user_issue_analysis.html?preview=1",
+    preview: "assets/preview-issue-pdf-analysis.png",
+    fit: "contain",
     tags: ["Issue", "Guide", "Profiling"]
   },
   {
     title: "算子 IDE 助手",
+    hidden: true,
     sub: "Operator IDE Assistant",
     group: "算子开发工具",
     status: "lo-fi",
@@ -1314,7 +1321,8 @@ const launchItems = [
     status: "lo-fi",
     desc: "从算子需求到执行规划的工作台入口,用于梳理开发路径与关键约束。",
     href: "operator-planning/operator%20planning.html",
-    previewFrame: "operator-planning/operator%20planning.html?preview=1",
+    preview: "assets/preview-operator-planning-v2.png",
+    fit: "contain",
     tags: ["Operator", "Planning", "Workflow"]
   },
   {
@@ -1370,6 +1378,8 @@ const launchItems = [
   }
 ];
 
+const visibleLaunchItems = launchItems.filter((item) => !item.hidden);
+
 const STATUS_META = {
   "hi-fi": { label: "可体验", cls: "is-live" },
   "lo-fi": { label: "原型", cls: "is-proto" },
@@ -1401,13 +1411,13 @@ function normalize(value) {
 }
 
 function renderCategories() {
-  const counts = launchItems.reduce((acc, item) => {
+  const counts = visibleLaunchItems.reduce((acc, item) => {
     acc[item.group] = (acc[item.group] || 0) + 1;
     return acc;
   }, {});
 
   categoryList.innerHTML = categories.map((category) => {
-    const count = category.id === "all" ? launchItems.length : (counts[category.id] || 0);
+    const count = category.id === "all" ? visibleLaunchItems.length : (counts[category.id] || 0);
     const active = state.category === category.id ? " is-active" : "";
     return `
       <button class="side-item${active}" type="button" data-category="${category.id}">
@@ -1420,7 +1430,7 @@ function renderCategories() {
 
 function getFilteredItems() {
   const query = normalize(state.query);
-  let items = launchItems.filter((item) => {
+  let items = visibleLaunchItems.filter((item) => {
     const inCategory = state.category === "all" || item.group === state.category;
     const inStatus = state.status === "all" || item.status === state.status;
     const haystack = normalize([
@@ -1506,7 +1516,7 @@ function renderGrid() {
   const items = getFilteredItems();
   const activeCategory = categories.find((category) => category.id === state.category);
   activeTitle.textContent = state.category === "all" ? "全部项目" : activeCategory.label;
-  resultCount.textContent = `${items.length}/${launchItems.length}`;
+  resultCount.textContent = `${items.length}/${visibleLaunchItems.length}`;
   grid.innerHTML = items.map(renderCard).join("");
   emptyState.classList.toggle("is-visible", items.length === 0);
 }
