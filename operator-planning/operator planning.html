@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="../vendor/pto-design-system/css/style.css">
   <link rel="stylesheet" href="../vendor/pto-design-system/patterns/workbench-shell/pattern.css">
   <link rel="stylesheet" href="../vendor/pto-design-system/patterns/ide-frame/pattern.css">
+  <link rel="stylesheet" href="../vendor/pto-design-system/patterns/floating-playback-control/pattern.css">
   <style>
     * { box-sizing: border-box; }
     html, body {
@@ -336,54 +337,63 @@
       gap: 8px;
       margin-top: 14px;
     }
-    .api-actions {
+    .api-select-field {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
-      gap: 10px;
+      gap: 6px;
       margin-top: 10px;
     }
-    .api-jump {
-      min-height: 48px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      padding: 10px 12px;
-      border: 1px solid color-mix(in srgb, var(--operator-blue) 34%, var(--foreground) 8%);
+    .api-select-field label {
+      color: var(--foreground-secondary);
+      font: var(--text-label);
+    }
+    .api-select {
+      width: 100%;
+      height: 34px;
+      border: 1px solid color-mix(in srgb, var(--foreground) 10%, transparent);
       border-radius: var(--radius-md);
-      background:
-        linear-gradient(135deg, color-mix(in srgb, var(--operator-blue) 18%, transparent), color-mix(in srgb, var(--operator-cyan) 10%, transparent)),
-        color-mix(in srgb, var(--foreground) 5%, transparent);
+      background: color-mix(in srgb, var(--foreground) 5%, transparent);
       color: var(--foreground);
-      font: 700 13px / 1.2 var(--font-sans);
-      text-align: left;
-      cursor: pointer;
+      padding: 0 10px;
+      font: var(--text-body-sm);
+      outline: none;
     }
-    .api-jump::after {
-      content: "API";
-      flex: 0 0 auto;
-      padding: 3px 7px;
-      border-radius: 999px;
-      background: color-mix(in srgb, var(--operator-cyan) 20%, transparent);
-      color: var(--operator-cyan);
-      font: 700 10px / 1 var(--font-sans);
-      letter-spacing: 0;
+    .api-select:focus {
+      border-color: color-mix(in srgb, var(--operator-cyan) 45%, transparent);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--operator-cyan) 12%, transparent);
     }
-    .api-jump:hover,
-    .api-jump.is-active {
-      border-color: color-mix(in srgb, var(--operator-cyan) 58%, var(--foreground) 10%);
-      background:
-        linear-gradient(135deg, color-mix(in srgb, var(--operator-blue) 28%, transparent), color-mix(in srgb, var(--operator-cyan) 16%, transparent)),
-        color-mix(in srgb, var(--foreground) 6%, transparent);
-    }
-    .api-jump:focus-visible {
-      outline: 2px solid var(--operator-blue);
-      outline-offset: 2px;
+    .api-select option {
+      color: #101820;
+      background: #f7fafc;
     }
     .api-note {
       margin: 0;
       color: var(--foreground-muted);
       font: var(--text-caption);
+    }
+    .op-load3d-stage {
+      position: relative;
+    }
+    .op-load3d-playback-mount {
+      position: absolute;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(1180px, calc(100% - 24px));
+      z-index: 6;
+      pointer-events: none;
+    }
+    .op-load3d-playback-mount .pto-floating-playback {
+      position: static;
+      inset: auto;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      transform: none;
+      pointer-events: auto;
+    }
+    .pto-ide-frame__bottom-dock,
+    .pto-ide-frame__status-strip {
+      display: none;
     }
 
     .table-like {
@@ -444,11 +454,9 @@
     }
     .api-learn-controls .group {
       display: grid;
-      gap: 9px;
-      padding: 11px;
-      border: 1px solid var(--learn-line);
-      border-radius: 16px;
-      background: rgba(255, 255, 255, 0.032);
+      gap: 10px;
+      border-bottom: 1px solid var(--learn-line);
+      padding-bottom: 10px;
     }
     .api-learn-controls .group-title {
       display: flex;
@@ -540,6 +548,63 @@
       padding: 0 8px;
       font-size: 11px;
       text-align: left;
+    }
+    .api-learn-controls .side-footer {
+      display: grid;
+      gap: 9px;
+      padding-top: 11px;
+      border-top: 1px solid var(--learn-line);
+    }
+    .api-learn-controls .play-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 7px;
+    }
+    .api-learn-controls .btn {
+      min-height: 34px;
+      border: 1px solid var(--learn-line);
+      border-radius: 11px;
+      color: var(--learn-muted);
+      background: rgba(255, 255, 255, 0.045);
+      font-size: 12px;
+      transition: transform 120ms ease, border-color 120ms ease, background 120ms ease, color 120ms ease;
+      white-space: nowrap;
+    }
+    .api-learn-controls .btn:active {
+      transform: translateY(1px);
+    }
+    .api-learn-controls .btn.warn {
+      color: rgba(33, 23, 5, 0.96);
+      border-color: rgba(255, 191, 77, 0.3);
+      background: var(--warning);
+      font-weight: 720;
+    }
+    .api-learn-controls .btn:disabled,
+    .api-learn-controls select:disabled,
+    .api-learn-controls input:disabled {
+      cursor: not-allowed;
+      opacity: 0.48;
+    }
+    .api-learn-controls .scrub {
+      display: grid;
+      gap: 5px;
+    }
+    .api-learn-controls input[type="range"] {
+      width: 100%;
+      accent-color: var(--operator-cyan);
+    }
+    .api-learn-controls .step-pill {
+      min-height: 34px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 8px;
+      border: 1px solid var(--learn-line);
+      border-radius: 11px;
+      color: var(--learn-text);
+      background: rgba(255, 255, 255, 0.045);
+      font: 700 11px / 1 var(--font-mono);
+      white-space: nowrap;
     }
     .api-learn-controls .derived {
       display: grid;
@@ -704,7 +769,7 @@
     }
     .tiling-group {
       display: grid;
-      gap: 10px;
+      gap:
       padding: 10px;
       border-radius: var(--radius-md);
       background: color-mix(in srgb, var(--foreground) 4%, transparent);
@@ -1297,6 +1362,20 @@
       grid-template-columns: 220px minmax(0, 1fr);
       gap: 12px;
       height: 100%;
+      min-height: 0;
+      align-items: stretch;
+    }
+    .api-layout > .view-side {
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      height: calc(100vh - 128px);
+      min-height: 0;
+      max-height: 100%;
+    }
+    .api-layout > .view-side > .section-body {
+      min-height: 0;
+      overflow-y: auto;
+      overscroll-behavior: contain;
     }
     .api-canvas {
       display: grid;
@@ -1353,6 +1432,11 @@
         radial-gradient(circle at 20% 12%, color-mix(in srgb, var(--operator-cyan) 10%, transparent), transparent 32%),
         linear-gradient(135deg, color-mix(in srgb, var(--foreground) 5%, transparent), rgba(10, 14, 18, 0.34));
     }
+    .op-load3d-canvas-card,
+    .op-load3d-matrix {
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+    }
     .op-load3d-canvas-card::before,
     .op-load3d-inspector::before,
     .op-load3d-matrix::before {
@@ -1364,12 +1448,48 @@
       background-image: radial-gradient(circle, rgba(255,255,255,0.13) 1px, transparent 1px);
       background-size: 34px 28px;
     }
+    .op-load3d-viz-head {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: start;
+      gap: 8px 12px;
+      min-height: 88px;
+      padding: 14px 14px 10px;
+      color: var(--foreground-secondary);
+      font: var(--text-body-sm);
+    }
+    .op-load3d-viz-head h4 {
+      margin: 0 0 8px;
+      color: var(--foreground);
+      font: var(--text-title-sm);
+    }
+    .op-load3d-viz-meta {
+      display: grid;
+      gap: 4px;
+      min-width: 0;
+    }
+    .op-load3d-viz-meta b,
+    .op-load3d-viz-meta code {
+      color: var(--operator-cyan);
+      font: var(--text-code);
+    }
+    .op-load3d-viz-note {
+      color: color-mix(in srgb, var(--foreground-secondary) 82%, transparent);
+    }
+    .op-load3d-viz-status {
+      justify-self: end;
+      color: var(--operator-amber);
+      font: var(--text-code);
+      white-space: nowrap;
+    }
     .op-load3d-canvas {
       position: relative;
       z-index: 1;
       display: block;
       width: 100%;
-      height: 340px;
+      height: 300px;
     }
     .op-load3d-inspector {
       z-index: 1;
@@ -1435,18 +1555,16 @@
     }
     .op-load3d-matrix {
       min-width: 0;
-      padding: 14px;
     }
-    .op-load3d-matrix-head {
+    .op-load3d-matrix-scroll {
       position: relative;
       z-index: 1;
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
-      align-items: start;
-      gap: 12px;
-      margin-bottom: 12px;
-      color: var(--foreground-secondary);
-      font: var(--text-body-sm);
+      overflow: auto;
+      padding: 0 14px 14px;
+      scrollbar-gutter: stable;
+    }
+    .op-load3d-matrix-head {
+      min-height: 112px;
     }
     .op-load3d-matrix-head strong {
       color: var(--foreground);
@@ -1482,7 +1600,7 @@
       display: grid;
       grid-template-columns: repeat(var(--cols), minmax(var(--cell-min), 1fr));
       width: min(100%, calc(var(--cols) * var(--cell-ideal)));
-      max-width: 100%;
+      min-width: max-content;
       border: 1px solid color-mix(in srgb, var(--foreground) 12%, transparent);
       border-radius: var(--radius-md);
       overflow: hidden;
@@ -2175,7 +2293,7 @@
 
         <div class="pto-ide-frame__bottom-dock">
           <section class="pto-ide-frame__bottom-view" data-ide-bottom-panel="visualization" aria-label="Mock log">
-            <div class="terminal-lines" id="mockLog">mock-check: Load3D 映射使用预置数据；当前未接入 CANN 后端。</div>
+            <div class="terminal-lines" id="mockLog"></div>
           </section>
           <section class="pto-ide-frame__bottom-view" data-ide-bottom-panel="terminal" id="bottomTerminal" hidden aria-label="Terminal">
             <div class="terminal-lines">ascend-operators % export --review-snapshot OP-003<br>snapshot: overview + tiling + Load3D map + pipeline compare</div>
@@ -2202,6 +2320,7 @@
 
   <script src="../vendor/pto-design-system/patterns/workbench-shell/pattern.js"></script>
   <script src="../vendor/pto-design-system/patterns/ide-frame/pattern.js"></script>
+  <script src="../vendor/pto-design-system/patterns/floating-playback-control/pattern.js"></script>
   <script>
     (() => {
       const operators = [
@@ -2337,6 +2456,8 @@
         paddingPolicy: 'padding',
         tilingMode: 'auto',
         apiStep: 3,
+        apiPlaying: false,
+        apiSpeed: 1,
         selectedApi: 'Load3D',
         selectedSource: '1,1',
         selectedMatrix: null,
@@ -2360,6 +2481,7 @@
 
       const $ = (sel, root = document) => root.querySelector(sel);
       const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+      let apiPlaybackTimer = null;
       const currentOperator = () => operators.find((item) => item.id === state.operatorId) || operators[0];
       const statusClass = (status) => status === '待评审' ? 'is-ready' : status === '已对比' ? 'is-compared' : status === '设计中' ? 'is-designing' : '';
       const viewLabel = (view) => ({
@@ -2432,8 +2554,11 @@
                 <h3 class="side-title" style="margin-top:14px">输出</h3>
                 ${renderTensorTable(p.outputs)}
                 <h3 class="side-title" style="margin-top:14px">需要使用的接口</h3>
-                <div class="api-actions">
-                  ${p.apis.map((api) => `<button class="api-jump ${api === state.selectedApi ? 'is-active' : ''}" type="button" data-api-jump="${api}" aria-label="在 API 可视化中打开 ${api}">${api}</button>`).join('')}
+                <div class="api-select-field">
+                  <label for="overviewApiSelect">API</label>
+                  <select class="api-select" id="overviewApiSelect" data-api-jump-select aria-label="选择 API 可视化">
+                    ${p.apis.map((api) => `<option value="${api}" ${api === state.selectedApi ? 'selected' : ''}>${api}</option>`).join('')}
+                  </select>
                 </div>
               </div>
             </section>
@@ -2446,12 +2571,11 @@
             renderAll();
           });
         });
-        $$('[data-api-jump]').forEach((btn) => {
-          btn.addEventListener('click', () => {
-            state.selectedApi = btn.dataset.apiJump;
+        $('[data-api-jump-select]')?.addEventListener('change', (event) => {
+            stopApiPlayback();
+            state.selectedApi = event.target.value;
             state.view = 'api';
             renderAll();
-          });
         });
       }
 
@@ -2932,9 +3056,6 @@
           };
           const eventName = input.type === 'range' ? 'input' : 'change';
           input.addEventListener(eventName, commitNumber);
-          input.addEventListener('keydown', (event) => {
-            if (event.key === 'Enter') input.blur();
-          });
         });
         $$('[data-stepper-target]').forEach((btn) => {
           btn.addEventListener('click', () => {
@@ -2976,7 +3097,24 @@
         }));
       }
 
+      document.addEventListener('keydown', (event) => {
+        const input = event.target;
+        if (!(input instanceof HTMLInputElement) || input.type !== 'number' || input.readOnly) return;
+        if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
+        const min = input.min === '' ? Number.NEGATIVE_INFINITY : Number(input.min);
+        const max = input.max === '' ? Number.POSITIVE_INFINITY : Number(input.max);
+        const step = Number(input.step) || 1;
+        const raw = Number.parseFloat(input.value);
+        const current = Number.isFinite(raw) ? raw : (Number.isFinite(min) ? min : 0);
+        const next = clampToStep(current + (event.key === 'ArrowUp' ? step : -step), min, max, step);
+        event.preventDefault();
+        input.value = String(next);
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+
       function renderTiling() {
+        preserveActiveInput(() => {
         const p = currentOperator();
         const selected = currentTilingScheme();
         const outcome = computeTilingOutcome(selected);
@@ -2996,14 +3134,14 @@
                         <div class="hardware-target-grid">
                           <div class="hardware-target-controls">
                             <div class="control-field">
-                              <label>SOC <output>${outcome.soc.name} (${outcome.soc.cores} ${outcome.soc.coreLabel})</output></label>
+                              <label>SOC</label>
                               <div class="seg-control" data-seg="soc">
                                 ${Object.entries(socProfiles).map(([key, soc]) => `<button type="button" class="${selected.soc === key ? 'is-active' : ''}" data-set-soc="${key}">${soc.name}</button>`).join('')}
                               </div>
                               <div class="control-hint">决定可用核数上限、UB 容量、对齐粒度和 vector width 检查。</div>
                             </div>
                             <div class="control-field">
-                              <label>dtype <output>${selected.dtype} (${outcome.dtypeBytes}B)</output></label>
+                              <label>dtype</label>
                               <div class="seg-control" data-seg="dtype">
                                 ${Object.keys(dtypeSize).map((key) => `<button type="button" class="${selected.dtype === key ? 'is-active' : ''}" data-set-dtype="${key}">${key}</button>`).join('')}
                               </div>
@@ -3024,21 +3162,21 @@
                         </div>
                         <div class="control-hint">BLOCK_DIM → active cores / per-core workload；TILE_NUM → tile length / loop count。</div>
                         <div class="control-field">
-                          <label>BUFFER_NUM <output>${selected.bufferNum}</output></label>
+                          <label>BUFFER_NUM</label>
                           <div class="seg-control" data-seg="bufferNum">
                             ${[1, 2].map((num) => `<button type="button" class="${selected.bufferNum === num ? 'is-active' : ''}" data-set-buffer-num="${num}">${num} ${num === 2 ? '(double)' : '(single)'}</button>`).join('')}
                           </div>
                           <div class="control-hint">BUFFER_NUM → UB pressure / overlap readiness；Double Buffer 会成倍增加队列占用。</div>
                         </div>
                         <div class="control-field">
-                          <label>Tail policy <output>${selected.tailPolicy}</output></label>
+                          <label>Tail policy</label>
                           <div class="seg-control" data-seg="tailPolicy">
                             ${['former/tail', 'branch', 'pad'].map((policy) => `<button type="button" class="${selected.tailPolicy === policy ? 'is-active' : ''}" data-set-tail-policy="${policy}">${policy}</button>`).join('')}
                           </div>
                           <div class="control-hint">决定 totalAligned 之后不均分时，kernel 用分支、former/tail 还是 padding 承接尾块。</div>
                         </div>
                         <div class="control-field">
-                          <label>Padding policy <output>${selected.paddingPolicy}</output></label>
+                          <label>Padding policy</label>
                           <div class="seg-control" data-seg="paddingPolicy">
                             ${['mask', 'padding', 'drop'].map((policy) => `<button type="button" class="${selected.paddingPolicy === policy ? 'is-active' : ''}" data-set-padding-policy="${policy}">${policy}</button>`).join('')}
                           </div>
@@ -3093,6 +3231,7 @@
             ${renderTilingCode(selected, outcome)}
           </div>
         `;
+        });
         bindTilingControls();
         $('#copyTilingCode')?.addEventListener('click', async () => {
           const text = [$('#kernelSkeletonCode')?.textContent || '', $('#hostTilingCode')?.textContent || ''].join('\n\n');
@@ -3167,15 +3306,15 @@
       }
 
       function rangeField(id, label, min, max, value, step) {
-        return `<div class="control-field"><label for="${id}">${label}<output id="${id}Out">${value}</output></label><input id="${id}" type="range" min="${min}" max="${max}" step="${step}" value="${value}"></div>`;
+        return `<div class="control-field"><label for="${id}">${label}</label><input id="${id}" type="range" min="${min}" max="${max}" step="${step}" value="${value}"></div>`;
       }
 
       function totalInputField(key, label, min, max, value, step) {
-        return `<div class="control-field"><label for="${key}">${label}<output>${fmt(value)}</output></label><div class="number-control number-control--with-slider"><input id="${key}Range" type="range" min="${min}" max="${max}" step="${step}" value="${value}" data-number-field="${key}"><input id="${key}" type="number" min="${min}" max="${max}" step="${step}" value="${value}" data-number-field="${key}" inputmode="numeric"></div></div>`;
+        return `<div class="control-field"><label for="${key}">${label}</label><div class="number-control number-control--with-slider"><input id="${key}Range" type="range" min="${min}" max="${max}" step="${step}" value="${value}" data-number-field="${key}"><input id="${key}" type="number" min="${min}" max="${max}" step="${step}" value="${value}" data-number-field="${key}" inputmode="numeric"></div></div>`;
       }
 
       function stepperField(key, label, min, max, value, step) {
-        return `<div class="control-field"><label for="${key}">${label}<output>${value}</output></label><div class="stepper-control"><button type="button" aria-label="Decrease ${label}" data-stepper-target="${key}" data-delta="${-step}" data-min="${min}" data-max="${max}" data-step="${step}">-</button><input id="${key}" type="number" min="${min}" max="${max}" step="${step}" value="${value}" readonly tabindex="-1"><button type="button" aria-label="Increase ${label}" data-stepper-target="${key}" data-delta="${step}" data-min="${min}" data-max="${max}" data-step="${step}">+</button></div></div>`;
+        return `<div class="control-field"><label for="${key}">${label}</label><div class="stepper-control"><button type="button" aria-label="Decrease ${label}" data-stepper-target="${key}" data-delta="${-step}" data-min="${min}" data-max="${max}" data-step="${step}">-</button><input id="${key}" type="number" min="${min}" max="${max}" step="${step}" value="${value}" readonly tabindex="-1"><button type="button" aria-label="Increase ${label}" data-stepper-target="${key}" data-delta="${step}" data-min="${min}" data-max="${max}" data-step="${step}">+</button></div></div>`;
       }
 
       function clampToStep(value, min, max, step) {
@@ -3234,6 +3373,7 @@
           dilationW: p.dilationW,
           repeatMode: p.repeatMode,
           repeatTime: p.repeatTime,
+          jumpStride: p.jumpStride ?? 1,
           showChannelPadding: p.showChannelPadding !== false
         };
       }
@@ -3366,37 +3506,14 @@
           b3: p(0, rows, depth)
         };
         ctx.save();
-        ctx.strokeStyle = 'rgba(210,222,242,0.54)';
-        ctx.lineWidth = 1.2;
-        ctx.beginPath();
-        ctx.moveTo(corners.f0.x, corners.f0.y);
-        ctx.lineTo(corners.f1.x, corners.f1.y);
-        ctx.lineTo(corners.f2.x, corners.f2.y);
-        ctx.lineTo(corners.f3.x, corners.f3.y);
-        ctx.closePath();
-        ctx.stroke();
-        ctx.strokeStyle = 'rgba(210,222,242,0.42)';
-        ctx.beginPath();
-        ctx.moveTo(corners.b0.x, corners.b0.y);
-        ctx.lineTo(corners.b1.x, corners.b1.y);
-        ctx.lineTo(corners.b2.x, corners.b2.y);
-        ctx.lineTo(corners.b3.x, corners.b3.y);
-        ctx.closePath();
-        ctx.stroke();
-        for (const [a, b] of [['f0','b0'], ['f1','b1'], ['f2','b2'], ['f3','b3']]) {
-          ctx.beginPath();
-          ctx.moveTo(corners[a].x, corners[a].y);
-          ctx.lineTo(corners[b].x, corners[b].y);
-          ctx.stroke();
-        }
         ctx.fillStyle = 'rgba(236,242,248,0.82)';
         ctx.font = '700 13px ui-monospace, SFMono-Regular, Menlo, monospace';
         ctx.textAlign = 'center';
         ctx.fillText('Wi', (corners.f2.x + corners.f3.x) / 2, corners.f2.y + 24);
         ctx.textAlign = 'right';
         ctx.fillText('Hi', corners.f3.x - 10, (corners.f0.y + corners.f3.y) / 2);
-        ctx.textAlign = 'left';
-        ctx.fillText('Ci', corners.b0.x - 2, corners.b0.y - 14);
+        ctx.textAlign = 'center';
+        ctx.fillText('Ci', (corners.f0.x + corners.b0.x) / 2, (corners.f0.y + corners.b0.y) / 2 - 14);
         ctx.restore();
       }
 
@@ -3451,13 +3568,6 @@
             ctx.fillText(`${cell.h}${cell.w}`, result.center.x, result.center.y + 1);
           }
         }
-        ctx.fillStyle = 'rgba(236,242,248,0.78)';
-        ctx.font = '700 12px ui-monospace, SFMono-Regular, Menlo, monospace';
-        ctx.textAlign = 'left';
-        ctx.fillText('input shape', 22, 28);
-        ctx.fillStyle = 'rgba(190,199,211,0.72)';
-        ctx.fillText(`N=1, C=${p.Ci}, H=${p.Hi}, W=${p.Wi}`, 22, 48);
-        if (p.Ci > layers) ctx.fillText(`showing first ${layers} channel slices`, 22, 68);
       }
 
       function load3dDrawA1Canvas(canvas, p, shape, patch, element) {
@@ -3530,9 +3640,12 @@
         ctx.font = '700 10px ui-monospace, SFMono-Regular, Menlo, monospace';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
+        const showPaddingLabels = totalH * totalW <= 36;
         for (const item of items) {
           const result = load3dDrawVoxel(ctx, originX, originY, unit, depthX, depthY, item.pw, item.ph, item.c, load3dFaces(item.kind));
-          if (item.kind !== 'skipped' && !item.isChannelPad && (item.kind === 'current' || item.kind === 'sampled' || item.kind === 'window' || item.isPadding)) {
+          const isMappedLabel = item.kind === 'current' || item.kind === 'sampled' || item.kind === 'window';
+          const isVisiblePaddingLabel = item.isPadding && showPaddingLabels;
+          if (item.kind !== 'skipped' && !item.isChannelPad && (isMappedLabel || isVisiblePaddingLabel)) {
             ctx.fillStyle = item.kind === 'current' ? '#211603' : 'rgba(240,247,252,0.86)';
             ctx.fillText(load3dSourceLabel(item.h, item.w, item.c, item.isPadding), result.center.x, result.center.y + 1);
           }
@@ -3543,18 +3656,6 @@
             ctx.fill();
           }
         }
-        ctx.fillStyle = 'rgba(236,242,248,0.76)';
-        ctx.font = '700 12px ui-monospace, SFMono-Regular, Menlo, monospace';
-        ctx.textAlign = 'left';
-        ctx.fillText('A1 Layout', 22, 28);
-        ctx.fillStyle = 'rgba(72,199,232,0.88)';
-        ctx.fillText(`N=1, C1=${shape.C1}, H=${p.Hi}, W=${p.Wi}, C0=${p.C0}`, 22, 48);
-        ctx.fillStyle = 'rgba(190,199,211,0.68)';
-        ctx.fillText(`Padding: ${p.padTop} ${p.padRight} ${p.padBottom} ${p.padLeft}`, 22, 68);
-        if (!p.showChannelPadding && shape.paddingChannels > 0) ctx.fillText(`C0 padding lanes hidden: ${shape.paddingChannels}`, 22, 88);
-        ctx.fillStyle = 'rgba(255,191,77,0.95)';
-        ctx.textAlign = 'right';
-        ctx.fillText(`Current: row ${element.row}, col ${element.col}`, rect.width - 22, 28);
       }
 
       function renderLoad3dNativeCanvases() {
@@ -3565,6 +3666,158 @@
         const ctx = load3dContext(patches);
         load3dDrawNchwCanvas(document.getElementById('opLoad3dNchwCanvas'), p);
         load3dDrawA1Canvas(document.getElementById('opLoad3dA1Canvas'), p, shape, ctx.patch, ctx.element);
+      }
+
+      function load3dStepLimit() {
+        const p = load3dParams();
+        const shape = load3dShape(p);
+        const total = load3dTotalSteps(load3dPatches(p, shape));
+        return { shape, total, maxStep: Math.max(0, total - 1) };
+      }
+
+      function stopApiPlayback() {
+        state.apiPlaying = false;
+        if (apiPlaybackTimer) clearInterval(apiPlaybackTimer);
+        apiPlaybackTimer = null;
+      }
+
+      function preserveActiveInput(renderFn) {
+        const active = document.activeElement;
+        const focusState = active instanceof HTMLInputElement && active.id
+          ? { id: active.id, type: active.type, value: active.value }
+          : null;
+        renderFn();
+        if (!focusState) return;
+        const next = document.getElementById(focusState.id);
+        if (!(next instanceof HTMLInputElement)) return;
+        next.focus({ preventScroll: true });
+        if (typeof next.setSelectionRange === 'function' && (focusState.type === 'number' || focusState.type === 'text')) {
+          const caret = String(next.value).length;
+          try {
+            next.setSelectionRange(caret, caret);
+          } catch {
+            // Some number inputs do not support selection ranges.
+          }
+        }
+      }
+
+      function renderApiAndInspector() {
+        preserveActiveInput(() => {
+          renderApi();
+          renderInspector();
+        });
+      }
+
+      function setApiStep(step) {
+        const { maxStep } = load3dStepLimit();
+        state.apiStep = Math.max(0, Math.min(maxStep, step));
+        renderApiAndInspector();
+      }
+
+      function startApiPlayback() {
+        const { shape, total, maxStep } = load3dStepLimit();
+        if (!shape.valid || total <= 0) return;
+        state.apiPlaying = true;
+        if (state.apiStep >= maxStep) state.apiStep = 0;
+        if (apiPlaybackTimer) clearInterval(apiPlaybackTimer);
+        apiPlaybackTimer = setInterval(() => {
+          const limit = load3dStepLimit();
+          if (!limit.shape.valid || limit.total <= 0 || state.apiStep >= limit.maxStep) {
+            stopApiPlayback();
+            renderApiAndInspector();
+            return;
+          }
+          state.apiStep += 1;
+          renderApiAndInspector();
+        }, Math.round(720 / (state.apiSpeed || 1)));
+        renderApiAndInspector();
+      }
+
+      function mountApiPlaybackControl(patches) {
+        const mount = document.getElementById('apiPlaybackMount');
+        if (!mount) return;
+        mount.replaceChildren();
+        if (state.selectedApi !== 'Load3D' || !patches.length) return;
+        const ids = {
+          shell: 'apiPlaybackShell',
+          toggle: 'apiPlaybackToggle',
+          collapsedButton: 'apiPlaybackCollapsedButton',
+          collapsedIcon: 'apiPlaybackCollapsedIcon',
+          controls: 'apiPlaybackControls',
+          stepBack: 'apiPlaybackPrev',
+          play: 'apiPlaybackPlay',
+          stepForward: 'apiPlaybackNext',
+          replay: 'apiPlaybackReplay',
+          scrubber: 'apiPlaybackScrubber',
+          scrubberLabel: 'apiPlaybackScrubberLabel',
+          scrubberOpname: 'apiPlaybackScrubberOpname',
+          scrubberHover: 'apiPlaybackScrubberHover'
+        };
+        const control = window.PtoFloatingPlaybackControl.createControl({
+          className: 'pto-floating-playback--preview',
+          ids,
+        });
+        mount.appendChild(control);
+        const controller = window.PtoFloatingPlaybackControl.init({
+          root: mount,
+          ids,
+          isPlaying: () => state.apiPlaying,
+        });
+        const hover = window.PtoFloatingPlaybackControl.initScrubberHover({
+          root: mount,
+          ids,
+          totalSteps: () => load3dTotalSteps(patches),
+          getLabelForStep: (step) => {
+            const stateAtStep = stepToState(step, patches);
+            const patch = patches[stateAtStep.patchIndex];
+            const element = patch?.elements?.[stateAtStep.elementIndex];
+            return element ? `oh ${element.oh}, ow ${element.ow}` : `Step ${step}`;
+          },
+        });
+        const stepLabel = mount.querySelector(`#${ids.scrubberLabel}`);
+        const opname = mount.querySelector(`#${ids.scrubberOpname}`);
+        const scrubber = mount.querySelector(`#${ids.scrubber}`);
+        const syncPlayback = () => {
+          controller.sync({ isPlaying: () => state.apiPlaying });
+          if (stepLabel) stepLabel.textContent = `${state.apiStep + 1} / ${Math.max(1, load3dTotalSteps(patches))}`;
+          if (opname) {
+            const ctx = currentContext(patches);
+            opname.textContent = ctx.element ? `patch ${ctx.patch.row}, element ${ctx.patch.elements.indexOf(ctx.element)}` : '-';
+          }
+          if (scrubber) scrubber.value = String(state.apiStep);
+        };
+        const goStep = (nextStep) => {
+          state.apiStep = nextStep;
+          syncPlayback();
+          renderApiAndInspector();
+        };
+        mount.querySelector(`#${ids.stepBack}`)?.addEventListener('click', () => {
+          stopApiPlayback();
+          goStep(Math.max(0, state.apiStep - 1));
+        });
+        mount.querySelector(`#${ids.play}`)?.addEventListener('click', () => {
+          if (state.apiPlaying) {
+            stopApiPlayback();
+            syncPlayback();
+            return;
+          }
+          startApiPlayback();
+        });
+        mount.querySelector(`#${ids.stepForward}`)?.addEventListener('click', () => {
+          stopApiPlayback();
+          const maxStep = Math.max(0, load3dTotalSteps(patches) - 1);
+          goStep(Math.min(maxStep, state.apiStep + 1));
+        });
+        mount.querySelector(`#${ids.replay}`)?.addEventListener('click', () => {
+          stopApiPlayback();
+          goStep(0);
+          startApiPlayback();
+        });
+        scrubber?.addEventListener('input', (event) => {
+          stopApiPlayback();
+          goStep(Number(event.target.value));
+        });
+        syncPlayback();
       }
 
       const LOAD3D_ISO = {
@@ -3749,7 +4002,7 @@
           return `
             <section class="viz-panel op-load3d-stage">
               <header class="section-head">
-                <h3>Load3D 2.5D 学习画布</h3>
+                <h3>参数沙盒</h3>
                 <span class="section-meta">NCHW → NC1HWC0 → A2</span>
               </header>
               <div class="op-load3d-empty">
@@ -3770,6 +4023,7 @@
         const cellMin = cols > 28 ? '14px' : cols > 16 ? '22px' : '34px';
         const cellIdeal = cols > 28 ? '26px' : cols > 16 ? '34px' : '46px';
         const showText = rows * cols <= 180;
+        const inputVisibleLayers = Math.min(p.Ci, 4);
         const written = new Set();
         patches.forEach((candidate, patchIndex) => {
           candidate.elements.forEach((item, elementIndex) => {
@@ -3796,33 +4050,46 @@
         return `
           <section class="viz-panel op-load3d-stage">
             <header class="section-head">
-              <h3>Load3D 2.5D 学习画布</h3>
+              <h3>参数沙盒</h3>
               <span class="section-meta">NCHW → NC1HWC0 → A2</span>
             </header>
+            <div class="op-load3d-playback-mount" id="apiPlaybackMount"></div>
             <div class="op-load3d-body">
               <section class="op-load3d-input">
                 <div class="op-load3d-views">
                   <div class="op-load3d-canvas-card">
+                    <div class="op-load3d-viz-head">
+                      <div class="op-load3d-viz-meta">
+                        <h4>Input shape</h4>
+                        <div>N=1, C=${p.Ci}, H=${p.Hi}, W=${p.Wi}</div>
+                        ${p.Ci > inputVisibleLayers ? `<div class="op-load3d-viz-note">showing first ${inputVisibleLayers} channel slices</div>` : ''}
+                      </div>
+                    </div>
                     <canvas class="op-load3d-canvas" id="opLoad3dNchwCanvas" aria-label="NCHW input tensor"></canvas>
                   </div>
                   <div class="op-load3d-canvas-card">
+                    <div class="op-load3d-viz-head">
+                      <div class="op-load3d-viz-meta">
+                        <h4>A1 Layout</h4>
+                        <div><b>N=1, C1=${shape.C1}, H=${p.Hi}, W=${p.Wi}, C0=${p.C0}</b></div>
+                        <div class="op-load3d-viz-note">Padding: ${p.padTop} ${p.padRight} ${p.padBottom} ${p.padLeft}${!p.showChannelPadding && shape.paddingChannels > 0 ? ` · C0 padding lanes hidden: ${shape.paddingChannels}` : ''}</div>
+                      </div>
+                      <div class="op-load3d-viz-status">Current: row ${element.row}, col ${element.col}</div>
+                    </div>
                     <canvas class="op-load3d-canvas" id="opLoad3dA1Canvas" aria-label="NC1HWC0 A1 layout"></canvas>
                   </div>
                 </div>
                 <aside class="op-load3d-inspector">
-                  <h4>当前硬件位置</h4>
-                  <div class="op-load3d-pills">
-                    <span class="op-load3d-pill is-hot">src LocalTensor</span>
-                    <span class="op-load3d-pill">A1</span>
-                    <span class="op-load3d-pill">NC1HWC0 logical view</span>
-                  </div>
+                  <h4>参数总览</h4>
                   <div class="op-load3d-kv">
                     <div class="op-load3d-kv-row"><span>当前输出位置</span><code>oh=${patch.oh}, ow=${patch.ow}</code></div>
                     <div class="op-load3d-kv-row"><span>leftTopH / leftTopW</span><code>${patch.baseH}, ${patch.baseW}</code></div>
                     <div class="op-load3d-kv-row"><span>fetchFilterH / fetchFilterW</span><code>kh=${element.kh}, kw=${element.kw}</code></div>
                     <div class="op-load3d-kv-row"><span>c1Index / c</span><code>c1=0, c=${element.c}</code></div>
                     <div class="op-load3d-kv-row"><span>源坐标</span><code>${currentSourceText}</code></div>
-                    <div class="op-load3d-kv-row"><span>是否 padding</span><code>${element.isPadding ? 'true' : 'false'}</code></div>
+                    <div class="op-load3d-kv-row"><span>C1</span><code>ceil(${p.Ci} / ${p.C0}) = ${shape.C1}</code></div>
+                    <div class="op-load3d-kv-row"><span>physical channel</span><code>${shape.physicalSlots}</code></div>
+                    <div class="op-load3d-kv-row"><span>padding channel</span><code>${shape.paddingChannels}</code></div>
                   </div>
                   <div class="op-load3d-formula">
                     <div><code>srcH = leftTopH + kh * dilationH</code></div>
@@ -3832,10 +4099,10 @@
                 </aside>
               </section>
               <section class="op-load3d-matrix">
-                <div class="op-load3d-matrix-head">
-                  <div>
-                    <div><strong>A2 logical matrix</strong> · dst LocalTensor · A2</div>
-                    <div>shape = (${shape.Ho} * ${shape.Wo}, ${p.Hk} * ${p.Wk} * ${p.Ci}) = ${shape.rows} x ${shape.cols}</div>
+                <div class="op-load3d-viz-head op-load3d-matrix-head">
+                  <div class="op-load3d-viz-meta">
+                    <h4>A2 logical matrix</h4>
+                    <div>Shape = (${shape.Ho} * ${shape.Wo}, ${p.Hk} * ${p.Wk} * ${p.Ci}) = ${shape.rows} x ${shape.cols}</div>
                     <div>C0 padding lane 只表示物理对齐槽位，不进入逻辑 A2 展开矩阵。</div>
                     <div class="op-load3d-legend" aria-label="A2 matrix color legend">
                       <span><i class="op-load3d-swatch row"></i>当前窗口行</span>
@@ -3850,8 +4117,10 @@
                     <span class="op-load3d-pill">col = ((kh * Wk) + kw) * Ci + c = ${element.col}</span>
                   </div>
                 </div>
-                <div class="op-load3d-grid" style="--cols:${cols};--cell-min:${cellMin};--cell-ideal:${cellIdeal};">
-                  ${cells.join('')}
+                <div class="op-load3d-matrix-scroll" aria-label="A2 logical matrix scroll area">
+                  <div class="op-load3d-grid" style="--cols:${cols};--cell-min:${cellMin};--cell-ideal:${cellIdeal};">
+                    ${cells.join('')}
+                  </div>
                 </div>
               </section>
             </div>
@@ -3871,8 +4140,11 @@
             <aside class="view-side">
               <header class="section-head"><h3>API 可视化</h3><span class="section-meta">${state.selectedApi}</span></header>
               <div class="section-body control-stack">
-                <div class="api-actions">
-                  ${p.apis.map((api) => `<button class="api-jump ${api === state.selectedApi ? 'is-active' : ''}" type="button" data-api-select="${api}" aria-label="Show ${api}">${api}</button>`).join('')}
+                <div class="api-select-field">
+                  <label for="apiSelect">API</label>
+                  <select class="api-select" id="apiSelect" data-api-select aria-label="选择 API 可视化">
+                    ${p.apis.map((api) => `<option value="${api}" ${api === state.selectedApi ? 'selected' : ''}>${api}</option>`).join('')}
+                  </select>
                 </div>
                 <p class="api-note">${isLoad3D ? 'Load3D is the detailed mapping demo for this operator.' : `${state.selectedApi} is selected. This UX demo currently keeps the detailed element mapping on Load3D.`}</p>
                 <div class="control-stack" id="apiControls"></div>
@@ -3907,13 +4179,20 @@
             </section>
           </div>
         `;
-        if (isLoad3D) requestAnimationFrame(renderLoad3dNativeCanvases);
-        renderApiControls();
-        $$('[data-api-select]').forEach((btn) => {
-          btn.addEventListener('click', () => {
-            state.selectedApi = btn.dataset.apiSelect;
-            renderAll();
+        if (isLoad3D) {
+          requestAnimationFrame(() => {
+            renderLoad3dNativeCanvases();
+            mountApiPlaybackControl(load3dPatches(load3dParams(), load3dShape(load3dParams())));
           });
+        } else {
+          const mount = document.getElementById('apiPlaybackMount');
+          if (mount) mount.replaceChildren();
+        }
+        renderApiControls();
+        $('[data-api-select]')?.addEventListener('change', (event) => {
+          stopApiPlayback();
+          state.selectedApi = event.target.value;
+          renderAll();
         });
       }
 
@@ -3941,7 +4220,7 @@
           { name: '基础展开', values: { Hi: 4, Wi: 4, Ci: 1, C0: 16, Hk: 2, Wk: 2, strideH: 1, strideW: 1, padTop: 0, padRight: 0, padBottom: 0, padLeft: 0, dilationH: 1, dilationW: 1 } },
           { name: 'RGB 输入', values: { Hi: 5, Wi: 5, Ci: 3, C0: 16, Hk: 3, Wk: 3, strideH: 1, strideW: 1, padTop: 0, padRight: 0, padBottom: 0, padLeft: 0, dilationH: 1, dilationW: 1 } },
           { name: 'Padding', values: { Hi: 4, Wi: 4, Ci: 1, C0: 16, Hk: 3, Wk: 3, strideH: 1, strideW: 1, padTop: 1, padRight: 1, padBottom: 1, padLeft: 1, dilationH: 1, dilationW: 1 } },
-          { name: 'Dilation', values: { Hi: 5, Wi: 5, Ci: 1, C0: 16, Hk: 3, Wk: 3, strideH: 1, strideW: 1, padTop: 0, padRight: 0, padBottom: 0, padLeft: 0, dilationH: 2, dilationW: 2 } },
+          { name: 'Dilation', values: { Hi: 7, Wi: 7, Ci: 3, C0: 16, Hk: 3, Wk: 3, strideH: 1, strideW: 1, padTop: 0, padRight: 0, padBottom: 0, padLeft: 0, dilationH: 2, dilationW: 2 } },
           { name: 'NC1HWC0', values: { Hi: 5, Wi: 5, Ci: 3, C0: 16, Hk: 3, Wk: 3, strideH: 1, strideW: 1, padTop: 0, padRight: 0, padBottom: 0, padLeft: 0, dilationH: 1, dilationW: 1 } }
         ];
         const apiKey = (key) => fieldMap[key] || key;
@@ -3963,23 +4242,27 @@
         });
         const p = load3dParams();
         const shape = load3dShape(p);
+        const patches = load3dPatches(p, shape);
+        const totalSteps = load3dTotalSteps(patches);
+        state.apiStep = Math.max(0, Math.min(state.apiStep || 0, Math.max(0, totalSteps - 1)));
+        if (!shape.valid || totalSteps <= 0) stopApiPlayback();
         const groupHtml = Array.from(groups.entries()).map(([title, groupFields]) => {
           const body = groupFields.map((field) => `
             <div class="field">
-              <label for="api-learn-${field.key}">${field.label}<output>${getValue(field.key)}</output></label>
+              <label for="api-learn-${field.key}">${field.label}</label>
               <input class="input" id="api-learn-${field.key}" type="number" min="${field.min}" max="${field.max}" value="${getValue(field.key)}">
             </div>
           `).join('');
           const extra = title === '输入源参数' ? `
             <div class="field">
-              <label for="api-learn-C0">C0<output>${state.api.C0}</output></label>
+              <label for="api-learn-C0">C0</label>
               <select id="api-learn-C0">
                 <option value="16" ${state.api.C0 === 16 ? 'selected' : ''}>16</option>
                 <option value="32" ${state.api.C0 === 32 ? 'selected' : ''}>32</option>
               </select>
             </div>
             <div class="field" style="grid-column: 1 / -1;">
-              <label>padding channel<output>${state.api.showChannelPadding ? 'on' : 'off'}</output></label>
+              <label>padding channel</label>
               <div class="seg">
                 <button type="button" data-api-learn-channel-padding="1" class="${state.api.showChannelPadding ? 'active' : ''}">显示</button>
                 <button type="button" data-api-learn-channel-padding="0" class="${!state.api.showChannelPadding ? 'active' : ''}">隐藏</button>
@@ -3988,7 +4271,7 @@
           ` : '';
           const repeatMode = title === 'repeat 参数' ? `
             <div class="field">
-              <label>repeatMode<output>${state.api.repeatMode}</output></label>
+              <label>repeatMode</label>
               <div class="seg">
                 <button type="button" data-api-learn-repeat="0" class="${state.api.repeatMode === 0 ? 'active' : ''}">mode 0</button>
                 <button type="button" data-api-learn-repeat="1" class="${state.api.repeatMode === 1 ? 'active' : ''}">mode 1</button>
@@ -4007,21 +4290,12 @@
         $('#apiControls').innerHTML = `
           <div class="api-learn-controls">
             <section class="group">
-              <div class="group-title">预设</div>
+              <div class="group-title">预设场景</div>
               <div class="presets">
                 ${presets.map((preset, index) => `<button class="preset" type="button" data-api-learn-preset="${index}">${preset.name}</button>`).join('')}
               </div>
             </section>
             ${groupHtml}
-            <section class="group">
-              <div class="group-title">派生值</div>
-              <div class="derived">
-                <div><strong>C1</strong> = ceil(${p.Ci} / ${p.C0}) = ${shape.C1}</div>
-                <div><strong>物理槽位</strong> = ${shape.physicalSlots}，padding channel = ${shape.paddingChannels}</div>
-                <div><strong>effective kernel</strong> = ${shape.effectiveKernelH} x ${shape.effectiveKernelW}</div>
-                <div><strong>A2 shape</strong> = ${shape.rows} x ${shape.cols}</div>
-              </div>
-            </section>
           </div>
         `;
         fields.forEach((field) => {
@@ -4031,28 +4305,24 @@
             const nextParams = load3dParams();
             const nextShape = load3dShape(nextParams);
             state.apiStep = Math.min(state.apiStep, Math.max(0, load3dTotalSteps(load3dPatches(nextParams, nextShape)) - 1));
-            renderApi();
-            renderInspector();
+            renderApiAndInspector();
           });
         });
         $('#api-learn-C0')?.addEventListener('change', (event) => {
           state.api.C0 = Number(event.target.value);
-          renderApi();
-          renderInspector();
+          renderApiAndInspector();
         });
         $$('[data-api-learn-channel-padding]').forEach((btn) => {
           btn.addEventListener('click', () => {
             state.api.showChannelPadding = btn.dataset.apiLearnChannelPadding === '1';
-            renderApi();
-            renderInspector();
+            renderApiAndInspector();
           });
         });
         $$('[data-api-learn-repeat]').forEach((btn) => {
           btn.addEventListener('click', () => {
             state.api.repeatMode = Number(btn.dataset.apiLearnRepeat);
             state.apiStep = 0;
-            renderApi();
-            renderInspector();
+            renderApiAndInspector();
           });
         });
         $$('[data-api-learn-preset]').forEach((btn) => {
@@ -4063,8 +4333,7 @@
             state.api.repeatTime = 1;
             state.api.jumpStride = 1;
             state.apiStep = 0;
-            renderApi();
-            renderInspector();
+            renderApiAndInspector();
           });
         });
       }
@@ -4246,13 +4515,13 @@
                     <header class="section-head"><h3>Controls</h3><span class="section-meta">shape / dtype / format</span></header>
                     <div class="section-body format-control-grid">
                       <div class="control-field">
-                        <label for="formatLayout">Layout format<output>${state.format.layout}</output></label>
+                        <label for="formatLayout">Layout format</label>
                         <select id="formatLayout" data-format-field="layout">
                           ${['NZ', 'ZN', 'ZZ', 'NN', 'NDExt', 'DNExt', 'ND', 'DN'].map((item) => `<option value="${item}" ${state.format.layout === item ? 'selected' : ''}>${item}</option>`).join('')}
                         </select>
                       </div>
                       <div class="control-field">
-                        <label for="formatDtype">Data type<output>${info.sizeofT}B, C0=${info.c0}</output></label>
+                        <label for="formatDtype">Data type</label>
                         <select id="formatDtype" data-format-field="dtype">
                           ${[
                             ['float16', 'float16 / half'],
@@ -4338,7 +4607,7 @@
       function formatRangeField(key, label, min, max, value) {
         return `
           <div class="control-field">
-            <label for="format-${key}">${label}<output id="format-${key}Out">${value}</output></label>
+            <label for="format-${key}">${label}</label>
             <input id="format-${key}" data-format-range="${key}" type="range" min="${min}" max="${max}" step="1" value="${value}">
           </div>
         `;
@@ -4349,8 +4618,6 @@
           input.addEventListener('input', () => {
             const key = input.dataset.formatRange;
             state.format[key] = Number(input.value);
-            const out = $(`#format-${key}Out`);
-            if (out) out.textContent = input.value;
             renderAll();
           });
         });
@@ -4568,22 +4835,25 @@
       }
 
       function renderAll() {
-        const p = currentOperator();
-        renderOperators();
-        renderOverview();
-        renderTiling();
-        renderApi();
-        renderPipeline();
-        renderFormat();
-        renderInspector();
-        $$('[data-view]').forEach((view) => view.classList.toggle('is-active', view.dataset.view === state.view));
-        $$('[data-view-tab]').forEach((tab) => tab.classList.toggle('is-active', tab.dataset.viewTab === state.view));
-        $('#mainTitle').textContent = p.title;
-        $('#mainMeta').textContent = `${p.id} · ${p.type}`;
-        $('#topCrumb').textContent = `${p.id} / ${viewLabel(state.view)}`;
-        $('#statusOperator').textContent = p.id;
-        $('#statusView').textContent = viewLabel(state.view);
-        $('#mockLog').textContent = `mock-check: ${p.id} ${p.title} / ${viewLabel(state.view)}；当前检查是 UX demo 规则，不是编译器诊断。`;
+        preserveActiveInput(() => {
+          const p = currentOperator();
+          renderOperators();
+          renderOverview();
+          renderTiling();
+          renderApi();
+          renderPipeline();
+          renderFormat();
+          renderInspector();
+          $$('[data-view]').forEach((view) => view.classList.toggle('is-active', view.dataset.view === state.view));
+          $$('[data-view-tab]').forEach((tab) => tab.classList.toggle('is-active', tab.dataset.viewTab === state.view));
+          $('#mainTitle').textContent = p.title;
+          $('#mainMeta').textContent = `${p.id} · ${p.type}`;
+          $('#topCrumb').textContent = `${p.id} / ${viewLabel(state.view)}`;
+          $('#statusOperator').textContent = p.id;
+          $('#statusView').textContent = viewLabel(state.view);
+          const mockLog = $('#mockLog');
+          if (mockLog) mockLog.textContent = '';
+        });
       }
 
       function initTabs() {
@@ -4602,7 +4872,8 @@
           root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
         });
         $('#exportBtn').addEventListener('click', () => {
-          $('#mockLog').textContent = `snapshot: ${currentOperator().id} 已导出概览、Tiling、API 映射和 Pipeline 对比（mock）。`;
+          const mockLog = $('#mockLog');
+          if (mockLog) mockLog.textContent = '';
         });
       }
 
