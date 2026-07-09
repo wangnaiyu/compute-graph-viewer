@@ -584,14 +584,37 @@ function renderDiff(key){
 const ANALYSIS_LABELS={
   graph:'计算图',
   generated:'生成代码',
-  tiling:'分块',
   flow:'数据流',
+  tiling:'分块',
   pipeline:'流水',
   accuracy:'精度',
   performance:'性能',
 };
+const unlockedAnalysisViews=new Set(['graph']);
 function currentAnalysisView(){
   return document.getElementById('analysisPane')?.dataset.analysisView || '';
+}
+function isAnalysisViewUnlocked(view){
+  return unlockedAnalysisViews.has(view);
+}
+function syncAnalysisTabs(){
+  const active=currentAnalysisView();
+  document.querySelectorAll('.analysis-tab[data-analysis]').forEach(tab=>{
+    const unlocked=isAnalysisViewUnlocked(tab.dataset.analysis);
+    tab.hidden=!unlocked;
+    tab.disabled=!unlocked;
+    tab.setAttribute('aria-hidden', String(!unlocked));
+    tab.classList.toggle('on', unlocked && tab.dataset.analysis===active);
+  });
+}
+function unlockAnalysisView(view){
+  unlockedAnalysisViews.add(view);
+  syncAnalysisTabs();
+}
+function resetAnalysisUnlocks(){
+  unlockedAnalysisViews.clear();
+  unlockedAnalysisViews.add('graph');
+  syncAnalysisTabs();
 }
 function analysisGutter(){
   const pane=document.getElementById('analysisPane');
@@ -602,7 +625,11 @@ function analysisGutter(){
 function setAnalysisView(view){
   const sp=document.getElementById('split');
   const pane=document.getElementById('analysisPane');
-  if(!sp||!pane) return;
+  if(!sp||!pane) return false;
+  if(!isAnalysisViewUnlocked(view)){
+    syncAnalysisTabs();
+    return false;
+  }
   sp.classList.remove('graph-open','compare-open','tiling-open','pipe-open');
   sp.classList.add('analysis-open');
   pane.hidden=false;
@@ -615,17 +642,19 @@ function setAnalysisView(view){
   pane.dataset.analysisView=view;
   const title=document.getElementById('analysisTitle');
   if(title) title.textContent=ANALYSIS_LABELS[view]||'分析';
-  document.querySelectorAll('.analysis-tab[data-analysis]').forEach(tab=>tab.classList.toggle('on',tab.dataset.analysis===view));
+  syncAnalysisTabs();
   syncParseBtn();
+  return true;
 }
 function closeAnalysisView(){
   const sp=document.getElementById('split');
   if(!sp) return;
-  sp.classList.remove('analysis-open','graph-open','compare-open','tiling-open','pipe-open','link-active');
+  sp.classList.remove('graph-open','compare-open','tiling-open','pipe-open','link-active');
+  sp.classList.add('analysis-open');
   const pane=document.getElementById('analysisPane');
-  if(pane) pane.hidden=true;
+  if(pane) pane.hidden=false;
   const gutter=analysisGutter();
-  if(gutter) gutter.hidden=true;
+  if(gutter) gutter.hidden=false;
   clearLinkHot();
   const h=document.getElementById('leftPaneH');
   if(h) h.style.display='none';
@@ -638,6 +667,7 @@ function openCompare(diffKey){
   renderCode('cuda');                             // 左侧固定为 CUDA
   document.getElementById('leftPaneH').style.display='flex';
   renderDiff(diffKey);                            // 右侧为生成的 AscendC
+  unlockAnalysisView('generated');
   setAnalysisView('generated');
   renderTabs(); renderTree();
   const f=document.getElementById('etbFile'); if(f) f.textContent='lightning_indexer.cu ↔ .cpp';
@@ -894,6 +924,7 @@ function stopFlow(){
 }
 // 供面板 tab 调用
 function openFlowPanel(autoplay){
+  unlockAnalysisView('flow');
   setAnalysisView('flow');
   renderFlow();
   if(autoplay) startFlow();
@@ -988,6 +1019,7 @@ function openAccPanel(){
     accCnt.style.background = accFixed?'#48d59722':'#ff547033';
     accCnt.style.color = accFixed?'var(--ok)':'#ff8ba0';
   }
+  unlockAnalysisView('accuracy');
   setAnalysisView('accuracy');
   renderAccReport();
 }
@@ -1078,54 +1110,246 @@ function renderPerfReport(play){
   if(pb) pb.onclick=()=>renderPerfReport(true);
 }
 function openPerfPanel(){
+  unlockAnalysisView('performance');
   setAnalysisView('performance');
   renderPerfReport(true);
 }
 
 /* ============================ S5 Tiling 可视化 ============================ */
 const TILING_OPTS={
-  A:{sTile:128, ub:61,  l0c:48, gm:16, cyc:'1.00', tag:'',       tagCls:''},
-  B:{sTile:256, ub:88,  l0c:96, gm:8,  cyc:'0.72', tag:'推荐',   tagCls:'rec'},
-  C:{sTile:512, ub:103, l0c:128,gm:4,  cyc:'0.95', tag:'溢出',   tagCls:'wrn'},
+  A:{
+    name:'基线方案',
+    mode:'自动',
+    verdict:'就绪',
+    status:'ready',
+    sTile:128,
+    ub:61,
+    l0c:48,
+    gm:16,
+    cyc:'1.00',
+    buffer:1,
+    queue:'4 <= 8',
+    queueOk:true,
+    alignment:'32B 已对齐',
+    alignmentOk:true,
+    tail:'整除，无尾块',
+    note:'分块较小，可读性高，但回 GM 次数较多。',
+    advice:'适合作为第一版解释基线。'
+  },
+  B:{
+    name:'推荐方案',
+    mode:'自动',
+    verdict:'就绪',
+    status:'ready',
+    sTile:256,
+    ub:88,
+    l0c:96,
+    gm:8,
+    cyc:'0.72',
+    buffer:2,
+    queue:'4 <= 8',
+    queueOk:true,
+    alignment:'32B 已对齐',
+    alignmentOk:true,
+    tail:'整除，无尾块',
+    note:'容量贴合片上缓存，分块数和驻留率平衡。',
+    advice:'作为当前 S5 输出写入 tiling.h。'
+  },
+  C:{
+    name:'双缓冲方案',
+    mode:'自动',
+    verdict:'待复核',
+    status:'review',
+    sTile:512,
+    ub:103,
+    l0c:128,
+    gm:4,
+    cyc:'0.95',
+    buffer:2,
+    queue:'6 <= 8',
+    queueOk:true,
+    alignment:'32B 已对齐',
+    alignmentOk:true,
+    tail:'整除，无尾块',
+    note:'分块更大，回 GM 次数少，但片上容量已经溢出。',
+    advice:'需要缩小分块或降低缓冲数后再采用。'
+  },
 };
 const S_TOTAL=2048; // 演示用 key 总长
 function openTiling(){
   closeGraph(); closeCompare(); closePipe();
+  unlockAnalysisView('tiling');
   setAnalysisView('tiling');
   renderTilingViz();
 }
 function closeTiling(){ if(currentAnalysisView()==='tiling') closeAnalysisView();else document.getElementById('split').classList.remove('tiling-open'); }
+function tilingCapacityColor(value){
+  if(value>100) return 'var(--danger)';
+  if(value>=85) return 'var(--success)';
+  return 'var(--warning)';
+}
+function tilingVerdictClass(o){
+  return o.status==='review'?'tp-verdict--review':'tp-verdict--ready';
+}
+function tilingStateText(o,nTile,tail){
+  const tailText=tail>0?`末块 ${tail}`:'整除';
+  return `分块长度 ${o.sTile}，共 ${nTile} 块，${tailText}`;
+}
+function tilingMemoryFocus(stage){
+  const focus = [
+    {
+      label:'读取全局内存',
+      selectors:['[data-mem950-node="rail:GM"]','[data-mem950-node="rail:L2"]']
+    },
+    {
+      label:'搬入 L1 缓存',
+      routes:['l2-to-aic'],
+      selectors:['[data-mem950-node="rail:GM"]','[data-mem950-node="rail:L2"]','#mem950-aic [data-aic-node="buffer:L1"]']
+    },
+    {
+      label:'送入 L0B',
+      selectors:['#mem950-aic [data-aic-node="buffer:L1"]','#mem950-aic [data-aic-node="buffer:L0B"]']
+    },
+    {
+      label:'进入矩阵计算',
+      selectors:['#mem950-aic [data-aic-node="buffer:L0B"]','#mem950-aic [data-aic-node="cube:CUBE"]']
+    }
+  ];
+  return focus[stage] || focus[0];
+}
+function mountTilingMemoryArchitecture(){
+  const shell=document.getElementById('tpMemoryArch');
+  const stage=document.getElementById('tpMemoryStage');
+  const mem=window.PtoMemoryArchitecturePattern;
+  if(!shell||!stage||!mem) return;
+  mem.renderArchitecture(stage,'ascend910b');
+  mem.setAivFolded?.(stage,true);
+  mem.setDetailVisibility?.(stage,false);
+  const syncAicHeight=()=>{
+    const aic=stage.querySelector('#mem950-aic .pto-aic-core') || stage.querySelector('#mem950-aic');
+    const height=aic?.offsetHeight || 0;
+    if(height>0) shell.style.setProperty('--tp-aic-height', `${Math.round(height)}px`);
+  };
+  syncAicHeight();
+  const overlay=mem.createRouteOverlay?.(stage,'ascend910b');
+  overlay?.render?.();
+  window.__mlaTilingMemoryStage=stage;
+  window.__mlaTilingMemoryOverlay=overlay;
+  const viewport=shell.querySelector('[data-pto-mem-arch-viewport]');
+  const sizer=shell.querySelector('[data-pto-mem-arch-sizer]');
+  const canvas=shell.querySelector('[data-pto-mem-arch-canvas]');
+  const zoom=mem.createZoomController?.({
+    viewport,
+    sizer,
+    canvas,
+    defaultZoom:0.32,
+    min:0.26,
+    max:0.9,
+    pan:true,
+    wheelZoom:true,
+    centerOnReset:false,
+    centerTarget:'.pto-mem950__rails, #mem950-aic',
+    onZoom:()=>overlay?.render?.(),
+    onPan:()=>overlay?.render?.()
+  });
+  requestAnimationFrame(()=>{
+    syncAicHeight();
+    zoom?.center?.();
+    const pan=zoom?.getPan?.();
+    if(pan) zoom.setPan(pan.x, 0);
+    overlay?.render?.();
+  });
+  focusTilingMemoryStage(1);
+  const tileCount=Number(shell.dataset.tileCount || 0);
+  if(tileCount>0) animateTiling(tileCount,{loop:true});
+}
+function focusTilingMemoryStage(stage){
+  const mem=window.PtoMemoryArchitecturePattern;
+  const root=window.__mlaTilingMemoryStage;
+  if(!mem||!root) return;
+  mem.setPathFocus(root,'ascend910b',tilingMemoryFocus(stage));
+  window.__mlaTilingMemoryOverlay?.render?.();
+}
 function renderTilingViz(){
-  const c=state.choices['S5']||'B';
+  if(tileAnimTimer){clearInterval(tileAnimTimer);tileAnimTimer=null;}
+  const c=TILING_OPTS[state.choices['S5']]?state.choices['S5']:'B';
   const o=TILING_OPTS[c];
   const nTile=Math.ceil(S_TOTAL/o.sTile);
   const full=Math.floor(S_TOTAL/o.sTile), tail=S_TOTAL - full*o.sTile;
-  // S 维分块条
   let blks='';
   for(let i=0;i<nTile;i++){
     const isTail=(tail>0 && i===nTile-1);
-    blks+=`<div class="sblk ${isTail?'tail':''}" data-i="${i}">${o.sTile}</div>`;
+    const size=isTail?tail:o.sTile;
+    blks+=`<div class="sblk ${isTail?'tail':''}" data-i="${i}" title="第 ${i+1} 块 · ${size}">${size}</div>`;
   }
-  const ubCol=o.ub>100?'var(--risk)':(o.ub>=85?'var(--ok)':'var(--warn)');
-  const l0cCol=o.l0c>100?'var(--risk)':(o.l0c>=85?'var(--ok)':'var(--cube)');
+  const ubCol=tilingCapacityColor(o.ub);
+  const l0cCol=tilingCapacityColor(o.l0c);
+  const verdictNote=o.status==='review'
+    ? `待复核：UB ${o.ub}%，L0C ${o.l0c}%，超过片上容量后会触发回退搬运。`
+    : `就绪：UB ${o.ub}%，L0C ${o.l0c}%，满足当前片上容量约束。`;
   const body=document.getElementById('tpBody');
   body.innerHTML=`
     <div class="tp-sec">
-      <div class="h">分块方案 · 分块长度</div>
-      <div class="tp-opts">
+      <div class="h">分块方案</div>
+      <div class="tp-scheme-grid">
         ${Object.entries(TILING_OPTS).map(([k,v])=>`
-          <div class="tp-opt ${k===c?'on':''}" data-v="${k}">
-            <b>${v.sTile}</b><span>UB ${v.ub}%</span>
-            ${v.tag?`<span class="${v.tagCls}">${v.tag}</span>`:'<span>&nbsp;</span>'}
-          </div>`).join('')}
+          <article class="tp-scheme ${k===c?'is-active':''}" role="button" tabindex="0" data-v="${k}">
+            <div class="tp-scheme__top">
+              <h4>${v.name}</h4>
+              <span class="tp-scheme__badge">${v.mode}</span>
+            </div>
+            <div class="tp-verdict ${tilingVerdictClass(v)}"><span>判定</span><b>${v.verdict}</b></div>
+            <div class="tp-scheme__facts">
+              <div class="tp-scheme__row"><span>UB</span><b class="${v.ub>100?'is-risk':'is-ok'}">${v.ub}%</b></div>
+              <div class="tp-scheme__row"><span>对齐</span><b class="${v.alignmentOk?'is-ok':'is-warn'}">${v.alignment}</b></div>
+              <div class="tp-scheme__row"><span>队列</span><b class="${v.queueOk?'is-ok':'is-warn'}">${v.queue}</b></div>
+              <div class="tp-scheme__row"><span>尾块</span><b>${v.tail}</b></div>
+            </div>
+            <p class="tp-scheme__note">${v.note}</p>
+          </article>`).join('')}
       </div>
     </div>
 
     <div class="tp-sec">
-      <div class="h">键序列长度 ${S_TOTAL} · 分块数 = ${nTile}</div>
-      <div class="tp-anim" id="tpPlay">▶ 演示分块搬运过程</div>
-      <div class="sbar" id="sbar">${blks}</div>
-      <div class="sbar-cap"><span>← 沿键维流式载入,每块长度 ${o.sTile}</span><span>${tail>0?`末块 ${tail}`:'整除'}</span></div>
+      <div class="h">选中方案详情</div>
+      <div class="tp-detail-grid">
+        <section class="tp-detail-card tp-detail-card--wide">
+          <div class="tp-detail-head">
+            <h4>键维分块</h4>
+            <span id="tpPlayState">${tilingStateText(o,nTile,tail)}</span>
+          </div>
+          <div class="tp-control-row">
+            <div class="tp-explain">键维 ${S_TOTAL} 按 ${o.sTile} 切块。当前块的搬运路径会自动高亮，并标出下一块是否预取。</div>
+          </div>
+          <div class="sbar" id="sbar">${blks}</div>
+          <div class="sbar-cap"><span>从第 1 块开始</span><span>${tail>0?`末块 ${tail}`:'整除'}</span></div>
+          <div class="tp-memory-area">
+            <div class="tp-memory-arch" id="tpMemoryArch" data-tile-count="${nTile}">
+              <div class="tp-memory-arch__head"><span>内存架构 · 昇腾 910B</span><span>路径随播放同步</span></div>
+              <div class="pto-memory-architecture-viewport" data-pto-mem-arch-viewport>
+                <div class="pto-memory-architecture-sizer" data-pto-mem-arch-sizer>
+                  <div class="pto-memory-architecture-canvas" data-pto-mem-arch-canvas>
+                    <div id="tpMemoryStage"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="tp-transfer-status">
+              <div class="tp-transfer-card"><span>当前块</span><b id="tpCurrentBlock">等待播放</b></div>
+              <div class="tp-transfer-card"><span>下一块</span><b id="tpNextBlock">尚未预取</b></div>
+            </div>
+          </div>
+        </section>
+        <section class="tp-detail-card">
+          <div class="tp-current-summary">
+            <div><b>${o.name}</b> · 分块长度 ${o.sTile}</div>
+            <div>回 GM 次数 / 行：<b>${nTile}</b></div>
+            <div>相对周期：<b style="color:${o.status==='ready'?'var(--success)':'var(--warning)'}">${o.cyc}×</b></div>
+            <div>缓冲数：<b>${o.buffer}</b></div>
+            <div class="tp-current-note ${o.status==='ready'?'is-ready':'is-review'}">${verdictNote}</div>
+          </div>
+        </section>
+      </div>
     </div>
 
     <div class="tp-sec">
@@ -1138,38 +1362,73 @@ function renderTilingViz(){
         <div class="ul"><span>L0C (矩阵输出)</span><b style="color:${l0cCol}">${o.l0c}%</b></div>
         <div class="track"><div class="fill" style="width:${Math.min(o.l0c,100)}%;background:${l0cCol}"></div><div class="cap-line" style="left:100%"></div></div>
       </div>
-      ${o.ub>100||o.l0c>100?`<div style="font-size:14px;color:var(--risk);margin-top:4px">⚠ 超出片上容量 → 触发回退搬运,周期反而升高</div>`:`<div style="font-size:14px;color:var(--ok);margin-top:4px">✓ 恰好贴合片上容量,驻留最大化</div>`}
+      ${o.ub>100||o.l0c>100?`<div style="font-size:14px;color:var(--danger);margin-top:4px">容量超限，触发回退搬运后周期会升高。</div>`:`<div style="font-size:14px;color:var(--success);margin-top:4px">${o.advice}</div>`}
     </div>
 
     <div class="tp-sec">
       <div class="h">代价评估</div>
       <div class="tp-metrics">
         <div class="tp-metric"><div class="mv">${nTile}</div><div class="mk">回 GM 次数 / 行</div></div>
-        <div class="tp-metric"><div class="mv" style="color:${o.cyc==='0.72'?'var(--ok)':'#eef'}">${o.cyc}×</div><div class="mk">相对周期</div></div>
+        <div class="tp-metric"><div class="mv" style="color:${o.status==='ready'?'var(--success)':'var(--warning)'}">${o.cyc}×</div><div class="mk">相对周期</div></div>
         <div class="tp-metric"><div class="mv">${o.sTile}</div><div class="mk">分块长度</div></div>
       </div>
     </div>`;
   // 选项联动:更新选择 → 重渲染 tiling.h 与可视化
-  body.querySelectorAll('.tp-opt').forEach(el=>el.onclick=()=>{
-    state.choices['S5']=el.dataset.v;
-    renderTilingViz();
-    if(activeTab==='tiling') renderCode('tiling');       // 同步 tiling.h 源码
-    renderWizard();                                       // 同步向导选项
+  body.querySelectorAll('.tp-scheme').forEach(el=>{
+    const choose=()=>{
+      state.choices['S5']=el.dataset.v;
+      renderTilingViz();
+      if(activeTab==='tiling') renderCode('tiling');       // 同步 tiling.h 源码
+      renderWizard();                                       // 同步向导选项
+    };
+    el.onclick=choose;
+    el.onkeydown=(ev)=>{
+      if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();choose();}
+    };
   });
-  const play=document.getElementById('tpPlay');
-  if(play) play.onclick=()=>animateTiling(nTile);
+  requestAnimationFrame(mountTilingMemoryArchitecture);
 }
 let tileAnimTimer=null;
-function animateTiling(nTile){
+function animateTiling(nTile,options={}){
   if(tileAnimTimer){clearInterval(tileAnimTimer);tileAnimTimer=null;}
   const blks=document.querySelectorAll('#sbar .sblk');
-  blks.forEach(b=>b.classList.remove('act'));
-  let i=0;
-  tileAnimTimer=setInterval(()=>{
-    blks.forEach(b=>b.classList.remove('act'));
-    if(i>=blks.length){ clearInterval(tileAnimTimer); tileAnimTimer=null; return; }
-    blks[i].classList.add('act'); i++;
-  }, Math.max(120, 1200/Math.max(nTile,1)));
+  const stateLabel=document.getElementById('tpPlayState');
+  const current=document.getElementById('tpCurrentBlock');
+  const next=document.getElementById('tpNextBlock');
+  const clear=()=>{
+    blks.forEach(b=>b.classList.remove('act','next'));
+  };
+  clear();
+  let frame=0;
+  const stageCount=4;
+  const step=()=>{
+    clear();
+    const tile=Math.floor(frame/stageCount);
+    const stage=frame%stageCount;
+    if(tile>=nTile){
+      if(options.loop){
+        frame=0;
+        return step();
+      }
+      if(stateLabel) stateLabel.textContent='播放完成';
+      if(current) current.textContent=`共 ${nTile} 块已完成`;
+      if(next) next.textContent='没有待预取分块';
+      clearInterval(tileAnimTimer);
+      tileAnimTimer=null;
+      return;
+    }
+    const stageInfo=tilingMemoryFocus(stage);
+    const nextStageInfo=stage<stageCount-1?tilingMemoryFocus(stage+1):null;
+    if(blks[tile]) blks[tile].classList.add('act');
+    if(blks[tile+1]) blks[tile+1].classList.add('next');
+    focusTilingMemoryStage(stage);
+    if(stateLabel) stateLabel.textContent=`第 ${tile+1} / ${nTile} 块：${stageInfo.label}`;
+    if(current) current.textContent=nextStageInfo?`第 ${tile+1} 块：${stageInfo.label} → ${nextStageInfo.label}`:`第 ${tile+1} 块：进入矩阵计算`;
+    if(next) next.textContent=tile+1<nTile?`第 ${tile+2} 块等待预取`:'没有下一块';
+    frame++;
+  };
+  step();
+  tileAnimTimer=setInterval(step, Math.max(220, 2600/Math.max(nTile,1)));
 }
 
 /* ============================ S6 流水线前后对比可视化 ============================ */
@@ -1219,6 +1478,7 @@ function timelineHTML(model, play){
 }
 function openPipe(){
   closeGraph(); closeCompare(); closeTiling();
+  unlockAnalysisView('pipeline');
   setAnalysisView('pipeline');
   renderPipeViz(false);
 }
@@ -1667,12 +1927,15 @@ function renderWizard(){
 
   // footer
   const btn=document.getElementById('runBtn'), hint=document.getElementById('footHint');
+  const allBtn=document.getElementById('runAllBtn');
   if(state.step>=STEPS.length){
     btn.disabled=false; btn.textContent='↻ 重新开始迁移'; btn.className='run ghost';
+    if(allBtn){allBtn.disabled=true; allBtn.textContent='全部完成';}
     hint.textContent='全部 8 个阶段已完成';
   } else {
     btn.disabled=false; btn.className='run';
-    btn.textContent=`▶ 运行 ${nextStep.n} · ${nextStep.t}`;
+    btn.textContent=`单步运行 ${nextStep.n}`;
+    if(allBtn){allBtn.disabled=false; allBtn.textContent='全部执行';}
     hint.textContent=`共 8 个阶段 · 当前 ${state.step} / 8 完成`;
   }
   document.getElementById('sbStep').textContent = state.step>=STEPS.length?'✓ 完成':(completedStep?`${completedStep.n} · 已完成`:'准备就绪');
@@ -1680,6 +1943,7 @@ function renderWizard(){
 
 /* ---------- terminal ---------- */
 let termBusy=false;
+let runAllMode=false;
 function termLine(txt,cls){const d=document.createElement('div');d.className='tl';
   d.innerHTML=`<span class="t">$ </span><span class="${cls||''}">${txt}</span>`;
   if(cls==='p'){d.innerHTML=`<span class="t">➜ </span><span class="p">${txt}</span>`;}
@@ -1687,6 +1951,7 @@ function termLine(txt,cls){const d=document.createElement('div');d.className='tl
   document.getElementById('term').scrollTop=1e9;}
 function streamLog(lines,done){
   termBusy=true; let i=0; let finished=false;
+  const delay=runAllMode?20:160;
   const term=document.getElementById('term');
   const cur=document.createElement('div');cur.className='tl';cur.innerHTML='<span class="cursor"></span>';
   term.appendChild(cur);
@@ -1696,9 +1961,9 @@ function streamLog(lines,done){
     if(i>=lines.length){ finish(); return; }
     const [txt,cls]=lines[i]; termLine(txt,cls); i++;
     term.appendChild(cur); term.scrollTop=1e9;
-  },160);
+  },delay);
   // 看门狗:无论中途发生什么,流式都会结束并恢复按钮/状态
-  setTimeout(finish, lines.length*160 + 800);
+  setTimeout(finish, lines.length*delay + (runAllMode?160:800));
 }
 
 /* ---------- problems ---------- */
@@ -1736,7 +2001,7 @@ document.querySelectorAll('.ptab').forEach(t=>t.onclick=()=>{
 });
 document.querySelectorAll('.analysis-tab[data-analysis]').forEach(t=>t.onclick=()=>{
   const view=t.dataset.analysis;
-  setAnalysisView(view);
+  if(t.hidden || t.disabled || !setAnalysisView(view)) return;
   if(view==='graph') renderGraph(false);
   if(view==='generated'){
     if(!document.getElementById('diffLines')?.innerHTML.trim()) renderDiff(hasCpp?'s3':'s3');
@@ -1751,16 +2016,18 @@ document.querySelectorAll('.analysis-tab[data-analysis]').forEach(t=>t.onclick=(
   if(view==='accuracy') renderAccReport();
   if(view==='performance') renderPerfReport(false);
 });
-document.getElementById('analysisClose').onclick=closeAnalysisView;
+document.getElementById('analysisClose')?.addEventListener('click', closeAnalysisView);
 
 /* ---------- run a step ---------- */
 function runStep(){
   if(termBusy) return;
-  if(state.step>=STEPS.length){ reset(); return; }
+  if(state.step>=STEPS.length){ runAllMode=false; reset(); return; }
 
   const s=STEPS[state.step]; // 执行下一步
   const btn=document.getElementById('runBtn');
-  btn.disabled=true; btn.textContent=`⏳ ${s.n} · 运行中…`;
+  const allBtn=document.getElementById('runAllBtn');
+  btn.disabled=true; btn.textContent=`运行中 ${s.n}`;
+  if(allBtn){allBtn.disabled=true; allBtn.textContent=runAllMode?'连续执行中':'全部执行';}
   document.getElementById('sbStep').textContent=`${s.n} · 运行中…`;
   stopFlow();
 
@@ -1794,13 +2061,30 @@ function runStep(){
     if(s.n==='S8'){ openPerfPanel(); }
     const done=state.step>=STEPS.length;
     notify(done?'🎉 迁移完成':`✓ ${s.n} 完成`, done?'稀疏解码算子已注册为 aclNN 算子':`${s.t} —— ${s.sub}`, done?'ok':'ok');
-    if(!done) document.getElementById('runBtn').disabled=false;
+    if(runAllMode && !done){
+      const nextBtn=document.getElementById('runBtn');
+      const nextAllBtn=document.getElementById('runAllBtn');
+      if(nextBtn){nextBtn.disabled=true; nextBtn.textContent='等待下一阶段';}
+      if(nextAllBtn){nextAllBtn.disabled=true; nextAllBtn.textContent='连续执行中';}
+      setTimeout(runStep, 30);
+      return;
+    }
+    runAllMode=false;
+    renderWizard();
   });
 }
+function runAllSteps(){
+  if(termBusy) return;
+  if(state.step>=STEPS.length){ runAllMode=false; reset(); return; }
+  runAllMode=true;
+  runStep();
+}
 function reset(){
+  runAllMode=false;
   state.step=1; state.choices={}; state.viewStep=0; hasCpp=false; graphMapped=false; activeTab='cuda'; tilingReady=false; accFixed=false; // 重置到 S1 已完成状态
   document.getElementById('term').innerHTML='';
   closeAnalysisView(); stopFlow();
+  resetAnalysisUnlocks();
   document.getElementById('flowpane').innerHTML='';
   document.getElementById('accpane').innerHTML='';
   document.getElementById('perfpane').innerHTML='';
@@ -1810,10 +2094,12 @@ function reset(){
   termLine('AscendPort 迁移工作台 · 就绪。S1 解析已完成，点击右侧「运行 S2」继续。','d');
 }
 document.getElementById('runBtn').onclick=runStep;
+document.getElementById('runAllBtn').onclick=runAllSteps;
 
 /* ---------- boot ---------- */
 initProblems();
 renderTree(); renderTabs(); renderCode('cuda'); renderProg(); renderWizard();
+resetAnalysisUnlocks();
 termLine('AscendPort v0.9 · 目标 Atlas 800T A2 (Ascend 910B)','d');
 termLine('✓ S1 解析算子已完成 — 已生成计算图，点击任意节点可定位源码。','g');
 termLine('点击右侧「运行 S2 · 算子映射」继续迁移流程。','d');

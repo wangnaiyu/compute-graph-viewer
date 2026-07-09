@@ -213,6 +213,13 @@
     .editor-pane-body > [data-ide-bottom-dock][hidden] {
       display: none !important;
     }
+    .pto-ide-frame__pane[data-ide-pane="editor-preview"] {
+      background: transparent;
+      border-color: transparent;
+      box-shadow: none;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
     .tabs {
       min-width: 0;
       display: flex;
@@ -260,7 +267,7 @@
     }
     .etb-path b { color: var(--foreground-secondary); }
     .etb-spacer { flex: 1; }
-    .etb-btn, .fb-btn, .tp-anim, .pp-play, .perf-play, .acc-apply, .analysis-tab {
+    .etb-btn, .fb-btn, .tp-anim, .pp-play, .perf-play, .acc-apply {
       min-height: 30px;
       display: inline-flex;
       align-items: center;
@@ -275,25 +282,51 @@
       font: var(--button-font);
       cursor: pointer;
     }
-    .etb-btn:hover, .fb-btn:hover, .tp-anim:hover, .pp-play:hover, .perf-play:hover, .acc-apply:hover, .analysis-tab:hover {
+    .etb-btn:hover, .fb-btn:hover, .tp-anim:hover, .pp-play:hover, .perf-play:hover, .acc-apply:hover {
       background: var(--button-secondary-bg-hover);
       color: var(--foreground);
     }
-    .etb-btn.on, .fb-btn.on, .analysis-tab.on {
+    .etb-btn.on, .fb-btn.on {
       background: var(--state-selected);
       color: var(--foreground);
     }
     .etb-btn svg { width: 14px; height: 14px; }
 
-    .edit-split {
+    .edit-split.pto-ide-frame__split {
       min-height: 0;
       min-width: 0;
       display: flex;
       flex-direction: row;
+      padding: 0 !important;
       overflow: hidden;
+      background: transparent !important;
+      border: 0 !important;
+      box-shadow: none !important;
     }
 
-    .codewrap, .analysispane, .graphpane, .tilingpane, .pipepane {
+    .editor-group-panel {
+      min-width: 0;
+      min-height: 0;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      overflow: hidden;
+      border: 1px solid var(--ide-frame-pane-border);
+      border-radius: var(--radius-lg);
+      background: color-mix(in srgb, var(--ide-frame-pane-bg) 82%, transparent);
+    }
+    .sourcepane {
+      grid-template-rows: auto auto minmax(0, 1fr);
+    }
+    .editor-group-panel > .pto-ide-frame__tabstrip {
+      min-height: 40px;
+      padding: 5px 8px;
+      border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 68%, transparent);
+      background: color-mix(in srgb, var(--surface-1) 72%, transparent);
+    }
+    .sourcepane .pto-ide-frame__pane-header {
+      border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 58%, transparent);
+    }
+    .codewrap, .graphpane, .tilingpane, .pipepane {
       min-width: 0;
       min-height: 0;
       overflow: hidden;
@@ -303,44 +336,13 @@
     .analysispane {
       display: grid;
       grid-template-rows: auto minmax(0, 1fr);
-      opacity: 0;
-      pointer-events: none;
-      border-radius: var(--radius-md) 0 0 var(--radius-md);
-      transition: opacity var(--duration-base) var(--easing-default);
-    }
-    .edit-split:not(.analysis-open) .analysispane {
-      display: none !important;
+      opacity: 1;
+      pointer-events: auto;
     }
     .edit-split.analysis-open .analysispane {
       display: grid;
       opacity: 1;
       pointer-events: auto;
-    }
-    .analysis-head {
-      min-height: 37px;
-      display: grid;
-      grid-template-columns: minmax(110px, auto) minmax(0, 1fr) auto;
-      align-items: center;
-      gap: 10px;
-      padding: 0 10px;
-      background: var(--ide-frame-pane-header-fill);
-      color: var(--foreground-secondary);
-      font: var(--ide-frame-meta-font);
-      backdrop-filter: var(--ide-frame-pane-backdrop-filter);
-    }
-    .analysis-title {
-      display: inline-flex;
-      align-items: center;
-      gap: 7px;
-      min-width: 0;
-      color: var(--foreground);
-      font: var(--ide-frame-title-font);
-      white-space: nowrap;
-    }
-    .analysis-title svg {
-      width: 15px;
-      height: 15px;
-      color: var(--primary);
     }
     .analysis-tabs {
       min-width: 0;
@@ -352,12 +354,18 @@
     }
     .analysis-tabs::-webkit-scrollbar { display: none; }
     .analysis-tab {
-      min-height: 26px;
-      padding: 0 9px;
-      border-radius: var(--radius-sm);
+      border: 0;
+      background: transparent;
       box-shadow: none;
-      font-size: 12px;
       flex: 0 0 auto;
+    }
+    .analysis-tab.on {
+      background: var(--ide-frame-selected-bg);
+      color: var(--foreground);
+      box-shadow: var(--ide-frame-selected-shadow);
+    }
+    .analysis-tab[hidden] {
+      display: none !important;
     }
     .analysis-close {
       width: 26px;
@@ -663,25 +671,42 @@
     .tp-opt .rec { color: var(--success); }
     .tp-opt .wrn { color: var(--danger); }
     .sbar {
-      height: 34px;
-      display: flex;
-      overflow: hidden;
+      min-height: 42px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(42px, 1fr));
+      gap: 5px;
+      padding: 5px;
+      overflow: visible;
       border-radius: var(--radius-md);
       background: color-mix(in srgb, var(--surface-1) 80%, transparent);
     }
     .sblk {
-      flex: 1;
+      min-width: 0;
+      min-height: 30px;
       display: flex;
       align-items: center;
       justify-content: center;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      background: color-mix(in srgb, var(--surface-2) 72%, transparent);
       color: var(--foreground-secondary);
       font: var(--text-mono);
       font-size: 12px;
-      min-width: 0;
-      transition: background var(--duration-base) var(--easing-default);
+      transition:
+        background var(--duration-base) var(--easing-default),
+        border-color var(--duration-base) var(--easing-default),
+        color var(--duration-base) var(--easing-default);
     }
-    .sblk.tail { background: color-mix(in srgb, var(--danger) 18%, transparent); color: var(--danger); }
-    .sblk.act { background: color-mix(in srgb, var(--vec) 30%, transparent); color: var(--foreground); }
+    .sblk.tail {
+      border-color: color-mix(in srgb, var(--danger) 30%, transparent);
+      background: color-mix(in srgb, var(--danger) 12%, transparent);
+      color: var(--danger);
+    }
+    .sblk.act {
+      border-color: color-mix(in srgb, var(--primary) 58%, transparent);
+      background: color-mix(in srgb, var(--primary) 24%, transparent);
+      color: var(--foreground);
+    }
     .sbar-cap, .tl-axis, .swim-axis {
       display: flex;
       justify-content: space-between;
@@ -726,6 +751,368 @@
       color: var(--foreground-secondary);
       font-size: 14px;
       margin-top: 2px;
+    }
+    .tp-scheme-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 10px;
+    }
+    .tp-scheme {
+      min-width: 0;
+      min-height: 148px;
+      padding: 10px;
+      display: grid;
+      grid-template-rows: auto auto 1fr auto;
+      gap: 8px;
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-md);
+      background: color-mix(in srgb, var(--card-bg) 92%, transparent);
+      color: var(--foreground-secondary);
+      cursor: pointer;
+      text-align: left;
+    }
+    .tp-scheme:hover {
+      border-color: var(--card-hover-border);
+      background: color-mix(in srgb, var(--card-bg) 86%, var(--state-hover));
+    }
+    .tp-scheme:focus-visible {
+      outline: 2px solid var(--focus-ring);
+      outline-offset: 2px;
+    }
+    .tp-scheme.is-active {
+      border-color: color-mix(in srgb, var(--primary) 68%, transparent);
+      background: color-mix(in srgb, var(--primary) 15%, var(--card-bg));
+      color: var(--foreground);
+    }
+    .tp-scheme__top {
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .tp-scheme__top h4 {
+      margin: 0;
+      overflow: hidden;
+      color: var(--foreground);
+      font: 700 14px / 1.25 var(--font-sans);
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .tp-scheme__badge {
+      min-height: var(--tag-height);
+      padding: 0 var(--tag-padding-x);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--tag-radius);
+      background: var(--comp-tag-bg);
+      color: var(--comp-tag-fg);
+      font: var(--text-label);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .tp-verdict {
+      min-height: 28px;
+      padding: 5px 7px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      background: color-mix(in srgb, var(--surface-2) 72%, transparent);
+      color: var(--foreground-muted);
+      font-size: 12px;
+    }
+    .tp-verdict b {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      color: var(--foreground-secondary);
+      font-size: 12px;
+      font-weight: var(--font-weight-bold);
+      white-space: nowrap;
+    }
+    .tp-verdict b::before {
+      width: 6px;
+      height: 6px;
+      content: "";
+      border-radius: 50%;
+      background: currentColor;
+      box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 12%, transparent);
+    }
+    .tp-verdict--ready {
+      border-color: color-mix(in srgb, var(--success) 20%, transparent);
+      background: color-mix(in srgb, var(--success) 6%, transparent);
+    }
+    .tp-verdict--ready b { color: var(--success); }
+    .tp-verdict--review {
+      border-color: color-mix(in srgb, var(--warning) 22%, transparent);
+      background: color-mix(in srgb, var(--warning) 7%, transparent);
+    }
+    .tp-verdict--review b { color: var(--warning); }
+    .tp-scheme__facts {
+      display: grid;
+      gap: 5px;
+    }
+    .tp-scheme__row {
+      display: grid;
+      grid-template-columns: 56px minmax(0, 1fr);
+      gap: 7px;
+      align-items: baseline;
+      color: var(--foreground-secondary);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+    .tp-scheme__row span {
+      overflow: hidden;
+      color: var(--foreground-muted);
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .tp-scheme__row b {
+      overflow: hidden;
+      color: var(--foreground);
+      font-weight: var(--font-weight-bold);
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .tp-scheme__row b.is-ok { color: var(--success); }
+    .tp-scheme__row b.is-warn { color: var(--warning); }
+    .tp-scheme__row b.is-risk { color: var(--danger); }
+    .tp-scheme__note {
+      margin: 0;
+      color: var(--foreground-muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .tp-detail-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 10px;
+      align-items: stretch;
+    }
+    .tp-detail-card {
+      min-width: 0;
+      padding: 11px;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      background: color-mix(in srgb, var(--surface-2) 64%, transparent);
+    }
+    .tp-detail-card--wide {
+      display: grid;
+      gap: 10px;
+    }
+    .tp-detail-head {
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .tp-detail-head h4,
+    .tp-subhead {
+      margin: 0;
+      color: var(--foreground);
+      font: var(--text-title-2);
+      font-size: 14px;
+    }
+    .tp-subhead { margin-bottom: 6px; }
+    .tp-detail-head span {
+      min-width: 0;
+      overflow: hidden;
+      color: var(--foreground-muted);
+      font: var(--text-mono);
+      font-size: 12px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .tp-control-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .tp-control-row .tp-anim {
+      margin: 0;
+    }
+    .tp-explain {
+      color: var(--foreground-secondary);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+    .sblk.next {
+      outline: 1px solid color-mix(in srgb, var(--success) 55%, transparent);
+      outline-offset: -2px;
+      color: color-mix(in srgb, var(--success) 82%, var(--foreground));
+    }
+    .tp-memory-area {
+      display: grid;
+      gap: 10px;
+    }
+    .tp-memory-arch {
+      height: 300px;
+      min-height: 0;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      background: color-mix(in srgb, var(--surface-1) 52%, transparent);
+      overflow: hidden;
+    }
+    .tp-memory-arch__head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 8px 10px 4px;
+      color: var(--foreground-secondary);
+      font: var(--text-label);
+    }
+    .tp-memory-arch .pto-memory-architecture-viewport {
+      height: 268px;
+      min-height: 0;
+      background: radial-gradient(circle, color-mix(in srgb, var(--foreground) 8%, transparent) 1px, transparent 1.5px);
+      background-size: 20px 20px;
+      overflow: hidden;
+    }
+    .tp-memory-arch .pto-memory-architecture-sizer {
+      min-height: 0;
+    }
+    .tp-memory-arch .pto-mem950.is-aiv-folded {
+      padding: 10px;
+    }
+    .tp-memory-arch .pto-mem950.is-aiv-folded .pto-mem950__layout {
+      gap: 42px;
+      align-items: flex-start;
+    }
+    .tp-memory-arch .pto-mem950.is-aiv-folded .pto-mem950__rails {
+      height: var(--tp-aic-height, 430px);
+      align-self: flex-start;
+    }
+    .tp-memory-arch .pto-mem950.is-aiv-folded .pto-mem950__rail {
+      height: 100%;
+      min-height: 0;
+      border-radius: 24px;
+    }
+    .tp-memory-arch .pto-mem950.is-aiv-folded .pto-mem950__rail-grid {
+      top: 22px;
+      bottom: 68px;
+    }
+    .tp-memory-arch .pto-mem950.is-aiv-folded .pto-mem950__rail-label {
+      bottom: 32px;
+    }
+    .tp-memory-arch .pto-mem950.is-aiv-folded .pto-mem950__stack {
+      gap: 0;
+    }
+    .tp-memory-arch .pto-mem950.is-aiv-folded .pto-mem950__notes {
+      display: none;
+    }
+    .tp-transfer-map {
+      display: grid;
+      grid-template-columns: minmax(82px, 1fr) 18px minmax(82px, 1fr) 18px minmax(82px, 1fr) 18px minmax(96px, 1fr);
+      gap: 6px;
+      align-items: stretch;
+    }
+    .tp-transfer-node {
+      min-width: 0;
+      min-height: 54px;
+      padding: 8px;
+      display: grid;
+      align-content: center;
+      gap: 4px;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      background: color-mix(in srgb, var(--surface-1) 72%, transparent);
+      color: var(--foreground-secondary);
+      transition: background var(--duration-base) var(--easing-default), color var(--duration-base) var(--easing-default), border-color var(--duration-base) var(--easing-default);
+    }
+    .tp-transfer-node b {
+      overflow: hidden;
+      color: var(--foreground);
+      font-size: 14px;
+      font-weight: var(--font-weight-bold);
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .tp-transfer-node span {
+      overflow: hidden;
+      color: var(--foreground-muted);
+      font-size: 12px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .tp-transfer-node.act {
+      border-color: color-mix(in srgb, var(--primary) 58%, transparent);
+      background: color-mix(in srgb, var(--primary) 20%, transparent);
+      color: var(--foreground);
+    }
+    .tp-transfer-node.next {
+      border-color: color-mix(in srgb, var(--success) 40%, transparent);
+      background: color-mix(in srgb, var(--success) 10%, transparent);
+    }
+    .tp-transfer-arrow {
+      display: grid;
+      place-items: center;
+      color: var(--foreground-muted);
+      font-size: 14px;
+    }
+    .tp-transfer-status {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .tp-transfer-card {
+      min-width: 0;
+      padding: 9px;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      background: color-mix(in srgb, var(--surface-1) 74%, transparent);
+    }
+    .tp-transfer-card span {
+      display: block;
+      color: var(--foreground-muted);
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+    .tp-transfer-card b {
+      display: block;
+      overflow: hidden;
+      color: var(--foreground);
+      font-size: 14px;
+      font-weight: var(--font-weight-bold);
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .tp-current-summary {
+      display: grid;
+      gap: 8px;
+      color: var(--foreground-secondary);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+    .tp-current-summary b {
+      color: var(--foreground);
+      font-weight: var(--font-weight-bold);
+    }
+    .tp-current-note {
+      padding: 9px;
+      border-radius: var(--radius-sm);
+      background: color-mix(in srgb, var(--surface-1) 76%, transparent);
+      color: var(--foreground-secondary);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+    .tp-current-note.is-ready { color: color-mix(in srgb, var(--success) 82%, var(--foreground)); }
+    .tp-current-note.is-review { color: color-mix(in srgb, var(--warning) 86%, var(--foreground)); }
+    @media (max-width: 1180px) {
+      .tp-scheme-grid,
+      .tp-detail-grid,
+      .tp-transfer-map,
+      .tp-transfer-status {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      .tp-transfer-arrow { display: none; }
     }
 
     .panel-body {
@@ -1146,6 +1533,11 @@
     .opmap .st.ok { color: var(--success); background: color-mix(in srgb, var(--success) 14%, transparent); }
     .opmap .st.rw { color: var(--danger); background: color-mix(in srgb, var(--danger) 14%, transparent); }
     .wz-foot { padding: 0 16px 12px; background: transparent; }
+    .run-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 8px;
+    }
     .run {
       width: 100%;
       min-height: 38px;
@@ -1159,6 +1551,7 @@
     .run:hover { background: var(--button-solid-bg-hover); }
     .run:disabled { opacity: var(--button-disabled-opacity); cursor: default; }
     .run.ghost { background: var(--button-secondary-bg); color: var(--button-secondary-fg); }
+    .run.ghost:hover { background: var(--button-secondary-bg-hover); }
     .foot-hint { margin-top: 8px; text-align: center; color: var(--foreground-muted); font-size: 12px; }
 
     .notif-wrap {
@@ -1280,50 +1673,49 @@
       <div class="pto-ide-frame__workarea">
         <div class="pto-ide-frame__split" data-ide-split="mla-vertical" data-split-direction="vertical" data-sizes="72,28" data-min-size="390,165" data-storage-key="ascendport-mla-pto-vertical-v1">
           <section class="pto-ide-frame__pane pto-ide-frame__pane--stack" data-ide-pane="main-row">
-            <div class="pto-ide-frame__split" data-ide-split="standalone-main" data-split-direction="horizontal" data-sizes="17,57,26" data-min-size="220,520,300" data-storage-key="ascendport-mla-pto-main-v1">
+            <div class="pto-ide-frame__split" data-ide-split="standalone-main" data-split-direction="horizontal" data-sizes="17,64,19" data-min-size="220,640,300" data-storage-key="ascendport-mla-pto-main-v1">
               <aside class="pto-ide-frame__pane pto-ide-frame__explorer" data-ide-pane="explorer" id="explorer-pane">
                 <header class="pto-ide-frame__pane-header"><div class="explorer-head"><span>资源管理器</span><span>DEEPSEEK-V3</span></div></header>
                 <div class="pto-ide-frame__pane-body"><div class="tree" id="tree"></div></div>
               </aside>
 
               <section class="pto-ide-frame__pane" data-ide-pane="editor-preview">
-                <div class="pto-ide-frame__tabstrip"><div class="tabs" id="tabs"></div></div>
-                <header class="pto-ide-frame__pane-header">
-                  <div class="edtoolbar">
-                    <span class="etb-path"><b>ops</b> / <span id="etbFile">flash_mla_decode.cu</span></span>
-                    <span class="etb-spacer"></span>
-                    <button class="etb-btn" id="parseBtn" type="button" title="解析算子并打开计算图">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="6" cy="6" r="2.5"></circle><circle cx="18" cy="6" r="2.5"></circle><circle cx="12" cy="18" r="2.5"></circle><path d="M7.5 7.5 11 15m6-8.5L13 15"></path></svg>
-                      解析算子 · 计算图
-                    </button>
-                  </div>
-                </header>
                 <div class="pto-ide-frame__pane-body pto-ide-frame__split editor-pane-body" data-ide-split="editor-bottom" data-split-direction="vertical" data-sizes="76,24" data-min-size="360,154" data-storage-key="ascendport-mla-pto-editor-bottom-v1">
-                  <div class="edit-split pto-ide-frame__split" id="split" data-ide-pane="editor-main" data-ide-split="source-analysis" data-split-direction="horizontal" data-sizes="58,42" data-min-size="430,440" data-storage-key="ascendport-mla-source-analysis-v1">
-                    <div class="codewrap" id="codewrap" data-ide-pane="source-code">
-                      <div class="pane-h" id="leftPaneH" style="display:none">
-                        <span class="dot-c" style="background:var(--cube)"></span><b>flash_mla_decode.cu</b><span class="pane-tag cuda">源端代码</span>
-                        <span class="link-hint">悬停/点击代码 ↔ 联动对侧</span>
+                  <div class="edit-split pto-ide-frame__split" id="split" data-ide-pane="editor-main" data-ide-split="source-analysis" data-split-direction="horizontal" data-sizes="50,50" data-min-size="420,420" data-storage-key="ascendport-mla-source-analysis-v1">
+                    <section class="editor-group-panel sourcepane" data-ide-pane="source-code-group">
+                      <div class="pto-ide-frame__tabstrip">
+                        <div class="tabs" id="tabs"></div>
                       </div>
-                      <div class="code"><div class="gutter" id="gutter"></div><div class="codelines" id="codelines"></div></div>
-                    </div>
+                      <header class="pto-ide-frame__pane-header">
+                        <div class="edtoolbar">
+                          <span class="etb-path"><b>ops</b> / <span id="etbFile">flash_mla_decode.cu</span></span>
+                          <span class="etb-spacer"></span>
+                          <button class="etb-btn" id="parseBtn" type="button" title="解析算子并打开计算图">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="6" cy="6" r="2.5"></circle><circle cx="18" cy="6" r="2.5"></circle><circle cx="12" cy="18" r="2.5"></circle><path d="M7.5 7.5 11 15m6-8.5L13 15"></path></svg>
+                            解析算子 · 计算图
+                          </button>
+                        </div>
+                      </header>
+                      <div class="codewrap" id="codewrap" data-ide-pane="source-code">
+                        <div class="pane-h" id="leftPaneH" style="display:none">
+                          <span class="dot-c" style="background:var(--cube)"></span><b>flash_mla_decode.cu</b><span class="pane-tag cuda">源端代码</span>
+                          <span class="link-hint">悬停/点击代码 ↔ 联动对侧</span>
+                        </div>
+                        <div class="code"><div class="gutter" id="gutter"></div><div class="codelines" id="codelines"></div></div>
+                      </div>
+                    </section>
 
-                    <div class="analysispane" id="analysisPane" data-ide-pane="analysis" data-analysis-view="graph">
-                      <div class="analysis-head">
-                        <div class="analysis-title">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="6" cy="6" r="2.5"></circle><circle cx="18" cy="6" r="2.5"></circle><circle cx="12" cy="18" r="2.5"></circle><path d="M7.5 7.5 11 15m6-8.5L13 15"></path></svg>
-                          <span id="analysisTitle">计算图</span>
+                    <section class="editor-group-panel analysispane" id="analysisPane" data-ide-pane="analysis" data-analysis-view="graph">
+                      <div class="pto-ide-frame__tabstrip">
+                        <div class="tabs analysis-tabs" aria-label="分析视图">
+                          <button class="tab analysis-tab on" type="button" data-analysis="graph">计算图<span class="x">×</span></button>
+                          <button class="tab analysis-tab" type="button" data-analysis="generated">生成代码<span class="x">×</span></button>
+                          <button class="tab analysis-tab" type="button" data-analysis="flow">数据流<span class="x">×</span></button>
+                          <button class="tab analysis-tab" type="button" data-analysis="tiling">分块<span class="x">×</span></button>
+                          <button class="tab analysis-tab" type="button" data-analysis="pipeline">流水<span class="x">×</span></button>
+                          <button class="tab analysis-tab" type="button" data-analysis="accuracy">精度<span class="x">×</span></button>
+                          <button class="tab analysis-tab" type="button" data-analysis="performance">性能<span class="x">×</span></button>
                         </div>
-                        <div class="analysis-tabs" aria-label="分析视图">
-                          <button class="analysis-tab on" type="button" data-analysis="graph">计算图</button>
-                          <button class="analysis-tab" type="button" data-analysis="generated">生成代码</button>
-                          <button class="analysis-tab" type="button" data-analysis="tiling">分块</button>
-                          <button class="analysis-tab" type="button" data-analysis="flow">数据流</button>
-                          <button class="analysis-tab" type="button" data-analysis="pipeline">流水</button>
-                          <button class="analysis-tab" type="button" data-analysis="accuracy">精度</button>
-                          <button class="analysis-tab" type="button" data-analysis="performance">性能</button>
-                        </div>
-                        <button class="analysis-tab analysis-close" type="button" id="analysisClose" aria-label="关闭分析视图">×</button>
                       </div>
                       <div class="analysis-body">
                         <div class="graphpane" id="graphpane">
@@ -1376,7 +1768,7 @@
                         <div class="accpane" id="accpane"></div>
                         <div class="perfpane" id="perfpane"></div>
                       </div>
-                    </div>
+                    </section>
                   </div>
                 </div>
               </section>
@@ -1396,7 +1788,10 @@
                     <div class="prog" id="prog"></div>
                     <div class="plabels" id="plabels"></div>
                     <div class="wz-foot">
-                      <button class="run" id="runBtn" type="button">运行 S2 · 算子映射</button>
+                      <div class="run-row">
+                        <button class="run" id="runBtn" type="button">单步运行 S2</button>
+                        <button class="run ghost" id="runAllBtn" type="button">全部执行</button>
+                      </div>
                       <div class="foot-hint" id="footHint">共 8 个阶段 · 当前 1 / 8 完成</div>
                     </div>
                     <div class="wz-scroll" id="wzScroll"></div>
