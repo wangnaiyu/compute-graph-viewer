@@ -202,15 +202,18 @@
     backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
   .opv-side-config-toggle svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
   .opv-side-config-toggle.is-active{background:#4f6df6;border-color:#4f6df6;color:#fff}
-  .opv-side-config{width:286px;padding:10px;border:1px solid color-mix(in srgb,var(--foreground) 13%,transparent);border-radius:var(--radius-md);
+  .opv-side-config{width:318px;padding:10px;border:1px solid color-mix(in srgb,var(--foreground) 13%,transparent);border-radius:var(--radius-md);
     background:color-mix(in srgb,var(--ide-frame-pane-bg) 90%,transparent);box-shadow:0 16px 44px rgba(0,0,0,.18);
     backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
   .opv-side-config[hidden]{display:none}
-  .opv-side-config__row{display:grid;grid-template-columns:minmax(0,1fr) 46px;gap:8px;align-items:center}
+  .opv-side-config__section+.opv-side-config__section{margin-top:10px;padding-top:10px;border-top:1px solid var(--border-subtle)}
+  .opv-side-config__heading{margin-bottom:8px;font:700 11px/1 var(--font-sans);letter-spacing:.04em;text-transform:uppercase;color:var(--foreground-secondary)}
+  .opv-side-config__row{display:grid;grid-template-columns:minmax(0,1fr) 56px;gap:8px;align-items:center}
+  .opv-side-config__row+.opv-side-config__row{margin-top:8px}
   .opv-side-config__row span{font:var(--text-label);color:var(--foreground-muted)}
   .opv-side-config__row output{font:var(--text-mono);color:var(--foreground);text-align:right}
   .opv-side-config input[type=range]{grid-column:1 / -1;width:100%;accent-color:#4f6df6}
-  .opv-side-config__actions{display:flex;justify-content:flex-end;margin-top:8px}
+  .opv-side-config__actions{display:flex;justify-content:flex-end;gap:6px;margin-top:10px}
   .opv-side-config__actions button{height:25px;padding:0 9px;border:1px solid var(--border-subtle);border-radius:var(--radius-sm);
     background:var(--surface-disabled);color:var(--foreground-secondary);font:700 11px/1 var(--font-sans);cursor:pointer}
   .opv-side-config__actions button:hover{background:var(--state-hover);color:var(--foreground)}
@@ -816,21 +819,43 @@
                       <button id="viewFront" class="opv-zoom-btn opv-view-btn" data-view="front" type="button" title="正视图" aria-label="正视图">正视</button>
                       <button id="viewRight" class="opv-zoom-btn opv-view-btn" data-view="right" type="button" title="右侧视图" aria-label="右侧视图">侧视</button>
                     </div>
-                    <button id="sideConfigToggle" class="opv-zoom-btn opv-side-config-toggle" type="button" aria-expanded="false" aria-controls="sideConfigPanel" title="侧视层距配置" aria-label="侧视层距配置">
+                    <button id="sideConfigToggle" class="opv-zoom-btn opv-side-config-toggle" type="button" aria-expanded="false" aria-controls="sideConfigPanel" title="显示设置" aria-label="显示设置">
                       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"></path><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 8.92 4a1.65 1.65 0 0 0 1-1.51V2a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.14.31.48.5.82.5H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1.5Z"></path></svg>
                     </button>
                     <button id="filterToggle" class="opv-zoom-btn opv-filter-toggle" type="button" aria-expanded="false" aria-controls="objectPanel" title="筛选与定位" aria-label="筛选与定位">
                       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18"></path><path d="M7 12h10"></path><path d="M10 19h4"></path></svg>
                     </button>
                   </div>
-                  <div class="opv-side-config" id="sideConfigPanel" hidden aria-label="侧视图配置">
-                    <label class="opv-side-config__row">
-                      <span>Layer spacing</span>
-                      <output id="layerSpacingValue">1.60x</output>
-                      <input id="layerSpacingRange" type="range" min="1.00" max="2.60" step="0.05" value="1.60" aria-label="Layer spacing">
-                    </label>
+                  <div class="opv-side-config" id="sideConfigPanel" hidden aria-label="显示设置">
+                    <div class="opv-side-config__section">
+                      <div class="opv-side-config__heading">View</div>
+                      <label class="opv-side-config__row">
+                        <span>Layer spacing</span>
+                        <output id="layerSpacingValue">1.60x</output>
+                        <input id="layerSpacingRange" type="range" min="1.00" max="2.60" step="0.05" value="1.60" aria-label="Layer spacing">
+                      </label>
+                    </div>
+                    <div class="opv-side-config__section">
+                      <div class="opv-side-config__heading">Operator HSL</div>
+                      <label class="opv-side-config__row">
+                        <span>Hue</span>
+                        <output id="operatorHueValue">6°</output>
+                        <input id="operatorHueRange" type="range" min="-60" max="60" step="1" value="6" aria-label="Operator hue">
+                      </label>
+                      <label class="opv-side-config__row">
+                        <span>Saturation</span>
+                        <output id="operatorSaturationValue">125%</output>
+                        <input id="operatorSaturationRange" type="range" min="40" max="180" step="1" value="125" aria-label="Operator saturation">
+                      </label>
+                      <label class="opv-side-config__row">
+                        <span>Lightness</span>
+                        <output id="operatorLightnessValue">75%</output>
+                        <input id="operatorLightnessRange" type="range" min="55" max="125" step="1" value="75" aria-label="Operator lightness">
+                      </label>
+                    </div>
                     <div class="opv-side-config__actions">
-                      <button id="layerSpacingReset" type="button">Reset</button>
+                      <button id="operatorColorReset" type="button">Reset color</button>
+                      <button id="layerSpacingReset" type="button">Reset spacing</button>
                     </div>
                   </div>
                   <div class="opv-layer-playback" aria-label="分层播放控制">
@@ -1658,8 +1683,79 @@ function baseDsMap(keys){
 const hexInt=hex=>parseInt(hex.slice(1),16);
 let SEM_COLOR={}, LINE={}, GRAY=0x7a7f88;
 const isWeightNode=n=>!!n&&(n.colorKey==='io:parameter'||/_weight$/i.test(n.id||'')||/^w_/.test(n.id||''));
+const OPERATOR_COLOR_ADJUST_KEY='pangu-moe-trainviz-operator-hsl';
+const OPERATOR_COLOR_ADJUST_DEFAULT={h:6,s:125,l:75};
+const OPERATOR_COLOR_ADJUST_OLD_DEFAULT={h:0,s:115,l:90};
+const clampNumber=(value,min,max)=>Math.max(min,Math.min(max,value));
+function normalizeOperatorColorAdjust(value={}){
+  return {
+    h:clampNumber(Number.isFinite(Number(value.h))?Number(value.h):OPERATOR_COLOR_ADJUST_DEFAULT.h,-60,60),
+    s:clampNumber(Number.isFinite(Number(value.s))?Number(value.s):OPERATOR_COLOR_ADJUST_DEFAULT.s,40,180),
+    l:clampNumber(Number.isFinite(Number(value.l))?Number(value.l):OPERATOR_COLOR_ADJUST_DEFAULT.l,55,125)
+  };
+}
+function readOperatorColorAdjust(){
+  try{
+    const raw=localStorage.getItem(OPERATOR_COLOR_ADJUST_KEY);
+    if(!raw)return {...OPERATOR_COLOR_ADJUST_DEFAULT};
+    const saved=normalizeOperatorColorAdjust(JSON.parse(raw));
+    const wasOldDefault=saved.h===OPERATOR_COLOR_ADJUST_OLD_DEFAULT.h&&saved.s===OPERATOR_COLOR_ADJUST_OLD_DEFAULT.s&&saved.l===OPERATOR_COLOR_ADJUST_OLD_DEFAULT.l;
+    return wasOldDefault?{...OPERATOR_COLOR_ADJUST_DEFAULT}:saved;
+  }catch(_){
+    return {...OPERATOR_COLOR_ADJUST_DEFAULT};
+  }
+}
+let operatorColorAdjust=readOperatorColorAdjust();
+function rgbToHsl(r,g,b){
+  r/=255;g/=255;b/=255;
+  const max=Math.max(r,g,b),min=Math.min(r,g,b);
+  let h=0,s=0,l=(max+min)/2;
+  if(max!==min){
+    const d=max-min;
+    s=l>0.5?d/(2-max-min):d/(max+min);
+    switch(max){
+      case r:h=(g-b)/d+(g<b?6:0);break;
+      case g:h=(b-r)/d+2;break;
+      default:h=(r-g)/d+4;break;
+    }
+    h*=60;
+  }
+  return {h,s:s*100,l:l*100};
+}
+function hslToRgbInt(h,s,l){
+  h=((h%360)+360)%360/360;
+  s=clampNumber(s,0,100)/100;
+  l=clampNumber(l,0,100)/100;
+  if(s===0){
+    const v=Math.round(l*255);
+    return (v<<16)|(v<<8)|v;
+  }
+  const hue2rgb=(p,q,t)=>{
+    if(t<0)t+=1;if(t>1)t-=1;
+    if(t<1/6)return p+(q-p)*6*t;
+    if(t<1/2)return q;
+    if(t<2/3)return p+(q-p)*(2/3-t)*6;
+    return p;
+  };
+  const q=l<0.5?l*(1+s):l+s-l*s;
+  const p=2*l-q;
+  const r=Math.round(hue2rgb(p,q,h+1/3)*255);
+  const g=Math.round(hue2rgb(p,q,h)*255);
+  const b=Math.round(hue2rgb(p,q,h-1/3)*255);
+  return (r<<16)|(g<<8)|b;
+}
+function adjustOperatorColor(color){
+  const r=(color>>16)&255,g=(color>>8)&255,b=color&255;
+  const hsl=rgbToHsl(r,g,b);
+  return hslToRgbInt(
+    hsl.h+operatorColorAdjust.h,
+    hsl.s*(operatorColorAdjust.s/100),
+    hsl.l*(operatorColorAdjust.l/100)
+  );
+}
+const adjustsOperatorColorKey=key=>!String(key||'').startsWith('rank:')&&key!=='pipeline:bubble';
 const weightFillColor=()=>hexInt((document.documentElement.dataset.theme||savedTheme)==='light'?'#cbd5e1':'#64748b');
-const sharedExpertFillColor=()=>hexInt((document.documentElement.dataset.theme||savedTheme)==='light'?'#f3c8aa':'#f0b991');
+const sharedExpertFillColor=()=>adjustOperatorColor(hexInt((document.documentElement.dataset.theme||savedTheme)==='light'?'#f3c8aa':'#f0b991'));
 function applySemanticPalette(){
   const id=SELECTED_PALETTE_ID;
   const lightVariantId=SELECTED_LIGHT_VARIANT_ID;
@@ -1667,8 +1763,11 @@ function applySemanticPalette(){
   const palette=typeof window.buildPanguSemanticColors==='function'
     ?window.buildPanguSemanticColors({keys:SEMANTIC_KEYS,paletteId:id,theme,lightVariantId})
     :baseDsMap(SEMANTIC_KEYS);
-  SEM_COLOR=Object.fromEntries(SEMANTIC_KEYS.map(key=>[key,hexInt(palette[key]||'#8b929e')]));
-  SEM_COLOR['sem:comm']=hexInt(theme==='light'?'#9bcf8d':'#86efac');
+  SEM_COLOR=Object.fromEntries(SEMANTIC_KEYS.map(key=>{
+    const color=hexInt(palette[key]||'#8b929e');
+    return [key,adjustsOperatorColorKey(key)?adjustOperatorColor(color):color];
+  }));
+  SEM_COLOR['sem:comm']=adjustOperatorColor(hexInt(theme==='light'?'#9bcf8d':'#86efac'));
   GRAY=hexInt(theme==='light'?'#64748b':'#8b929e');
   LINE={tp:SEM_COLOR['sem:attention'],ep:SEM_COLOR['sem:comm'],pp:SEM_COLOR['sem:mlp'],dp:SEM_COLOR['sem:dp']??0x9aa7ff};
 }
@@ -1905,6 +2004,13 @@ const sideConfigPanel=document.getElementById('sideConfigPanel');
 const layerSpacingRange=document.getElementById('layerSpacingRange');
 const layerSpacingValue=document.getElementById('layerSpacingValue');
 const layerSpacingReset=document.getElementById('layerSpacingReset');
+const operatorHueRange=document.getElementById('operatorHueRange');
+const operatorHueValue=document.getElementById('operatorHueValue');
+const operatorSaturationRange=document.getElementById('operatorSaturationRange');
+const operatorSaturationValue=document.getElementById('operatorSaturationValue');
+const operatorLightnessRange=document.getElementById('operatorLightnessRange');
+const operatorLightnessValue=document.getElementById('operatorLightnessValue');
+const operatorColorReset=document.getElementById('operatorColorReset');
 function persistSideLayerSpacing(value){
   const next=Math.max(1,Math.min(2.6,Number(value)||DEFAULT_LAYER_SPACING_SCALE));
   sideLayerSpacingScale=next;
@@ -1914,6 +2020,12 @@ function persistSideLayerSpacing(value){
 function syncSideConfigControls(){
   if(layerSpacingRange)layerSpacingRange.value=sideLayerSpacingScale.toFixed(2);
   if(layerSpacingValue)layerSpacingValue.textContent=`${sideLayerSpacingScale.toFixed(2)}x`;
+  if(operatorHueRange)operatorHueRange.value=String(Math.round(operatorColorAdjust.h));
+  if(operatorHueValue)operatorHueValue.textContent=`${Math.round(operatorColorAdjust.h)}°`;
+  if(operatorSaturationRange)operatorSaturationRange.value=String(Math.round(operatorColorAdjust.s));
+  if(operatorSaturationValue)operatorSaturationValue.textContent=`${Math.round(operatorColorAdjust.s)}%`;
+  if(operatorLightnessRange)operatorLightnessRange.value=String(Math.round(operatorColorAdjust.l));
+  if(operatorLightnessValue)operatorLightnessValue.textContent=`${Math.round(operatorColorAdjust.l)}%`;
 }
 function setSideConfigOpen(open){
   if(!sideConfigPanel)return;
@@ -1922,6 +2034,22 @@ function setSideConfigOpen(open){
   sideConfigToggle?.setAttribute('aria-expanded',String(open));
 }
 syncSideConfigControls();
+function setOperatorColorAdjust(next){
+  operatorColorAdjust=normalizeOperatorColorAdjust(next);
+  localStorage.setItem(OPERATOR_COLOR_ADJUST_KEY,JSON.stringify(operatorColorAdjust));
+  syncSideConfigControls();
+  refreshVizTheme();
+  if(typeof applyViewPresentation==='function')applyViewPresentation();
+  if(typeof renderSwimlane==='function')renderSwimlane();
+  if(typeof redraw==='function')redraw();
+}
+function readOperatorColorControls(){
+  return {
+    h:Number(operatorHueRange?.value??operatorColorAdjust.h),
+    s:Number(operatorSaturationRange?.value??operatorColorAdjust.s),
+    l:Number(operatorLightnessRange?.value??operatorColorAdjust.l)
+  };
+}
 sideConfigToggle?.addEventListener('click',event=>{
   event.stopPropagation();
   setSideConfigOpen(sideConfigPanel?.hidden);
@@ -1938,6 +2066,10 @@ layerSpacingReset?.addEventListener('click',()=>{
   localStorage.removeItem(SIDE_VIEW_LAYOUT_KEY);
   location.reload();
 });
+operatorHueRange?.addEventListener('input',()=>setOperatorColorAdjust(readOperatorColorControls()));
+operatorSaturationRange?.addEventListener('input',()=>setOperatorColorAdjust(readOperatorColorControls()));
+operatorLightnessRange?.addEventListener('input',()=>setOperatorColorAdjust(readOperatorColorControls()));
+operatorColorReset?.addEventListener('click',()=>setOperatorColorAdjust(OPERATOR_COLOR_ADJUST_DEFAULT));
 document.addEventListener('click',event=>{
   if(!sideConfigPanel||sideConfigPanel.hidden)return;
   if(sideConfigPanel.contains(event.target)||sideConfigToggle?.contains(event.target))return;
@@ -1975,6 +2107,7 @@ syncZoomControl();
 let viewTween=null;
 function setCameraView(view,theta,phi,opts={}){
   if(viewTween)cancelAnimationFrame(viewTween);
+  viewTween=null;
   setCameraMode('ortho');
   setActiveView(view);
   const start={theta:cam.theta,phi:cam.phi,r:cam.r,target:target.clone()}, duration=260, t0=performance.now();
@@ -1991,6 +2124,38 @@ function setCameraView(view,theta,phi,opts={}){
     if(t<1)viewTween=requestAnimationFrame(step);
   };
   viewTween=requestAnimationFrame(step);
+}
+function cameraViewSnapshot(){
+  return {
+    activeView,
+    cameraMode,
+    theta:cam.theta,
+    phi:cam.phi,
+    r:cam.r,
+    target:target.clone()
+  };
+}
+function restoreCameraViewSnapshot(snapshot){
+  if(!snapshot)return;
+  if(viewTween)cancelAnimationFrame(viewTween);
+  viewTween=null;
+  setCameraMode(snapshot.cameraMode||cameraMode);
+  cam.theta=snapshot.theta;
+  cam.phi=snapshot.phi;
+  cam.r=clampZoom(snapshot.r);
+  target.copy(snapshot.target||target);
+  setActiveView(snapshot.activeView||activeView);
+  updateCam();
+  syncZoomControl();
+}
+function setLinkedCameraView(view){
+  if(view==='right'){fitSideView();return;}
+  if(view==='front'){fitFrontView();return;}
+  if(view==='iso'){
+    setCameraView('iso',DEFAULT_CAM.theta,DEFAULT_CAM.phi,{target:DEFAULT_TARGET.clone(),zoomRatio:DEFAULT_VIEW_ZOOM_RATIO});
+    return;
+  }
+  setActiveView(view);
 }
 function sideViewYBounds(){
   const yMin=graphPos(0,70,0).y;
@@ -2168,7 +2333,7 @@ requestAnimationFrame(resizeAxisRenderer);  // 常驻浮层：布局就绪后兜
 
 /* ===== 上方:真实架构 local XY 竖板 + L0-L49 decode layers 沿世界 Y 全展开 ===== */
 const clusterById=new Map(G.clusters.map(c=>[c.id,c]));
-const ARCH_PS=0.0056, ARCH_HEIGHT_CENTER=5.15, ARCH_LAYER_FRONT=2.2, BASE_ARCH_LAYER_GAP=0.18, ARCH_LAYER_GAP=BASE_ARCH_LAYER_GAP*sideLayerSpacingScale, ARCH_IO_GAP=0.56*sideLayerSpacingScale, ARCH_THICK=0.055, ARCH_FRONT=0.055, DENSE_MOE_GAP=0.7*sideLayerSpacingScale;
+const ARCH_PS=0.0056, ARCH_HEIGHT_CENTER=5.15, ARCH_LAYER_FRONT=2.2, BASE_ARCH_LAYER_GAP=0.18, ARCH_LAYER_GAP=BASE_ARCH_LAYER_GAP*sideLayerSpacingScale, ARCH_IO_GAP=0.56*sideLayerSpacingScale, ARCH_THICK=0.012, ARCH_FRONT=0.055, DENSE_MOE_GAP=0.7*sideLayerSpacingScale;
 const EDGE_COL={activation:0x4369ef,communication:0x10b981,parameter:0xf59e0b,gradient:0xef4444};
 const DENSE_LAYER_IDS=[...MODEL_CONFIG.denseLayers];
 const MOE_LAYER_IDS=Array.from({length:LAST_MOE_LAYER-FIRST_MOE_LAYER+1},(_,i)=>FIRST_MOE_LAYER+i);
@@ -2721,6 +2886,10 @@ function applyViewPresentation(){
     );
     label.visible=!hideGenericFlat&&(!only||only===activeView);
     if(rankRenderHiddenForTags(label.userData?.tags||[]))label.visible=false;
+    if(label.userData?.basePosition){
+      label.position.copy(label.userData.basePosition);
+      if(activeView==='right')label.position.y+=label.userData?.sideOffsetY??0;
+    }
     if(builtInNode)label.rotation.y=activeView==='right'?Math.PI/2:0;
     if(label.scale){
       const boost=activeView==='front'
@@ -2762,6 +2931,7 @@ function addArchLabel(text,p,colorHex,scale,renderOrder=7,opts={}){
   }
   sp.renderOrder=renderOrder;
   sp.userData={
+    basePosition:sp.position.clone(),
     viewOnly:opts.viewOnly||null,
     tags:opts.tags||[],
     keepInFront:!!opts.keepInFront,
@@ -2771,7 +2941,8 @@ function addArchLabel(text,p,colorHex,scale,renderOrder=7,opts={}){
     archLayer:opts.archLayer??null,
     focusOnly:!!opts.focusOnly,
     frontBoost:opts.frontBoost??1,
-    sideBoost:opts.sideBoost??opts.frontBoost??1
+    sideBoost:opts.sideBoost??opts.frontBoost??1,
+    sideOffsetY:opts.sideOffsetY??0
   };
   sp.visible=!sp.userData.viewOnly||sp.userData.viewOnly===activeView;
   archLabels.push(sp);
@@ -2788,6 +2959,7 @@ function addArchStackLabel(lines,p,colorHex,w=0.26,h=0.72,renderOrder=7,opts={})
   }
   sp.renderOrder=renderOrder;
   sp.userData={
+    basePosition:sp.position.clone(),
     viewOnly:opts.viewOnly||null,
     tags:opts.tags||[],
     keepInFront:!!opts.keepInFront,
@@ -2797,7 +2969,8 @@ function addArchStackLabel(lines,p,colorHex,w=0.26,h=0.72,renderOrder=7,opts={})
     archLayer:opts.archLayer??null,
     focusOnly:!!opts.focusOnly,
     frontBoost:opts.frontBoost??1,
-    sideBoost:opts.sideBoost??opts.frontBoost??1
+    sideBoost:opts.sideBoost??opts.frontBoost??1,
+    sideOffsetY:opts.sideOffsetY??0
   };
   sp.visible=!sp.userData.viewOnly||sp.userData.viewOnly===activeView;
   archLabels.push(sp);
@@ -2927,7 +3100,7 @@ function addExpertPoolPanel(c,layer,{showLabel=true,labelText=null,solid=false}=
   mapExpertAliases(panel,layer);
   if(showLabel)addArchLabel(labelText??`Expert Pool · L${layer}`,p.clone().add(new THREE.Vector3(0,h*0.36,0)),ARCH_LAYER_LABEL(),0.72,layerRenderOrder(layer)+0.2,{tags:archTagsFor('expert_pool',layer),labelKind:'node',frontBoost:1.55,archId:'expert_pool',archLayer:layer});
 }
-function addNode(n,layer,{ghost=false,opaque=false,showLabel=true,labelText=null,descOverride=null,box=null,keepInSide=false,sideBoost=1.25}={}){
+function addNode(n,layer,{ghost=false,opaque=false,showLabel=true,labelText=null,descOverride=null,box=null,keepInSide=false,sideBoost=1.25,sideOffsetY=0}={}){
   if(!n){
     console.warn('[op-rank-time] skip missing graph node; graph data may be stale', {layer});
     return null;
@@ -2944,7 +3117,7 @@ function addNode(n,layer,{ghost=false,opaque=false,showLabel=true,labelText=null
   const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,ARCH_THICK),mat);
   mesh.position.copy(p); scene.add(mesh); rememberArch(mesh,n.id,layer,base,labelText,descOverride);
   const expert=/^expert_group_/.test(n.id);
-  if(showLabel&&!expert)addArchLabel(labelText??n.label,p,nodeLabelColor(),Math.min(expert?0.28:0.76,w*0.92),layerRenderOrder(layer)+0.2,{tags:archTagsFor(n.id,layer),labelKind:'node',frontBoost:1.45,sideBoost,keepInSide,archId:n.id,archLayer:layer});
+  if(showLabel&&!expert)addArchLabel(labelText??n.label,p,nodeLabelColor(),Math.min(expert?0.28:0.76,w*0.92),layerRenderOrder(layer)+0.2,{tags:archTagsFor(n.id,layer),labelKind:'node',frontBoost:1.45,sideBoost,sideOffsetY,keepInSide,archId:n.id,archLayer:layer});
   return mesh;
 }
 function addArchLine(a,b,color,opacity,layerA=0,layerB=layerA,tags=null){
@@ -3124,8 +3297,9 @@ function addMoeLayer(layer){
   addLayerMarker(layer,`L${layer} MoE`,0xa78bfa,major||solid);
 }
 function drawStaticInputOutput(){
-  STATIC_INPUT_IDS.forEach(id=>addNode(byId.get(id),'input',{opaque:true,showLabel:true,keepInSide:true,sideBoost:1.45}));
-  STATIC_OUTPUT_IDS.forEach(id=>addNode(byId.get(id),'output',{opaque:true,showLabel:true,keepInSide:true,sideBoost:1.6}));
+  STATIC_INPUT_IDS.forEach(id=>addNode(byId.get(id),'input',{opaque:true,showLabel:true,keepInSide:true,sideBoost:3.0}));
+  const outputSideOffset={lm_head_weight:-0.22,lm_head:0.12};
+  STATIC_OUTPUT_IDS.forEach(id=>addNode(byId.get(id),'output',{opaque:true,showLabel:true,keepInSide:true,sideBoost:3.4,sideOffsetY:outputSideOffset[id]??0}));
   addArchLine('token_ids','embedding',EDGE_COL.activation,0.62,'input','input');
   addArchLine('embedding_weight','embedding',EDGE_COL.parameter,0.25,'input','input');
   addArchLine('embedding','dense_block',EDGE_COL.activation,0.72,'input',0);
@@ -3206,7 +3380,7 @@ function addSideViewAnnotations(){
       orientation:'right',
       tags,
       labelKind:'side-row',
-      sideBoost:2.2
+      sideBoost:3.4
     });
     const guide=rowGuide(y,z-0.34,z+0.34,tags,colorHex);
     addStaticFocusHitBox(
@@ -7016,7 +7190,7 @@ function activateFindingLink(finding,{preview=false}={}){
     const idx=NODE_DEFS.findIndex(n=>n.id===link.nodeId);
     if(idx>=0&&focusNode!==idx){focusNode=idx;needsRedraw=true;}
   }
-  if(link.view&&activeView!==link.view)setActiveView(link.view);
+  if(link.view&&activeView!==link.view)setLinkedCameraView(link.view);
   if(link.objectFocus&&objectFocus!==link.objectFocus){
     setObjectFocus(link.objectFocus);
     needsRedraw=false;
@@ -7036,7 +7210,7 @@ function activateFindingLink(finding,{preview=false}={}){
 let diagPreviewState=null, diagPreviewBtn=null;
 function beginInspectorFindingPreview(finding,btn){
   if(!finding?.link)return;
-  if(!diagPreviewState)diagPreviewState={objectFocus,activeView,focusNode,status:statusRight?.textContent||''};
+  if(!diagPreviewState)diagPreviewState={objectFocus,view:cameraViewSnapshot(),focusNode,status:statusRight?.textContent||''};
   diagPreviewBtn?.classList.remove('is-previewing');
   diagPreviewBtn=btn||null;
   diagPreviewBtn?.classList.add('is-previewing');
@@ -7054,7 +7228,7 @@ function endInspectorFindingPreview({restore=true}={}){
   setHoverStaticObject(null);
   if(!restore||!prev)return;
   focusNode=prev.focusNode;
-  if(prev.activeView&&activeView!==prev.activeView)setActiveView(prev.activeView);
+  restoreCameraViewSnapshot(prev.view);
   if(prev.objectFocus&&objectFocus!==prev.objectFocus)setObjectFocus(prev.objectFocus);
   else redraw();
   if(statusRight)statusRight.textContent=prev.status||'—';
