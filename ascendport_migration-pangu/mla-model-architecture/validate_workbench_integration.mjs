@@ -6,10 +6,12 @@ import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const moduleRoot = path.dirname(here);
+const repoRoot = path.dirname(moduleRoot);
 const workbenchPath = path.join(moduleRoot, 'ascendport_migration_V3_MLA_pto.html');
 const legacyPath = path.join(moduleRoot, 'ascendport_migration_V3_MLA_pto_legacy.js');
 const modelvizPath = path.join(here, 'assets', 'modelviz.html');
-const pinnedPatternPath = path.join(path.dirname(moduleRoot), 'vendor', 'pto-design-system', 'patterns', 'model-graphviz', 'pattern.js');
+const pinnedPatternPath = path.join(repoRoot, 'vendor', 'pto-design-system', 'patterns', 'model-graphviz', 'pattern.js');
+const launchPath = path.join(repoRoot, 'launch-v2.html');
 const schemaPath = path.join(here, 'outputs', 'model_architecture.json');
 const mappingPath = path.join(here, 'outputs', 'operator_mapping.json');
 
@@ -17,6 +19,7 @@ const workbench = fs.readFileSync(workbenchPath, 'utf8');
 const legacy = fs.readFileSync(legacyPath, 'utf8');
 const modelviz = fs.readFileSync(modelvizPath, 'utf8');
 const pinnedPattern = fs.readFileSync(pinnedPatternPath, 'utf8');
+const launch = fs.readFileSync(launchPath, 'utf8');
 const schema = JSON.parse(fs.readFileSync(schemaPath, 'utf8'));
 const mappings = JSON.parse(fs.readFileSync(mappingPath, 'utf8'));
 
@@ -40,6 +43,18 @@ function checkInlineScriptSyntax(name, html) {
 assert(schema.nodes.length === 29, `expected 29 nodes, got ${schema.nodes.length}`);
 assert(schema.edges.length === 42, `expected 42 edges, got ${schema.edges.length}`);
 assert(mappings.mappings.length === 18, `expected 18 mappings, got ${mappings.mappings.length}`);
+const launchCardStart = launch.indexOf('title: "AscendPort 迁移工作台"');
+const launchCardEnd = launch.indexOf('\n  },', launchCardStart);
+assert(launchCardStart >= 0 && launchCardEnd > launchCardStart, 'AscendPort launch-v2 card is missing');
+const launchCard = launch.slice(launchCardStart, launchCardEnd);
+const launchTarget = launchCard.match(/href:\s*"([^"]+)"/)?.[1];
+const currentLaunchTarget = 'ascendport_migration-pangu/ascendport_migration_V3_MLA_pto.html';
+assert(launchTarget === currentLaunchTarget,
+  `AscendPort card opens stale target: ${launchTarget || 'missing'}`);
+assert(launchCard.includes(`{ label: "当前版", href: "${currentLaunchTarget}" }`),
+  'AscendPort current-version button does not open the refreshed workbench');
+assert(fs.existsSync(path.join(repoRoot, currentLaunchTarget)),
+  'AscendPort launch target does not exist in the Pages artifact');
 assert(workbench.includes("modelvizUiVersion = 'pages-compat-v11'"), 'workbench modelviz UI version is missing');
 assert(workbench.includes('?embed=workbench&ui=${modelvizUiVersion}'), 'workbench modelviz source is not versioned');
 assert(workbench.includes('?embed=accuracy&view=accuracy&ui=${modelvizUiVersion}'), 'S6 accuracy modelviz source is not versioned');
