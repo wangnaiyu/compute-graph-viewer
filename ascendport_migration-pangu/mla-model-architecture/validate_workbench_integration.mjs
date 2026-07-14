@@ -57,7 +57,13 @@ assert(launchCard.includes('按 S1-S7 引导'), 'AscendPort card still advertise
 assert(!launchCard.includes('S1-S8'), 'AscendPort card still advertises eight workflow stages');
 assert(fs.existsSync(path.join(repoRoot, currentLaunchTarget)),
   'AscendPort launch target does not exist in the Pages artifact');
-assert(workbench.includes("modelvizUiVersion = 'seven-stage-graph-v12'"), 'workbench modelviz UI version is missing');
+assert(workbench.includes("modelvizUiVersion = 'stable-pane-fit-v13'"), 'workbench modelviz UI version is missing');
+assert(workbench.includes('data-ide-split="standalone-main" data-split-direction="horizontal" data-sizes="17,64,19" data-pixel-sizes="260,0,300"'),
+  'outer workbench does not pin Explorer/Inspector to 260px/300px');
+assert(workbench.includes('data-storage-key="ascendport-mla-pto-main-v2"'),
+  'file Explorer split does not invalidate the stale percentage-based stored ratio');
+assert(!workbench.includes('data-storage-key="ascendport-mla-pto-main-v1"'),
+  'file Explorer still reads the stale v1 split ratio');
 assert(workbench.includes('?embed=workbench&ui=${modelvizUiVersion}'), 'workbench modelviz source is not versioned');
 assert(workbench.includes('?embed=accuracy&view=accuracy&ui=${modelvizUiVersion}'), 'S6 accuracy modelviz source is not versioned');
 assert(workbench.includes("modelvizFrame.className = 'mla-modelviz-frame'"), 'workbench iframe mount is missing');
@@ -133,7 +139,9 @@ assert(legacy.includes("if(s.n==='S6'){ accFixed=false; setAccProblem(); openAcc
   'S6 completion no longer owns the accuracy-tab unlock');
 assert(modelviz.includes("html[data-embed] .mla-viz__title"), 'modelviz embed presentation is missing');
 assert(modelviz.includes("type: 'pto-mla-modelviz-ready'"), 'modelviz ready message is missing');
-assert(modelviz.includes("MODEL_VIZ_UI_VERSION = 'seven-stage-graph-v12'"), 'modelviz UI version is missing');
+assert(modelviz.includes("MODEL_VIZ_UI_VERSION = 'stable-pane-fit-v13'"), 'modelviz UI version is missing');
+assert(modelviz.includes('minReadableZoom: 0.44'), 'modelviz no longer preserves the approved 44% readable Fit');
+assert(!modelviz.includes('minReadableZoom: 0.58'), 'modelviz still expands to the regressed 58% readable Fit');
 assert(modelviz.includes('.mla-viz__main { display: grid; grid-template-columns: minmax(0, 1fr);'),
   'modelviz canvas does not reclaim the removed inspector width');
 assert(!modelviz.includes('Operator Association'), 'redundant operator-association inspector is still mounted');
