@@ -948,7 +948,7 @@ table.diff td{padding:4px 8px;border-bottom:1px solid var(--border-subtle);color
 .laycurve .lc-cap{display:flex;justify-content:space-between;align-items:baseline;font:var(--text-mono);font-size:10px;color:var(--foreground-muted);margin-bottom:6px}
 .laycurve .lc-cap b{color:var(--foreground);font-size:11px}
 .lc-dot{cursor:pointer}
-/* ===================== GPU→NPU 迁移整网对比 ===================== */
+/* ===================== GPU→NPU 跨端整网精度对齐 ===================== */
 .wm-seg{display:flex;width:100%}
 .wm-seg .segbtn{flex:1;text-align:center;justify-content:center}
 /* 工作模式显隐（body class 驱动，避免污染现有主流程） */
@@ -1131,10 +1131,10 @@ body.wm-migration .graph-pane > .canvas-zoom{display:none}
       </div>
       <div class="side-body">
         <section class="side-sec">
-          <div class="side-k">工作模式 <span class="help" data-tip="迁移整网对比 = GPU 原始算法 run vs NPU 迁移 run 的跨端层级对比（上游，找首个跨端差异候选）；NPU 精度下钻 = 现有单图 NPU 精度定位。两者与训练/推理是不同维度。">?</span></div>
-          <div class="seg wm-seg" id="wmSeg" title="一级工作模式：迁移整网对比 / NPU 精度下钻">
-            <button class="segbtn on" data-wm="migration" onclick="setWorkMode('migration')">迁移整网对比</button>
-            <button class="segbtn" data-wm="peel" onclick="setWorkMode('peel')">NPU 精度下钻</button>
+          <div class="side-k">工作模式 <span class="help" data-tip="跨端整网精度对齐 = GPU 原始算法 run vs NPU 迁移 run 的跨端层级对比（上游，找首个跨端差异候选）；NPU 侧精度归因下钻 = 现有单图 NPU 精度定位。两者与训练/推理是不同维度。">?</span></div>
+          <div class="seg wm-seg" id="wmSeg" title="一级工作模式：跨端整网精度对齐 / NPU 侧精度归因下钻">
+            <button class="segbtn on" data-wm="migration" onclick="setWorkMode('migration')">跨端整网精度对齐</button>
+            <button class="segbtn" data-wm="peel" onclick="setWorkMode('peel')">NPU 侧精度归因下钻</button>
           </div>
         </section>
         <section class="side-sec">
@@ -1259,7 +1259,7 @@ body.wm-migration .graph-pane > .canvas-zoom{display:none}
       <div class="pane-body graph-pane">
         <div id="handoffBanner" class="handoff-banner" hidden>
           <svg class="hb-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
-          <span class="hb-text">来自迁移整网对比</span>
+          <span class="hb-text">来自跨端整网精度对齐</span>
           <button class="btn hb-back" onclick="returnToMigrationCompare()"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>返回双整网对比</button>
         </div>
         <div id="migStage" class="mig-stage" style="display:none">
@@ -1462,11 +1462,11 @@ function comparable() { return COMPAT.every((c) => c.ok); }
 /* rank 维度：infer 全 rank 一致命中；train 仅 TP 后半 shard（rank4-7）命中 —— 演示首错随 rank 漂移 */
 function rankBad(r) { const rr = r === undefined ? S.rank : r; return S.scenario === 'train' ? rr >= 4 : true; }
 
-/* ===================== GPU→NPU 迁移整网对比（workMode='migration'）=====================
-   与现有 NPU 精度下钻（peel）正交的上游一级工作模式。跨端指标全部复用 activeLayerCos()/layerFirstBad()
+/* ===================== GPU→NPU 跨端整网精度对齐（workMode='migration'）=====================
+   与现有 NPU 侧精度归因下钻（peel）正交的上游一级工作模式。跨端指标全部复用 activeLayerCos()/layerFirstBad()
    确定性驱动（模型/场景/rank/step/阈值/fix），不写入 PREC / computePrecision。
    最高结论只能是「首个跨端差异候选」，不得写成根因已确认。 */
-let workMode = 'migration';              /* 'migration' | 'peel'，默认迁移整网对比 */
+let workMode = 'migration';              /* 'migration' | 'peel'，默认跨端整网精度对齐 */
 let migSelLayer = null;                  /* 迁移视图当前选中层对，null=摘要态 */
 let migFocus = 'all';                    /* 'all' | 'diff'（只看差异） */
 let migColorOn = true;                   /* 整网层是否按状态染色 */
@@ -4078,7 +4078,7 @@ function syncViewDom() {
 }
 function updateCenterHead() {
   if (workMode === 'migration') {
-    if (els.centerTitle) els.centerTitle.textContent = '迁移整网对比 · GPU 原始算法 ↔ NPU 迁移算法';
+    if (els.centerTitle) els.centerTitle.textContent = '跨端整网精度对齐 · GPU 原始算法 ↔ NPU 迁移算法';
     if (els.graphMeta) els.graphMeta.textContent = `GPU A100/Megatron ↔ NPU 910B/MindSpeed · ${SPEC.name} ×${SPEC.layers} 层 · 自动跨端层级对比`;
     return;
   }
@@ -4158,7 +4158,7 @@ function rankStripHtml() {
     <div class="rankmx">${cells}</div>
     <div class="hint" style="margin-top:7px">${note}</div></div>`;
 }
-/* ===================== 迁移整网对比：渲染 · 交互 · 交接 ===================== */
+/* ===================== 跨端整网精度对齐：渲染 · 交互 · 交接 ===================== */
 let migView = { W: 800, H: 410 };
 /* 非无限画布：SVG 按容器宽度自然铺满、高度自然、竖向滚动，无缩放 */
 function applyMigTransform() {
@@ -4300,7 +4300,7 @@ function setMigColor(on) { migColorOn = !!on; document.querySelectorAll('#migCol
 
 /* 右侧 Inspector — 默认摘要态 */
 function renderMigrationSummary() {
-  els.inspTitle.textContent = '迁移整网对比 · Inspector';
+  els.inspTitle.textContent = '跨端整网精度对齐 · Inspector';
   els.inspMeta.textContent = 'GPU Baseline ↔ NPU Candidate';
   migShowBack(false); if (els.inspBack) els.inspBack.hidden = true;
   const cmp = computeMigrationCompare(), fb = cmp.firstDiffLayer, body = els.inspBody;
@@ -4411,7 +4411,7 @@ function updateWorkModeChrome() {
     const show = workMode === 'peel' && migrationHandoff;
     if (_handoffTimer) { clearTimeout(_handoffTimer); _handoffTimer = null; }
     if (show) {
-      banner.querySelector('.hb-text').innerHTML = `来自迁移整网对比 · GPU↔NPU · 首个差异候选 <b>L${migrationHandoff.layer}</b>`;
+      banner.querySelector('.hb-text').innerHTML = `来自跨端整网精度对齐 · GPU↔NPU · 首个差异候选 <b>L${migrationHandoff.layer}</b>`;
       banner.hidden = false; banner.classList.remove('fade-out');
       _handoffTimer = setTimeout(() => {                    /* 3s 后淡出并隐藏 */
         banner.classList.add('fade-out');
@@ -5846,7 +5846,7 @@ function init() {
   updateFbChip();
   renderSummary();
   applyModel('pangu');    /* 默认调试对象 = openPangu-2.0-Flash */
-  /* 默认进入「迁移整网对比」工作模式 */
+  /* 默认进入「跨端整网精度对齐」工作模式 */
   document.body.classList.add('wm-migration');
   updateWorkModeChrome();
   syncViewDom();
