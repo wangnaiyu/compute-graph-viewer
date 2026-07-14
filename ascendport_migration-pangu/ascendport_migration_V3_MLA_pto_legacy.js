@@ -1171,13 +1171,32 @@ function activatePanelTab(p){
 // 逐算子对齐 CUDA 黄金基准。fixed 表示已应用修复后的复测结果。
 let accFixed=false;
 const ACC_OPS=[
-  {op:'DataCopy (GM→L1/UB)',   kind:'搬运', err:'0',      pass:true},
-  {op:'Mmad · QKᵀ+PEᵀ',        kind:'矩阵单元', err:'2.4e-4', pass:true},
-  {op:'ReduceMax · 在线 max',   kind:'向量单元',err:'0',     pass:true},
+  {op:'DataCopy (GM→L1/UB)',   kind:'搬运', err:'0',      pass:true, nodeIds:['q_stage','kv_stage']},
+  {op:'Mmad · QKᵀ+PEᵀ',        kind:'矩阵单元', err:'2.4e-4', pass:true, nodeIds:['qk_gemm','pe_gemm']},
+  {op:'ReduceMax · 在线 max',   kind:'向量单元',err:'0',     pass:true, nodeIds:['score_block_max','running_max_merge']},
   {op:'Exp · 在线 Softmax',     kind:'向量单元',err:'3.1e-2',pass:false,   // ← 异常算子
-    fixedErr:'8.0e-4', anomaly:true},
-  {op:'Mmad · P·V 累加',        kind:'矩阵单元',err:'—',     pass:true, note:'余弦一致 1.0000 (2048/2048)'},
+    fixedErr:'8.0e-4', anomaly:true, nodeIds:['score_exponential']},
+  {op:'Mmad · P·V 累加',        kind:'矩阵单元',err:'—',     pass:true, note:'余弦一致 1.0000 (2048/2048)', nodeIds:['pv_gemm']},
 ];
+function getAccuracyModelvizOverlay(){
+  return {
+    fixed:accFixed,
+    threshold:'rtol 1e-3',
+    items:ACC_OPS.flatMap(o=>(o.nodeIds||[]).map(nodeId=>{
+      const status=o.anomaly?(accFixed?'fixed':'fail'):'pass';
+      const error=o.anomaly&&accFixed?o.fixedErr:o.err;
+      return {
+        nodeId,
+        status,
+        statusLabel:status==='fixed'?'已修复':(status==='fail'?'异常':'通过'),
+        error,
+        metric:o.note||`最大绝对误差 ${error}`,
+        badge:o.note?'通过 · cos 1.0000':`${status==='fixed'?'已修复':(status==='fail'?'异常':'通过')} · ${error}`,
+        sourceOp:o.op,
+      };
+    })),
+  };
+}
 function accStats(){
   const anomaly = ACC_OPS.find(o=>o.anomaly);
   const maxErr = accFixed ? '8.0e-4' : '3.1e-2';
@@ -1187,7 +1206,7 @@ function accStats(){
 }
 function renderAccReport(){
   const st=accStats();
-  const pane=document.getElementById('accpane');
+  const pane=document.getElementById('accuracyReportContent');
   const rows=ACC_OPS.map(o=>{
     const ok = o.pass || accFixed;
     const err = (o.anomaly && accFixed) ? o.fixedErr : o.err;
@@ -1234,6 +1253,9 @@ function renderAccReport(){
     </table>
     ${anomalyBlock}`;
 
+  window.mountAccuracyModelviz?.();
+  window.updateAccuracyModelviz?.();
+
   const ap=document.getElementById('accApply');
   if(ap) ap.onclick=()=>{
     accFixed=true; setProblems(0);
@@ -1250,9 +1272,12 @@ function openAccPanel(){
     accCnt.style.background = accFixed?'#48d59722':'#ff547033';
     accCnt.style.color = accFixed?'var(--ok)':'#ff8ba0';
   }
+  unlockAnalysisView('graph');
   unlockAnalysisView('accuracy');
   setAnalysisView('accuracy');
   renderAccReport();
+  const report=document.getElementById('accuracyReportContent');
+  if(report) report.scrollTop=0;
 }
 
 /* ============================ S7 性能报告 ============================ */
@@ -2885,7 +2910,8 @@ function reset(){
   closeAnalysisView(); stopFlow();
   resetAnalysisUnlocks();
   document.getElementById('flowpane').innerHTML='';
-  document.getElementById('accpane').innerHTML='';
+  document.getElementById('accuracyReportContent').innerHTML='';
+  window.updateAccuracyModelviz?.();
   document.getElementById('perfpane').innerHTML='';
   document.getElementById('apipane').innerHTML=''; lastApiNode=null;
   initProblems(); setProblems(3); setAicore('—');

@@ -339,6 +339,14 @@
       opacity: 1;
       pointer-events: auto;
     }
+    .analysis-tabbar {
+      min-width: 0;
+      width: 100%;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: center;
+      gap: var(--space-1);
+    }
     .analysispane.gp-closed {
       display: none !important;
       flex: 0 0 0 !important;
@@ -382,6 +390,7 @@
       min-width: 0;
       overflow: hidden;
       position: relative;
+      container: analysis-view / inline-size;
     }
     .analysis-body > .diffpane,
     .analysis-body > .graphpane,
@@ -413,11 +422,16 @@
     .analysispane[data-analysis-view="flow"] .flowpane {
       display: flex;
     }
-    .analysispane[data-analysis-view="accuracy"] .accpane,
     .analysispane[data-analysis-view="performance"] .perfpane,
     .analysispane[data-analysis-view="api"] .apipane,
     .analysispane[data-analysis-view="plan"] .planpane {
       display: block;
+    }
+    .analysispane[data-analysis-view="accuracy"] .accpane {
+      display: grid;
+      grid-template-columns: minmax(460px, 1.16fr) minmax(360px, .84fr);
+      gap: var(--space-3);
+      overflow: hidden;
     }
     .analysispane .gp-head,
     .analysispane .tp-head {
@@ -636,6 +650,26 @@
     .legend span { display: inline-flex; align-items: center; gap: 5px; }
     .legend i { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
     .gcanvas { flex: 1; min-height: 0; overflow: auto; position: relative; }
+    .gcanvas.mla-modelviz-host { overflow: hidden; }
+    .mla-modelviz-frame {
+      display: block;
+      width: 100%;
+      height: 100%;
+      border: 0;
+      background: var(--background);
+    }
+    .workbench-operator-context {
+      position: fixed;
+      max-height: calc(100vh - var(--space-6));
+      overflow: auto;
+      border: 0;
+      background: var(--surface-1);
+      box-shadow: var(--shadow-lg, 0 16px 40px rgba(0, 0, 0, .48));
+      pointer-events: none;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
+    .workbench-operator-context code { color: var(--foreground); font: var(--text-mono); overflow-wrap: anywhere; }
     .graph-legend-overlay {
       position: absolute;
       top: 8px;
@@ -747,27 +781,6 @@
     .gnode.is-code-hover rect {
       filter: brightness(1.25) drop-shadow(0 0 8px rgba(255,255,255,.3));
       stroke-width: 2.5px !important;
-    }
-    .gp-detail {
-      min-height: 74px;
-      padding: 10px 12px;
-      background: color-mix(in srgb, var(--surface-1) 72%, transparent);
-      color: var(--foreground-secondary);
-      font-size: 14px;
-      line-height: 1.5;
-    }
-    .gp-detail b { color: var(--foreground); }
-    .gp-detail .badge {
-      display: inline-flex;
-      align-items: center;
-      min-height: 18px;
-      padding: 0 7px;
-      border-radius: var(--radius-sm);
-      background: var(--comp-tag-bg);
-      color: var(--comp-tag-fg);
-      font: var(--text-label);
-      font-size: 12px;
-      margin-right: 6px;
     }
     @keyframes pulse { 0%, 100% { opacity: .38; } 50% { opacity: .92; } }
     @keyframes pop { from { opacity: 0; transform: translateY(6px) scale(.94); } to { opacity: 1; transform: none; } }
@@ -1479,15 +1492,48 @@
       font-weight: var(--font-weight-bold);
     }
 
+    .accuracy-modelviz {
+      min-width: 0;
+      min-height: 0;
+      height: 100%;
+      display: grid;
+      grid-template-rows: minmax(0, 1fr);
+      overflow: hidden;
+      border-radius: var(--radius-lg);
+      background: var(--surface-1);
+    }
+    .accuracy-modelviz__viewport { min-width: 0; min-height: 0; }
+    .accuracy-modelviz-frame { display: block; width: 100%; height: 100%; border: 0; background: var(--background); }
+    .accuracy-report-content { min-width: 0; min-height: 0; overflow: auto; padding-right: var(--space-1); }
+    .accuracy-report-content:empty { display: none; }
+
+    @container analysis-view (max-width: 900px) {
+      .analysispane[data-analysis-view="accuracy"] .accpane {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: minmax(300px, 1.8fr) minmax(190px, 1fr);
+      }
+    }
+
+    .analysispane[data-analysis-view="accuracy"] .accpane { padding: var(--space-2); }
+    .accuracy-report-content .acc-top { gap: var(--space-1); }
+    .accuracy-report-content .acc-kpi {
+      min-width: 96px;
+      padding: var(--space-1) var(--space-2);
+    }
+    .accuracy-report-content .acc-kpi .kv { font-size: 15px; line-height: 1.25; }
+    .accuracy-report-content .acc-kpi .kk,
+    .accuracy-report-content .acc-kpi .kd { margin-top: 0; font-size: 12px; line-height: 1.35; }
+    .accuracy-report-content .acc-sec-h { margin: var(--space-2) 0 var(--space-1); }
+
     .acc-table {
       width: 100%;
       border-collapse: collapse;
       overflow: hidden;
       border-radius: var(--radius-md);
-      font-size: 14px;
+      font-size: 12px;
       background: color-mix(in srgb, var(--surface-2) 64%, transparent);
     }
-    .acc-table th, .acc-table td { padding: 8px 10px; text-align: left; }
+    .acc-table th, .acc-table td { padding: 5px var(--space-2); text-align: left; line-height: 1.35; }
     .acc-table th { color: var(--foreground-muted); font: var(--text-label); text-transform: uppercase; }
     .acc-table td { color: var(--foreground-secondary); box-shadow: inset 0 1px 0 var(--border-subtle); }
     .acc-table tr.bad td { background: color-mix(in srgb, var(--danger) 10%, transparent); }
@@ -1507,10 +1553,10 @@
     .acc-st.pass, .pill.rec { color: var(--success); background: color-mix(in srgb, var(--success) 14%, transparent); }
     .acc-st.fail, .tag.risk { color: var(--danger); background: color-mix(in srgb, var(--danger) 14%, transparent); }
     .acc-st.fixed { color: var(--mem); background: color-mix(in srgb, var(--mem) 16%, transparent); }
-    .acc-card { margin-top: 10px; padding: 12px 14px; }
-    .acc-card .ac-h { display: flex; align-items: center; gap: 8px; color: var(--foreground); font-weight: var(--font-weight-semibold); margin-bottom: 8px; }
-    .acc-card .ac-row { display: flex; gap: 8px; margin-bottom: 6px; color: var(--foreground-secondary); font-size: 14px; line-height: 1.5; }
-    .acc-card .ac-k { width: 58px; flex: none; color: var(--foreground-muted); }
+    .acc-card { margin-top: var(--space-1); padding: var(--space-2); }
+    .acc-card .ac-h { display: flex; align-items: center; gap: var(--space-1); color: var(--foreground); font-size: 13px; font-weight: var(--font-weight-semibold); margin-bottom: var(--space-1); }
+    .acc-card .ac-row { display: flex; gap: var(--space-1); margin-bottom: 2px; color: var(--foreground-secondary); font-size: 12px; line-height: 1.4; }
+    .acc-card .ac-k { width: 48px; flex: none; color: var(--foreground-muted); }
     .acc-card code, .perf-reg code {
       font-family: var(--font-mono);
       background: var(--surface-disabled);
@@ -1519,13 +1565,13 @@
       padding: 1px 5px;
     }
     .acc-fix {
-      margin-top: 10px;
+      margin-top: var(--space-1);
       overflow: hidden;
       border-radius: var(--radius-md);
       background: color-mix(in srgb, var(--success) 8%, transparent);
     }
-    .acc-fix .fh { padding: 8px 11px; color: var(--success); font-weight: var(--font-weight-semibold); }
-    .acc-diff { padding: 8px 11px; font: var(--text-mono); white-space: pre-wrap; }
+    .acc-fix .fh { padding: var(--space-1) var(--space-2); color: var(--success); font-size: 12px; font-weight: var(--font-weight-semibold); }
+    .acc-diff { padding: var(--space-1) var(--space-2); font: var(--text-mono); font-size: 11px; line-height: 1.35; white-space: pre-wrap; }
     .acc-diff .del, .acc-diff .add, .acc-diff .ctx { display: block; border-radius: var(--radius-sm); padding: 0 4px; }
     .acc-diff .del { color: color-mix(in srgb, var(--danger) 72%, white); background: color-mix(in srgb, var(--danger) 12%, transparent); }
     .acc-diff .add { color: color-mix(in srgb, var(--success) 72%, white); background: color-mix(in srgb, var(--success) 12%, transparent); }
@@ -2207,23 +2253,25 @@
 
                     <section class="editor-group-panel analysispane" id="analysisPane" data-ide-pane="analysis" data-analysis-view="graph">
                       <div class="pto-ide-frame__tabstrip">
-                        <div class="tabs analysis-tabs" aria-label="分析视图">
+                        <div class="analysis-tabbar" aria-label="分析视图">
                           <button class="tab analysis-tab on" type="button" data-analysis="graph">计算图<span class="x">×</span></button>
-                          <button class="tab analysis-tab" type="button" data-analysis="api">API可视化<span class="x">×</span></button>
-                          <button class="tab analysis-tab" type="button" data-analysis="generated">生成代码<span class="x">×</span></button>
-                          <button class="tab analysis-tab" type="button" data-analysis="flow">数据流<span class="x">×</span></button>
-                          <button class="tab analysis-tab" type="button" data-analysis="plan">算子规划<span class="x">×</span></button>
-                          <button class="tab analysis-tab" type="button" data-analysis="tiling">分块<span class="x">×</span></button>
-                          <button class="tab analysis-tab" type="button" data-analysis="pipeline">流水<span class="x">×</span></button>
-                          <button class="tab analysis-tab" type="button" data-analysis="accuracy">精度<span class="x">×</span></button>
-                          <button class="tab analysis-tab" type="button" data-analysis="performance">性能<span class="x">×</span></button>
+                          <div class="tabs analysis-tabs">
+                            <button class="tab analysis-tab" type="button" data-analysis="api">API可视化<span class="x">×</span></button>
+                            <button class="tab analysis-tab" type="button" data-analysis="generated">生成代码<span class="x">×</span></button>
+                            <button class="tab analysis-tab" type="button" data-analysis="flow">数据流<span class="x">×</span></button>
+                            <button class="tab analysis-tab" type="button" data-analysis="plan">算子规划<span class="x">×</span></button>
+                            <button class="tab analysis-tab" type="button" data-analysis="tiling">分块<span class="x">×</span></button>
+                            <button class="tab analysis-tab" type="button" data-analysis="pipeline">流水<span class="x">×</span></button>
+                            <button class="tab analysis-tab" type="button" data-analysis="accuracy">精度<span class="x">×</span></button>
+                            <button class="tab analysis-tab" type="button" data-analysis="performance">性能<span class="x">×</span></button>
+                          </div>
                         </div>
                       </div>
                       <div class="analysis-body">
                         <div class="graphpane" id="graphpane">
                           <div class="gp-head">
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="1.8" aria-hidden="true"><circle cx="6" cy="6" r="2.5"></circle><circle cx="18" cy="6" r="2.5"></circle><circle cx="12" cy="18" r="2.5"></circle><path d="M7.5 7.5 11 15m6-8.5L13 15"></path></svg>
-                            <div><b>算子计算图</b> <span class="sub">解析结果 · MLA Decode</span></div>
+                            <div><b>算子计算图</b> <span class="sub" id="graphMeta">example_mla_decode.py · 29 nodes / 18 mappings</span></div>
                             <div class="gp-close" id="gclose" title="收起">×</div>
                           </div>
                           <div class="legend">
@@ -2234,10 +2282,6 @@
                             <span><i style="background:var(--risk)"></i>仅源端支持</span>
                           </div>
                           <div class="gcanvas" id="gcanvas"></div>
-                          <div class="gp-detail" id="gdetail">
-                            <b>点击任意节点查看解析详情</b><br>
-                            <span>计算图由 S1 从源码抽取，节点颜色表示目标执行单元。</span>
-                          </div>
                         </div>
 
                         <div class="codewrap diffpane" id="diffwrap">
@@ -2267,7 +2311,12 @@
                           <div class="tp-body" id="ppBody"></div>
                         </div>
 
-                        <div class="accpane" id="accpane"></div>
+                        <div class="accpane" id="accpane">
+                          <section class="accuracy-modelviz" aria-label="S6 逐算子精度架构图">
+                            <div class="accuracy-modelviz__viewport" id="accuracyModelvizHost"></div>
+                          </section>
+                          <div class="accuracy-report-content" id="accuracyReportContent"></div>
+                        </div>
                         <div class="perfpane" id="perfpane"></div>
                         <div class="apipane" id="apipane"></div>
                         <div class="planpane" id="planpane"></div>
@@ -2347,6 +2396,7 @@
     </div>
   </section>
 
+  <aside class="pto-model-graphviz-hover workbench-operator-context" id="modelvizOperatorContext" aria-live="polite" aria-label="选中算子上下文详情"></aside>
   <div class="notif-wrap" id="notifs"></div>
 
   <script>
@@ -2365,13 +2415,25 @@
   <script src="../vendor/pto-design-system/patterns/aiv-core-object/pattern.js"></script>
   <script src="../vendor/pto-design-system/patterns/aic-core-object/pattern.js"></script>
   <script src="../vendor/pto-design-system/patterns/memory-architecture/pattern.js"></script>
-  <script src="./ascendport_migration_V3_MLA_pto_legacy.js"></script>
+  <script src="./ascendport_migration_V3_MLA_pto_legacy.js?v=workflow-gate-v9"></script>
   <script>
     (function wirePtoRefresh() {
       const helper = window.PtoSwimlaneTaskPattern;
       const modelGraph = window.PtoModelGraphvizPattern;
       let swimId = 0;
       let graphController = null;
+      let modelvizFrame = null;
+      let accuracyModelvizFrame = null;
+      let activeModelvizFrame = null;
+      let pendingModelvizNodeId = null;
+      const modelvizReloadAttempts = new WeakSet();
+      let modelvizFrameObserver = null;
+      let accuracyModelvizFrameObserver = null;
+      let activeModelvizContext = null;
+      let modelvizContextFrame = 0;
+      const modelvizUiVersion = 'accuracy-fit-v8';
+      const modelvizSource = `./mla-model-architecture/assets/modelviz.html?embed=workbench&ui=${modelvizUiVersion}`;
+      const accuracyModelvizSource = `./mla-model-architecture/assets/modelviz.html?embed=accuracy&view=accuracy&ui=${modelvizUiVersion}`;
       const tone = {
         mte: '#6c8cff',
         cube: '#f2b44a',
@@ -2484,53 +2546,248 @@
         }
       }
 
+      function escapeModelvizContext(value) {
+        return String(value ?? '').replace(/[&<>'"]/g, (char) => ({
+          '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+        })[char]);
+      }
+
+      function modelvizContextHtml(payload) {
+        const node = payload?.node;
+        const mapping = payload?.mapping;
+        const accuracy = payload?.accuracy;
+        const provenance = node?.provenance;
+        if (!node) return '';
+        return `
+          <div class="pto-model-graphviz-hover-title">
+            <div><small>Graph node</small><strong>${escapeModelvizContext(node.label)}</strong></div>
+          </div>
+          <p>${escapeModelvizContext(node.kind)} · ${escapeModelvizContext(node.opType)}</p>
+          ${provenance ? `<p>${escapeModelvizContext(provenance.fact)} · example_mla_decode.py:${escapeModelvizContext(provenance.line)}</p>` : ''}
+          ${accuracy ? `
+            <div class="pto-model-graphviz-hover-chips">
+              <span>${escapeModelvizContext(accuracy.statusLabel)}</span>
+              <span>${escapeModelvizContext(accuracy.badge)}</span>
+            </div>
+            <p><b>S6 accuracy</b><br><code>${escapeModelvizContext(accuracy.metric)}</code></p>` : ''}
+          ${mapping ? `
+            <div class="pto-model-graphviz-hover-chips">
+              <span>${escapeModelvizContext(mapping.relation)}</span>
+              <span>${escapeModelvizContext(mapping.target?.implementationStatus)}</span>
+              <span>${escapeModelvizContext(mapping.target?.executionUnit)}</span>
+            </div>
+            <p><b>Source</b><br><code>${escapeModelvizContext(mapping.source?.primitive)}</code></p>
+            <p><b>Ascend target</b><br><code>${escapeModelvizContext(mapping.target?.api)}</code></p>
+            <p>${escapeModelvizContext(mapping.note)}</p>` : ''}`;
+      }
+
+      // MODEL_VIZ_CONTEXT_POSITION_START
+      function modelvizContextPosition(viewport, frameRect, anchor, panelSize, gap, inset) {
+        const nodeRect = {
+          left: frameRect.left + anchor.left,
+          top: frameRect.top + anchor.top,
+          right: frameRect.left + anchor.right,
+          bottom: frameRect.top + anchor.bottom,
+        };
+        let left = nodeRect.right + gap;
+        let top = nodeRect.bottom + gap;
+        let horizontal = 'right';
+        let vertical = 'bottom';
+        if (left + panelSize.width > viewport.width - inset) {
+          left = nodeRect.left - panelSize.width - gap;
+          horizontal = 'left';
+        }
+        if (top + panelSize.height > viewport.height - inset) {
+          top = nodeRect.top - panelSize.height - gap;
+          vertical = 'top';
+        }
+        left = Math.max(inset, Math.min(left, viewport.width - panelSize.width - inset));
+        top = Math.max(inset, Math.min(top, viewport.height - panelSize.height - inset));
+        return { left, top, horizontal, vertical };
+      }
+      // MODEL_VIZ_CONTEXT_POSITION_END
+
+      function positionModelvizContext() {
+        const panel = document.getElementById('modelvizOperatorContext');
+        if (!panel?.classList.contains('is-visible') || !activeModelvizContext?.anchor || !activeModelvizFrame) return;
+        const rootStyle = getComputedStyle(document.documentElement);
+        const gap = Number.parseFloat(rootStyle.getPropertyValue('--space-2'));
+        const inset = Number.parseFloat(rootStyle.getPropertyValue('--space-3'));
+        const position = modelvizContextPosition(
+          { width: window.innerWidth, height: window.innerHeight },
+          activeModelvizFrame.getBoundingClientRect(),
+          activeModelvizContext.anchor,
+          { width: panel.offsetWidth, height: panel.offsetHeight },
+          gap,
+          inset,
+        );
+        panel.dataset.horizontal = position.horizontal;
+        panel.dataset.vertical = position.vertical;
+        panel.style.left = `${position.left}px`;
+        panel.style.top = `${position.top}px`;
+      }
+
+      function scheduleModelvizContextPosition() {
+        if (modelvizContextFrame) cancelAnimationFrame(modelvizContextFrame);
+        modelvizContextFrame = requestAnimationFrame(() => {
+          modelvizContextFrame = 0;
+          positionModelvizContext();
+        });
+      }
+
+      function showModelvizContext(payload, sourceFrame) {
+        activeModelvizContext = payload;
+        activeModelvizFrame = sourceFrame;
+        const panel = document.getElementById('modelvizOperatorContext');
+        panel.innerHTML = modelvizContextHtml(payload);
+        if (!payload?.anchor) {
+          panel.classList.remove('is-visible');
+          return;
+        }
+        panel.classList.add('is-visible');
+        scheduleModelvizContextPosition();
+      }
+
+      function hideModelvizContext(options = {}) {
+        const targetFrame = activeModelvizFrame;
+        activeModelvizContext = null;
+        activeModelvizFrame = null;
+        document.getElementById('modelvizOperatorContext')?.classList.remove('is-visible');
+        if (options.notifyChild !== false && targetFrame?.contentWindow) {
+          targetFrame.contentWindow.postMessage({ type: 'pto-mla-modelviz-dismiss-context' }, '*');
+        }
+      }
+
+      function postModelvizFocus(nodeId) {
+        if (!nodeId || !modelvizFrame?.contentWindow) return;
+        modelvizFrame.contentWindow.postMessage({ type: 'pto-mla-modelviz-focus-node', nodeId }, '*');
+      }
+
+      function modelvizFrameForSource(source) {
+        return [modelvizFrame, accuracyModelvizFrame]
+          .find((frame) => frame?.contentWindow === source) || null;
+      }
+
+      function postAccuracyModelvizOverlay() {
+        const payload = window.getAccuracyModelvizOverlay?.();
+        if (!payload || !accuracyModelvizFrame?.contentWindow) return;
+        accuracyModelvizFrame.contentWindow.postMessage({
+          type: 'pto-mla-modelviz-set-accuracy',
+          uiVersion: modelvizUiVersion,
+          ...payload,
+        }, '*');
+      }
+
+      window.addEventListener('message', (event) => {
+        const sourceFrame = modelvizFrameForSource(event.source);
+        if (!sourceFrame) return;
+        if (event.data?.type === 'pto-mla-modelviz-ready') {
+          if (event.data.uiVersion !== modelvizUiVersion) {
+            if (!modelvizReloadAttempts.has(sourceFrame)) {
+              modelvizReloadAttempts.add(sourceFrame);
+              const refreshUrl = new URL(sourceFrame.dataset.modelvizSource || sourceFrame.src, window.location.href);
+              refreshUrl.searchParams.set('reload', String(Date.now()));
+              sourceFrame.src = refreshUrl.href;
+            }
+            return;
+          }
+          if (sourceFrame === accuracyModelvizFrame) {
+            postAccuracyModelvizOverlay();
+            return;
+          }
+          const meta = document.getElementById('graphMeta');
+          if (meta) meta.textContent = `example_mla_decode.py · ${event.data.nodes} nodes / ${event.data.mappings} mappings`;
+          if (pendingModelvizNodeId) postModelvizFocus(pendingModelvizNodeId);
+          return;
+        }
+        if (event.data?.uiVersion !== modelvizUiVersion) return;
+        if (event.data?.type === 'pto-mla-modelviz-selection') {
+          showModelvizContext(event.data, sourceFrame);
+          return;
+        }
+        if (event.data?.type === 'pto-mla-modelviz-anchor') {
+          if (activeModelvizFrame !== sourceFrame || !activeModelvizContext || activeModelvizContext.node?.id !== event.data.nodeId) return;
+          activeModelvizContext.anchor = event.data.anchor;
+          if (event.data.anchor) {
+            const panel = document.getElementById('modelvizOperatorContext');
+            panel.innerHTML = modelvizContextHtml(activeModelvizContext);
+            panel.classList.add('is-visible');
+            scheduleModelvizContextPosition();
+          } else {
+            hideModelvizContext({ notifyChild: false });
+          }
+          return;
+        }
+        if (event.data?.type === 'pto-mla-modelviz-dismiss') {
+          if (activeModelvizFrame === sourceFrame) hideModelvizContext({ notifyChild: false });
+        }
+      });
+
+      window.addEventListener('resize', scheduleModelvizContextPosition);
+      document.getElementById('accpane')?.addEventListener('scroll', scheduleModelvizContextPosition, { passive: true });
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') hideModelvizContext();
+      });
+      document.addEventListener('pointerdown', (event) => {
+        const panel = document.getElementById('modelvizOperatorContext');
+        if (!panel?.classList.contains('is-visible') || panel.contains(event.target)) return;
+        hideModelvizContext();
+      }, true);
+
       window.renderGraph = renderGraph = function renderGraphPto() {
         const canvas = document.getElementById('gcanvas');
-        if (!canvas || !modelGraph?.renderController) return;
+        if (!canvas) return;
         graphController?.destroy?.();
-        graphController = modelGraph.renderController(canvas, buildPatternGraph(), {
-          ariaLabel: 'AscendPort Flash Attention v2 计算图',
-          interaction: { selectableClusters: false },
-          overlays: { edgeTags: false, evidence: false },
-          fitMode: 'full',
-          viewportPadding: 18,
-          minReadableZoom: 0.58,
-          onSelect: ({ nodeId }) => applyGraphSelection(nodeId, 'pattern'),
-        });
-        decorateGpuOnlyGraphNodes();
-        // data-color-key 由 GNODES 的 unit 映射,覆盖库默认色
-        (() => {
-          const svg = canvas.querySelector('svg');
-          if (!svg) return;
-          GNODES.forEach((n) => {
-            const g = svg.querySelector(`.pto-model-graphviz-node[data-node-id="${n.id}"]`);
-            if (g) {
-              const k = graphColorKey[effectiveGraphUnit(n)] || 'io:constant';
-              g.setAttribute('data-color-key', k);
-            }
-          });
-        })();
-        // 图例浮层:嵌入 gcanvas 内部,跟随画布缩放
-        let legend = canvas.querySelector('.graph-legend-overlay');
-        if (!legend) {
-          legend = document.createElement('div');
-          legend.className = 'graph-legend-overlay';
-          canvas.appendChild(legend);
-        }
-        legend.innerHTML =
-          '<span><i style="background:var(--mem)"></i>片上搬运</span>' +
-          '<span><i style="background:var(--cube)"></i>矩阵单元</span>' +
-          '<span><i style="background:var(--vec)"></i>向量单元</span>' +
-          '<span><i style="background:var(--scalar)"></i>标量单元</span>' +
-          '<span><i style="background:var(--risk)"></i>仅源端支持</span>';
-        const detail = document.getElementById('gdetail');
-        if (detail) {
-          detail.innerHTML = '<b>点击任意节点查看解析详情</b><br><span>计算图由共享图谱组件渲染，节点语义映射到昇腾执行单元。</span>';
+        graphController = null;
+        canvas.classList.add('mla-modelviz-host');
+        if (!modelvizFrame || !modelvizFrame.isConnected) {
+          hideModelvizContext({ notifyChild: false });
+          modelvizFrame = document.createElement('iframe');
+          modelvizFrame.className = 'mla-modelviz-frame';
+          modelvizFrame.title = 'example_mla_decode.py MLA 算子架构与 Ascend 映射';
+          modelvizFrame.dataset.modelvizSource = modelvizSource;
+          modelvizFrame.src = modelvizSource;
+          canvas.replaceChildren(modelvizFrame);
+          modelvizFrameObserver?.disconnect?.();
+          if ('ResizeObserver' in window) {
+            modelvizFrameObserver = new ResizeObserver(scheduleModelvizContextPosition);
+            modelvizFrameObserver.observe(modelvizFrame);
+          }
         }
       };
 
+      window.mountAccuracyModelviz = function mountAccuracyModelviz() {
+        const host = document.getElementById('accuracyModelvizHost');
+        if (!host) return;
+        if (!accuracyModelvizFrame || !accuracyModelvizFrame.isConnected) {
+          accuracyModelvizFrame = document.createElement('iframe');
+          accuracyModelvizFrame.id = 'accuracyModelvizFrame';
+          accuracyModelvizFrame.className = 'accuracy-modelviz-frame';
+          accuracyModelvizFrame.title = 'example_mla_decode.py MLA 逐算子精度架构图';
+          accuracyModelvizFrame.dataset.modelvizSource = accuracyModelvizSource;
+          accuracyModelvizFrame.src = accuracyModelvizSource;
+          host.replaceChildren(accuracyModelvizFrame);
+          accuracyModelvizFrameObserver?.disconnect?.();
+          if ('ResizeObserver' in window) {
+            accuracyModelvizFrameObserver = new ResizeObserver(scheduleModelvizContextPosition);
+            accuracyModelvizFrameObserver.observe(accuracyModelvizFrame);
+          }
+          return;
+        }
+        postAccuracyModelvizOverlay();
+      };
+
+      window.updateAccuracyModelviz = postAccuracyModelvizOverlay;
+
       window.selectNode = selectNode = function selectNodePto(id) {
-        applyGraphSelection(id, 'legacy');
+        const legacyToMlaNode = {
+          q: 'query', k: 'latent_kv', v: 'latent_kv', cfg: 'runtime_config',
+          loadq: 'q_stage', loadkv: 'kv_stage', qk: 'qk_gemm', softmax: 'online_state_update',
+          pv: 'pv_gemm', norm: 'output_normalize', out: 'mla_output', simt: 'kernel_dispatch',
+          warp: 'qk_gemm', mask: 'score_block_max', lmstat: 'online_state_update'
+        };
+        pendingModelvizNodeId = legacyToMlaNode[id] || id;
+        postModelvizFocus(pendingModelvizNodeId);
       };
 
       function drawIdle(ctx, x, y, w, h) {
