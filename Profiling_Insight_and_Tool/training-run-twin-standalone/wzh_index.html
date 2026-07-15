@@ -159,21 +159,7 @@
     /* 聚焦模式：非当前问题徽标淡出 */
     .pto-problem-badge.is-dimmed { opacity: 0.18; }
     .pto-problem-badge.is-active { opacity: 1; }
-    /* 命中节点的红色呼吸涟漪:克隆自身矩形做描边环,持续放大淡出 */
-    @keyframes pto-diagnosis-pulse {
-      0% { transform: scale(1); opacity: 0.55; }
-      70% { transform: scale(1.18); opacity: 0; }
-      100% { transform: scale(1.18); opacity: 0; }
-    }
-    .pto-diagnosis-pulse-ring {
-      fill: none;
-      stroke: var(--danger);
-      stroke-width: 2px;
-      transform-box: fill-box;
-      transform-origin: center;
-      animation: pto-diagnosis-pulse 1.8s ease-out infinite;
-      pointer-events: none;
-    }
+    /* 命中节点的红色呼吸涟漪已按需求移除(不再克隆脉冲环,markNodeActive 不再生成) */
     /* 点击诊断卡片→聚焦：命中保持不透明，其余淡出到 30% */
     .pto-model-graphviz-node,
     .pto-model-graphviz-edge,
@@ -445,6 +431,12 @@
 
     .locate-causal { margin: 8px 0; padding: 10px 12px; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); background: var(--surface-2); font-family: "Cascadia Code", "Fira Code", monospace; font-size: 10px; line-height: 1.55; white-space: pre; overflow-x: auto; color: var(--foreground-secondary); }
 
+    /* 「Pangu 2.0 flash 整网图」标题：font 简写自带的 line-height 偏小(~15px)导致文字被 overflow:hidden 截断，
+       放大 line-height 让字完整显示 */
+    #architectureTitle {
+      line-height: 1.5;
+    }
+
     /* 整网图 iframe：完全铺满 .twin-architecture-stage，边框/圆角对齐原 graphviz 容器视觉 */
     .twin-model-graphviz-embed {
       width: 100%;
@@ -545,9 +537,9 @@
     .hif8c7 .h8-scrub-read div b { font-weight:500; font-size:13px; color:var(--h8-ink); }
     /* 表格滚动容器：默认只横向滚；搬到左列后由 flex 约束高度，纵向也可滚 */
     .hif8c7 .h8-table-scroll { overflow-x:auto; }
-    /* 问题二(HiF8)专属：整网图对该通用 Transformer 无实际映射，进入时隐藏整网图，
-       把 scrubber + 「层/算子级量化误差指标」表搬到整网图位置（左列），表支持横向+纵向滚动 */
-    .twin-center-pane.is-hif8-side-table .twin-graph-card { display:none; }
+    /* 问题二(HiF8)专属：把 scrubber + 「整网图 | 表格」切换栏 + 量化误差表搬到整网图位置（右列）。
+       整网图本体(.twin-graph-card)被搬进侧栏的整网图槽复用，故只隐藏仍留在网格里的原位整网图卡。 */
+    .twin-center-pane.is-hif8-side-table .twin-center-scroll > .twin-graph-card { display:none; }
     .twin-hif8-side-stage { min-height:0; overflow:hidden; display:flex; flex-direction:column;
       padding:0 var(--space-4) var(--space-4); }
     .twin-hif8-side-stage[hidden] { display:none; }
@@ -559,10 +551,26 @@
     /* 纵向滚动时表头吸顶，不随行滚走 */
     .twin-hif8-side-stage .h8-etable thead th { position:sticky; top:0; z-index:1; background:var(--surface-1); }
     .hif8c7 .h8-grid { display:grid; gap:14px; }
+    /* ── 问题二 定位链嵌入专属：hif8c7 工作台原为整宽双列布局，嵌进 ~450px 的定位链中栏后，
+       内联的 grid-template-columns:1.55fr/1.6fr 1fr 会挤爆并溢出容器（图表互相压叠、文字截断）。
+       这里把所有图表 grid 换行成单列（每张图铺满整栏宽度、数据清晰不截断），
+       KPI 行也从固定 5 列改为按宽度自适应换行。仅作用于本页嵌入态，
+       不影响独立整宽工作台 hif8-precision-workbench-V3.html。── */
+    #locateChainContent .hif8c7 .h8-grid { grid-template-columns: 1fr !important; }
+    #locateChainContent .hif8c7 .h8-kpis { grid-template-columns: repeat(auto-fit, minmax(132px, 1fr)) !important; }
     .hif8c7 .h8-card { background:var(--h8-panel); border:1px solid var(--h8-stroke); border-radius:var(--radius-md,10px); padding:14px; }
     .hif8c7 .h8-card h3 { font-size:11px; letter-spacing:.4px; text-transform:uppercase; color:var(--h8-dim);
       font-weight:var(--font-weight-semibold,600); margin:0 0 12px; display:flex; align-items:center; gap:8px; }
     .hif8c7 .h8-card h3 .hint { margin-left:auto; font-size:10.5px; color:var(--h8-dim); text-transform:none; letter-spacing:0; font-family:var(--h8-mono); }
+    .h8-help {
+      display:inline-flex; align-items:center; justify-content:center;
+      width:18px; height:18px; border-radius:50%;
+      background:var(--surface-2); color:var(--foreground-muted);
+      font-size:11px; font-weight:700; font-family:var(--font-sans);
+      cursor:help; flex-shrink:0; user-select:none;
+      border:1px solid var(--border-subtle);
+    }
+    .h8-help:hover { background:var(--h8-signal2); color:#fff; border-color:var(--h8-signal2); }
     .hif8c7 .h8-kpis { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; }
     .hif8c7 .h8-kpi { background:var(--h8-panel); border:1px solid var(--h8-stroke); border-radius:var(--radius-md,10px); padding:13px 14px; position:relative; overflow:hidden; }
     .hif8c7 .h8-kpi .h8-lab { font-size:11px; color:var(--h8-mute); letter-spacing:.3px; }
@@ -606,17 +614,70 @@
     .hif8c7 .h8-pcol .h8-b { border-radius:2px 2px 0 0; transition:height .25s; }
     .hif8c7 .h8-pcol .h8-lbl { font-family:var(--h8-mono); font-size:9.5px; color:var(--h8-dim); }
     .hif8c7 .h8-pcol:hover .h8-lbl { color:var(--h8-ink); }
-    .hif8c7 .h8-suspect { display:flex; align-items:center; gap:12px; padding:11px 12px; border:1px solid var(--h8-stroke);
+    /* 可疑算子清单：窄栏里原本 rank+信息+120px 进度条+nowrap 处置药丸 四段挤在一行,
+       信息被压到 ~90px、处置文字截断,非常粗糙。改为「rank 在左 + 主栏竖排」卡片:
+       算子名行(标签 + loss 贡献右对齐) → 满宽进度条 → 指标行 → 处置建议 chip(按内容宽、可换行)。 */
+    .hif8c7 .h8-suspect { display:flex; align-items:flex-start; gap:12px; padding:11px 13px; border:1px solid var(--h8-stroke);
       border-radius:9px; background:var(--h8-inset); margin-bottom:9px; }
-    .hif8c7 .h8-suspect .rank { font-family:var(--h8-mono); font-size:18px; color:var(--h8-dim); width:26px; text-align:center; }
-    .hif8c7 .h8-suspect .info { flex:1; min-width:0; }
-    .hif8c7 .h8-suspect .info .n { font-family:var(--h8-mono); font-size:12.5px; color:var(--h8-ink); }
-    .hif8c7 .h8-suspect .info .m { font-size:11px; color:var(--h8-mute); margin-top:3px; }
-    .hif8c7 .h8-suspect .bar { width:120px; height:6px; background:var(--surface-2); border:1px solid var(--h8-stroke); border-radius:4px; overflow:hidden; }
-    .hif8c7 .h8-suspect .bar i { display:block; height:100%; background:linear-gradient(90deg,var(--h8-warn),var(--h8-crit)); }
-    .hif8c7 .h8-suspect .act { font-size:11px; color:var(--h8-signal2); font-family:var(--h8-mono); white-space:nowrap;
-      border:1px solid color-mix(in srgb,var(--h8-signal2) 40%,var(--border-subtle)); padding:4px 9px; border-radius:6px;
+    .hif8c7 .h8-suspect .rank { font-family:var(--h8-mono); font-size:16px; color:var(--h8-dim); flex:0 0 26px; text-align:center; line-height:1.4; }
+    .hif8c7 .h8-suspect .s-main { flex:1; min-width:0; display:flex; flex-direction:column; gap:8px; }
+    .hif8c7 .h8-suspect .s-name { display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+      font-family:var(--h8-mono); font-size:13px; color:var(--h8-ink); }
+    .hif8c7 .h8-suspect .s-name .h8-tag { margin:0; }
+    .hif8c7 .h8-suspect .s-contrib { margin-left:auto; font-family:var(--h8-mono); font-size:11.5px; font-weight:600; color:var(--h8-crit); white-space:nowrap; }
+    .hif8c7 .h8-suspect .s-bar { height:6px; background:var(--surface-2); border:1px solid var(--h8-stroke); border-radius:4px; overflow:hidden; }
+    .hif8c7 .h8-suspect .s-bar i { display:block; height:100%; background:linear-gradient(90deg,var(--h8-warn),var(--h8-crit)); }
+    .hif8c7 .h8-suspect .s-meta { font-size:11px; color:var(--h8-mute); font-family:var(--h8-mono); }
+    .hif8c7 .h8-suspect .s-act { align-self:flex-start; font-size:11px; color:var(--h8-signal2); font-family:var(--h8-mono); line-height:1.5;
+      border:1px solid color-mix(in srgb,var(--h8-signal2) 40%,var(--border-subtle)); padding:5px 10px; border-radius:6px;
       background:color-mix(in srgb,var(--h8-signal2) 8%,transparent); }
+
+    /* ── 问题二「整网图 | 表格」视图切换栏（白底、位于量化误差表/整网图容器上方） ── */
+    .hif8-view-bar {
+      flex: 0 0 auto;
+      display: flex; align-items: center; gap: 10px;
+      margin: var(--space-4) 0 0;
+      padding: 8px 0;
+    }
+    .hif8-view-bar .seg { margin: 0; }
+    /* 「溢出率」标题:仅问题二整网图工具栏(Fit/算子染色 那一行)左侧显示 */
+    .opv-topbar-title { display: none; }
+    .twin-hif8-side-stage .opv-topbar-title {
+      display: inline-flex; align-items: center;
+      margin-right: auto;
+      font: 600 12px/1 var(--font-sans);
+      color: var(--foreground);
+    }
+    /* 视图槽：整网图槽 / 表格槽，激活者撑满剩余高度 */
+    .twin-hif8-side-stage .hif8-slot { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+    .twin-hif8-side-stage .hif8-slot[hidden] { display: none; }
+    /* 整网图槽内搬进来的 .twin-graph-card 撑满 */
+    .twin-hif8-side-stage #hif8GraphSlot > .twin-graph-card { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+
+    /* ── 整网图节点右上角「溢出率」徽标（参考 precision-debugger 的 .prec-cosbadge：药丸底 + 等宽粗体着色数值） ──
+       红/绿 2 档：溢出率 >1% 红(截断风险) · ≤1% 绿。注入到 #graphStage 命中算子节点的 <g> 上。 */
+    .c7over-badge text {
+      font-family: var(--font-mono, ui-monospace, monospace);
+      font-size: 14px; font-weight: 700;
+    }
+    /* 徽标药丸底/描边:必须用 #graphStage + !important 压过 pattern.css 的
+       `:root[data-theme='light'] .pto-model-architecture-stage .pto-model-graphviz-node rect`(灰色软描边+阴影),
+       否则角标描边被引擎的灰色软线覆盖 */
+    #graphStage .c7over-badge > rect { fill: rgba(255,255,255,.94) !important; filter: none !important; }
+    :root[data-theme='dark'] #graphStage .c7over-badge > rect { fill: rgba(12,12,16,.82) !important; }
+    #graphStage .c7over-badge.c7over-crit > rect { stroke: #dc2626 !important; stroke-width: 1.6px !important; }
+    #graphStage .c7over-badge.c7over-ok > rect { stroke: #16a34a !important; stroke-width: 1.4px !important; }
+    :root[data-theme='dark'] #graphStage .c7over-badge.c7over-crit > rect { stroke: #ff4b7b !important; }
+    :root[data-theme='dark'] #graphStage .c7over-badge.c7over-ok > rect { stroke: #4ade80 !important; }
+    .c7over-crit text { fill: #dc2626; }
+    :root[data-theme='dark'] .c7over-crit text { fill: #ff85a6; }
+    .c7over-ok text { fill: #16a34a; }
+    :root[data-theme='dark'] .c7over-ok text { fill: #4ade80; }
+    /* 命中算子节点本体也加对应颜色描边(与右上角徽标同色),红档更醒目 */
+    #graphStage .c7over-node-crit > rect { stroke: #dc2626 !important; stroke-width: 2.4px !important; }
+    #graphStage .c7over-node-ok > rect { stroke: #16a34a !important; stroke-width: 1.8px !important; }
+    :root[data-theme='dark'] #graphStage .c7over-node-crit > rect { stroke: #ff4b7b !important; }
+    :root[data-theme='dark'] #graphStage .c7over-node-ok > rect { stroke: #4ade80 !important; }
 
     /* ── 去掉整网图区所有灰色背景 ── */
     .twin-center-scroll,
@@ -639,12 +700,15 @@
     /* ── 整网图 + 监控侧栏 grid 横向: 保持原始 grid-template-rows 确保高度传递正确 ── */
     .twin-center-scroll {
       display: grid;
-      /* 训练监控侧栏：420px 为最小宽度；分辨率足够时取整个面板宽度的 40%（百分比相对 grid 容器=大面板） */
-      grid-template-columns: 1fr minmax(420px, 40%);
+      /* 左右换位：训练监控/问题详情移到左列(420px 最小宽度，分辨率足够时取整个面板宽度的 40%)，整网图移到右列 1fr */
+      grid-template-columns: minmax(420px, 40%) 1fr;
       grid-template-rows: minmax(0, 1fr);
       overflow: hidden;
       padding: 0;
     }
+    /* DOM 顺序保持「整网图在前、监控侧栏在后」不变(JS 依赖)，仅用 order 视觉换位 */
+    .twin-center-scroll > .twin-monitor-sidebar { order: 0; }
+    .twin-center-scroll > .twin-graph-card { order: 1; }
 
     /* twin-center-pane: 覆盖 .pto-ide-frame__pane 的 flex:0 0 auto，撑满父面板 */
     .twin-center-pane {
@@ -740,7 +804,55 @@
       flex-direction: column;
     }
 
+    /* 问题诊断 / 训练监控 / 问题详情：滚动条默认隐藏，悬浮容器时才浮现（不占布局、无跳动） */
+    .twin-pane-scroll,
+    .twin-sidebar-body,
+    .twin-locate-chain-view {
+      scrollbar-width: thin;              /* Firefox */
+      scrollbar-color: transparent transparent;
+    }
+    .twin-pane-scroll:hover,
+    .twin-sidebar-body:hover,
+    .twin-locate-chain-view:hover {
+      scrollbar-color: var(--border-default) transparent;
+    }
+    .twin-pane-scroll::-webkit-scrollbar,
+    .twin-sidebar-body::-webkit-scrollbar,
+    .twin-locate-chain-view::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    .twin-pane-scroll::-webkit-scrollbar-track,
+    .twin-sidebar-body::-webkit-scrollbar-track,
+    .twin-locate-chain-view::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .twin-pane-scroll::-webkit-scrollbar-thumb,
+    .twin-sidebar-body::-webkit-scrollbar-thumb,
+    .twin-locate-chain-view::-webkit-scrollbar-thumb {
+      background: transparent;            /* 默认隐藏 */
+      border-radius: 4px;
+      transition: background var(--duration-fast, 120ms) var(--easing-default, ease);
+    }
+    .twin-pane-scroll:hover::-webkit-scrollbar-thumb,
+    .twin-sidebar-body:hover::-webkit-scrollbar-thumb,
+    .twin-locate-chain-view:hover::-webkit-scrollbar-thumb {
+      background: var(--border-default);  /* 悬浮浮现 */
+    }
+    .twin-pane-scroll::-webkit-scrollbar-thumb:hover,
+    .twin-sidebar-body::-webkit-scrollbar-thumb:hover,
+    .twin-locate-chain-view::-webkit-scrollbar-thumb:hover {
+      background: var(--foreground-muted);
+    }
+
     /* ── 整网图工具栏：算子染色 + 层级选择（参考 precision-debugger）── */
+    /* 缩放按钮（−/Fit/+）默认颜色、字号与选中的「类别」「L5」一致 */
+    .opv-actions #zoomOut,
+    .opv-actions #zoomReset,
+    .opv-actions #zoomIn {
+      color: var(--foreground);
+      font: 600 11px/1 var(--font-sans);
+    }
     .seg {
       display: inline-flex;
       background: color-mix(in srgb, var(--foreground) 6%, transparent);
@@ -1029,6 +1141,8 @@
                  MutationObserver 监听 documentElement[data-theme] 联动重新着色。 -->
             <section id="opvHost" class="opv-app pto-model-graphviz-pattern-page" data-embed="1">
               <header class="opv-topbar" style="justify-content:flex-end; border-bottom:0;">
+                <!-- 「溢出率」标题:仅在问题二(整网图卡搬进 .twin-hif8-side-stage)时显示于工具栏左侧 -->
+                <span class="opv-topbar-title" id="hif8OverflowTitle">溢出率</span>
                 <div class="opv-actions">
                   <button class="btn btn-ghost" type="button" id="zoomOut">-</button>
                   <button class="btn btn-ghost" type="button" id="zoomReset">Fit</button>

@@ -1533,6 +1533,9 @@ const NODE_SPEC = {"input_tokens": {"w": 170, "h": 48, "colorKey": "io:input"}, 
         });
       }
       setStatus(message);
+      // 整网图 SVG 已重建（染色/层级/主题切换等会走这里）。外部注入的诊断标记、
+      // 溢出率徽标都挂在旧 SVG 上，随重建被清掉——广播事件让 training-run-twin 重新注入。
+      document.dispatchEvent(new CustomEvent('opv-graph-rendered'));
     }
 
     function wireStageInteractions() {

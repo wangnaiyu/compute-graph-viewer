@@ -39,6 +39,36 @@
 - **更新 launch-v2 的 AscendPort 默认入口**(`launch-v2.html` + workbench validator):卡片主体和“当前版”由旧目录 `ascendport_migration/` 改为本轮持续维护的 `ascendport_migration-pangu/ascendport_migration_V3_MLA_pto.html`；原页面保留为明确的“旧版”入口。集成校验新增 launch 卡片解析、默认目标与当前版一致性、Pages artifact 目标文件存在性断言。
 - **精简计算图侧栏并统一七阶段导航**(`ascendport_migration_V3_MLA_pto.html` + `_legacy.js` + `mla-model-architecture/assets/modelviz.html`):删除占用画布宽度、且与节点右下角详情菜单重复的常驻 Operator Association 面板，保留 18 条映射数据用于节点浮层与源码联动；迁移标题改为“七阶段流水”，进度栏按 `STEPS.length` 动态生成 7 列，并在 S1–S7 下分别显示解析算子、算子映射、代码生成、内存层次映射、分块与流水编排、精度对齐、性能剖析与调优，launch 卡片说明同步为 S1–S7。
 - **恢复工作台默认分栏与计算图比例**(`ascendport_migration_V3_MLA_pto.html` + `mla-model-architecture/assets/modelviz.html`):外层主分栏由随窗口增长的 `17/64/19%` 默认比例改为 Explorer `260px`、Inspector `300px` 固定侧栏与中央弹性编辑区，并升级 storage key，避免旧拖拽比例继续覆盖新默认值；ModelViz readable Fit 从 `58%` 恢复为经用户确认的 `44%`，宽画布不再因删除映射面板而自动放大，窄窗口仍可按可用宽度继续缩小。
+## 2026-07-14 — training-run-twin 整网图问题徽标补全标题(与所属节点同宽两行标签,不遮挡)
+- **问题**:`applyDefaultDiagnosisMarkers`/`drawBadge` 原来只在节点上方画一个 ~57 local-unit 的小红胶囊,固定显示「问题N」,完整标题只能靠 hover 提示查看,图上看不出每个问题具体是什么。
+- **改法**:徽标改为「与所属 anchor 节点同宽」的两行标签条 — 上排「问题N」(14px 粗体) + 下排问题标题(11.5px,来自 `diagnosisMarkers[].label`,超出可用宽度时逐字裁剪加省略号)。宽度严格等于 `dims.w`(节点本体宽度)、左右边缘与节点对齐,不会侵入相邻节点/连线的空间;完整标题超长时仍靠 hover 提示补全。six 个锚点节点局部宽度均为 340~480 local units,实测 6 条标题(10~19 字)均能整行显示、无需截断。
+- **共锚点堆叠**:`query_tensor`(问题二+三)、`router_gate`(问题一+六)各挂 2 个案例,复用原有「与已放置徽标重叠则整体上移一层」避让逻辑纵向堆叠,互不遮挡,只轻微掠过中间的残差相加「+」圆点(非文字,不影响可读性)。
+- 验证:Edge headless 打开 wzh_index,`Fit`+放大后逐个截图 6 处徽标(problem 1/2/3/4/6 已核实),标题完整可读,未发现与相邻节点文字重叠。
+
+## 2026-07-14 — training-run-twin 问题二定位链 HiF8 工作台图表栏重排(窄栏换行) + 诊断时间线标签防重叠
+- **图表 grid 单列自适应**:HiF8 case7 工作台原为整宽双列(`grid-template-columns:1.55fr/1.6fr 1fr`),嵌进 ~450px 的问题二定位链中栏后多列 grid 挤爆并溢出容器(图表压叠、文字截断,实测张量分布行 180+389px 超出 450px)。新增 `#locateChainContent .hif8c7 .h8-grid{grid-template-columns:1fr!important}` 让所有图表 grid 换行成单列铺满整栏;KPI 行由固定 5 列改 `repeat(auto-fit,minmax(132px,1fr))` 自适应换行(3+2)。仅作用于本页嵌入态,不影响独立整宽工作台 `hif8-precision-workbench-V3.html`(其有自带内联 `renderTimeline`,且不加载 `hif8-case7.js`)。
+- **诊断事件时间线防重叠**:`hif8-case7.js` 的 `renderTimeline` 原将 7 条事件标签平铺在同一水平线,step 52/63/66/78 密集处文字必然重叠。改为「贪心分行 + 引导线」:每条标签落到从坐标轴上探、不与同行既有标签相撞的最低一行,canvas 高度按所需行数动态计算,右溢出时向左夹紧。
+- **可疑算子清单重排**:根因分析节的 `.h8-suspect` 原为 `rank + 信息 + 120px 进度条 + nowrap 处置药丸` 四段挤一行,窄栏里信息被压到 ~90px、处置文字截断,很粗糙。改为「rank 在左 + 主栏竖排」卡片:算子名行(标签 + loss 贡献右对齐红字) → 满宽渐变进度条 → SQNR/溢出指标行 → 处置建议 chip(按内容宽、可换行)。数据不变仅重排。
+- 验证:Edge headless 打开 wzh_index → 点问题二定位链,逐屏截图确认概览/张量分布/量化误差/误差传播/根因分析各节均单列铺满、数据不截断,时间线 7 条标签分行无重叠,可疑算子 4 张卡片竖排清晰。
+
+## 2026-07-14 — training-run-twin 整网图溢出率角标描边着色修复 + 去掉命中节点涟漪
+- **角标描边灰色修复**:右上角溢出率药丸的描边此前被 `model-graphviz-embed/pattern.css` 的 `:root[data-theme='light'] .pto-model-architecture-stage .pto-model-graphviz-node rect`(灰色软描边,specificity 更高)覆盖成灰色。改用 `#graphStage .c7over-badge.c7over-crit/ok > rect { stroke … !important }`(红 `#dc2626`/绿 `#16a34a`,深色 `#ff4b7b`/`#4ade80`)并 `filter:none` 去掉引擎阴影,角标描边恢复与文字同色。
+- **去掉涟漪**:`markNodeActive` 不再克隆 `.pto-diagnosis-pulse-ring` 脉冲环,命中节点只保留静态红色描边;删除对应 `@keyframes pto-diagnosis-pulse` 与 `.pto-diagnosis-pulse-ring` 样式。
+- 验证:Edge headless 读 `getComputedStyle` — crit 角标 stroke=rgb(220,38,38)、ok=rgb(22,163,74)、pulseRings=0、badges=16。
+
+## 2026-07-14 — training-run-twin 问题二整网图溢出率:命中算子节点本体也加对应颜色描边(与右上角徽标同色)
+- 参考 precision-debugger 的 `prec-crit`/`prec-high`(节点 + 右上角角标同色描边):`refreshHif8GraphBadges` 给命中算子节点组加 `c7over-node-crit`/`c7over-node-ok` 类,`wzh_index.html` 补 `#graphStage .c7over-node-* > rect` 描边(红 `#dc2626`/绿 `#16a34a`,深色主题用 `#ff4b7b`/`#4ade80`),`> rect` 仅命中节点本体不波及徽标 rect;复位与逐步重画时一并清除节点类。整网图重建后由 `opv-graph-rendered` 一并重新注入。
+
+## 2026-07-14 — training-run-twin 切换「算子染色」开关后整网图问题标记/溢出率徽标不再消失:opv-modelviz 重建 SVG 后广播 opv-graph-rendered,twin 侧监听并重新注入诊断标记与溢出率徽标
+
+## 2026-07-14 — training-run-twin 问题二整网图区改为「整网图 | 表格」双视图,复用默认 L5 整网图并在算子节点右上角标注溢出率(红/绿 2 档)
+- 右列侧栏自上而下 = 训练步回放 scrubber + 白底「整网图 | 表格」切换栏 + 整网图槽 + 表格槽,默认整网图。整网图槽复用默认页面的 L5 整网图卡(.twin-graph-card 原样搬入),表格槽放「层/算子级量化误差指标」表。
+- `js/hif8-case7.js` 导出 `overflowMap()`(把每层当前步溢出率按算子名映射到整网图节点 id,同名算子跨块取最差)与 `onStep()` 回调;去掉上一版内嵌 DOM 整网图。
+- `js/training-run-twin.js` `applyHif8SidePanel` 重构 + 新增 `refreshHif8GraphBadges`/`scheduleHif8GraphBadges`:在 `#graphStage` 命中算子节点右上角注入溢出率药丸徽标(参考 precision-debugger `.prec-cosbadge`),>1% 红、≤1% 绿,随训练步回放实时刷新;复位时整网图卡搬回原网格并清徽标。
+- `wzh_index.html` 补 `.hif8-view-bar`/`.hif8-slot`/`.c7over-*` 样式,`is-hif8-side-table` 只隐藏留在网格里的原位整网图卡。
+
+## 2026-07-14 — training-run-twin 问题详情页「infra层」集群图补悬浮气泡 + 问题 rank「空等」红字
+- **infra层集群图悬浮气泡**(`js/training-run-twin.js` + `css/training-run-twin.css`):问题详情页定位链「infra层」的集群图(`#locateInfraHeat`)此前只镜像监控栏 `#heat` 的 util 着色,悬浮无内容。现 `syncLocateInfraHeat()` 一并镜像每个 cell 的 `data-tip`(node/rank/util/温度/HBM/DP·Stage·EP),完全对齐监控栏的 rank 悬浮内容;并给命中问题的 hot/warm rank 追加 `data-tip-warn`,气泡末行以 danger 红字展示「空等」问题描述(死锁/超时/尾延迟,见 `INFRA_HEAT_MAP`)。因 CSS `attr()` 无法给单行上色,气泡改由 JS 挂到 body(跟随光标、不被 overflow 截断),并关掉 `.locate-infra-heat` 的纯 CSS `::after` tooltip 以免双气泡。
 
 ## 2026-07-14 — training-run-twin 监控栏改为占整面板 40% + 顶栏 step 合并为「当前/总」
 - **监控栏宽度基准**(`wzh_index.html`):网格列由 `1fr minmax(420px, 0.4fr)`(相对整网图列 40%)改为 `1fr minmax(420px, 40%)`,百分比相对 grid 容器=整个大面板,即分辨率足够时监控栏占整面板宽度的 40%,整网图占 60%;仍保留 420px 最小宽度。

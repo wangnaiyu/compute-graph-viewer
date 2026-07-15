@@ -21,7 +21,7 @@ window.PtoHif8Case7 = (function () {
   const lerp = (a, b, t) => a + (b - a) * t;
   const MONO = "'Cascadia Code','Fira Code',ui-monospace,'SF Mono',Menlo,Consolas,monospace";
 
-  /* ---------- 模型 / 数据生成（原样移植） ---------- */
+  /* ---------- 模型 / 数据生成（openPangu 2.0 Flash 算子映射） ---------- */
   const N = 200;                // 采样点（每 50 真实 step → 10000）
   const stepOf = i => i * 50;
   const DIV = 63;               // 发散采样索引（~step 3150）
@@ -29,19 +29,40 @@ window.PtoHif8Case7 = (function () {
   let cur = N - 1;             // 当前训练步索引，由概览页签的「训练步回放」scrubber 驱动（默认停在末步）
 
   const layers = [];
-  layers.push({ name: 'embed_tokens', type: 'io', depth: 0 });
+  layers.push({ name: 'token_embedding', type: 'io', depth: 0 });
   for (let b = 0; b < BLOCKS; b++) {
     const d = 1 + b;
-    ['attn.q_proj', 'attn.k_proj', 'attn.v_proj', 'attn.o_proj', 'mlp.gate_proj', 'mlp.up_proj', 'mlp.down_proj']
+    const isDense = b === 0; // 首块 = Dense L0，其余 = MoE L4+
+
+    // 注意力线性算子（sparse_mla_attention · MLA 压缩投影）
+    ['q_a_proj', 'q_b_proj', 'kv_a_proj', 'kv_b_proj', 'o_proj']
       .forEach(op => {
-        const t = op.startsWith('attn') ? 'attn' : 'mlp';
-        layers.push({ name: `blk${b}.${op}`, type: t, depth: d, block: b, op });
+        const t = op.startsWith('q_') || op.startsWith('kv_') || op === 'o_proj' ? 'attn' : 'attn';
+        layers.push({ name: `L${b}.${op}`, type: 'attn', depth: d, block: b, op });
       });
-    layers.push({ name: `blk${b}.input_norm`, type: 'norm', depth: d, block: b });
+
+    // 注意力归一化
+    layers.push({ name: `L${b}.q_a_norm`, type: 'norm', depth: d, block: b });
+    layers.push({ name: `L${b}.kv_a_norm`, type: 'norm', depth: d, block: b });
+    layers.push({ name: `L${b}.post_attention_norm`, type: 'norm', depth: d, block: b });
+
+    if (isDense) {
+      // Dense FFN（L0~L3）
+      ['dense_gate_up', 'dense_down']
+        .forEach(op => {
+          layers.push({ name: `L${b}.${op}`, type: 'mlp', depth: d, block: b, op });
+        });
+    } else {
+      // MoE FFN（L4~L47）
+      layers.push({ name: `L${b}.router_gate`, type: 'mlp', depth: d, block: b });
+      layers.push({ name: `L${b}.routed_expert_bank`, type: 'mlp', depth: d, block: b });
+    }
+    layers.push({ name: `L${b}.input_layernorm`, type: 'norm', depth: d, block: b });
   }
+  layers.push({ name: 'final_norm', type: 'norm', depth: BLOCKS + 1 });
   layers.push({ name: 'lm_head', type: 'io', depth: BLOCKS + 1 });
 
-  const CULPRIT = { 'blk4.mlp.down_proj': 1.0, 'blk3.attn.o_proj': 0.72, 'blk5.mlp.down_proj': 0.45 };
+  const CULPRIT = { 'L4.q_b_proj': 1.0, 'L3.o_proj': 0.72, 'L5.router_gate': 0.45 };
 
   layers.forEach(L => {
     const base = L.type === 'norm' ? 42 : L.type === 'io' ? 38 : 35 + gauss() * 2;
@@ -91,7 +112,7 @@ window.PtoHif8Case7 = (function () {
   for (let i = 0; i < N; i++) { let s = 0; layers.forEach(L => s += L.sqnr[i]); meanSqnr.push(s / layers.length); }
 
   /* ---------- 交互状态 ---------- */
-  let selLayer = layers.find(l => l.name === 'blk4.mlp.down_proj');
+  let selLayer = layers.find(l => l.name === 'L4.q_b_proj');
   let tensorType = 'weight';
   let sortKey = 'sqnr', sortAsc = true;
 
@@ -114,6 +135,25 @@ window.PtoHif8Case7 = (function () {
   function grid(c, w, h, rows) {
     c.strokeStyle = '#e5e7eb'; c.lineWidth = 1;
     for (let i = 0; i <= rows; i++) { const y = h * i / rows + .5; c.beginPath(); c.moveTo(0, y); c.lineTo(w, y); c.stroke(); }
+  }
+  // 圆角柱：Canvas roundRect 兼容回退
+  function drawRoundedBar(c, x, y, w, h, r) {
+    if (!c.roundRect) {
+      c.beginPath();
+      c.moveTo(x + r, y);
+      c.lineTo(x + w - r, y);
+      c.arcTo(x + w, y, x + w, y + r, r);
+      c.lineTo(x + w, y + h);
+      c.lineTo(x, y + h);
+      c.lineTo(x, y + r);
+      c.arcTo(x, y, x + r, y, r);
+      c.closePath();
+      c.fill();
+      return;
+    }
+    c.beginPath();
+    c.roundRect(x, y, w, h, [r, r, 0, 0]);
+    c.fill();
   }
 
   /* ============ 概览 ============ */
@@ -208,25 +248,53 @@ window.PtoHif8Case7 = (function () {
   }
   const EVENTS = [
     { i: 14, sev: 'warn', t: 'FP8 loss spike（logit 打散度骤降）' },
-    { i: 52, sev: 'warn', t: 'blk4.mlp.down_proj 溢出率 >1%' },
+    { i: 52, sev: 'warn', t: 'L4.q_b_proj 溢出率 >1%' },
     { i: 63, sev: 'crit', t: 'Δloss 越过阈值 0.05' },
-    { i: 66, sev: 'crit', t: 'blk4.mlp.down_proj SQNR<26dB' },
-    { i: 78, sev: 'warn', t: 'blk3.attn.o_proj SQNR 塌陷' },
-    { i: 120, sev: 'warn', t: 'blk5.mlp.down_proj 溢出扩散' },
+    { i: 66, sev: 'crit', t: 'L4.q_b_proj SQNR<26dB' },
+    { i: 78, sev: 'warn', t: 'L3.o_proj SQNR 塌陷' },
+    { i: 120, sev: 'warn', t: 'L5.router_gate 溢出扩散' },
     { i: 170, sev: 'crit', t: '累积 Δloss 达 0.55' },
   ];
   function renderTimeline() {
-    const r = fit($('c7timeline'), 88); if (!r) return; const { c, w, h } = r; c.clearRect(0, 0, w, h);
-    const X = i => 10 + (w - 20) * i / (N - 1), y = h / 2;
-    c.strokeStyle = '#e5e7eb'; c.beginPath(); c.moveTo(10, y); c.lineTo(w - 10, y); c.stroke();
+    // 事件密集处（step 52/63/66/78）文字标签横向必然重叠，改为「贪心分行 + 引导线」布局：
+    // 每条标签放到从坐标轴向上、不与同行既有标签相撞的最低一行，右溢出时向左夹紧。
+    const c0 = $('c7timeline') && $('c7timeline').getContext('2d');
+    if (c0) c0.font = '9.5px ' + MONO;                 // 先量文字宽度以决定行数 → 定高
+    const ROW_H = 13, GAP = 8, PAD_TOP = 8, AXIS_PAD = 20;
+    // 预排：用一个粗略宽度先算所需行数（真实宽度在下方重排，这里只为定 canvas 高度）
+    let probeRows = 1;
+    if (c0) {
+      const wGuess = ($('c7timeline').clientWidth || 440);
+      const Xg = i => 12 + (wGuess - 24) * i / (N - 1);
+      const edges = [];
+      EVENTS.forEach(e => { const x = Xg(e.i), tw = c0.measureText(e.t).width; let row = 0; while (edges[row] != null && x < edges[row] + GAP) row++; edges[row] = x + tw; if (row + 1 > probeRows) probeRows = row + 1; });
+    }
+    const cssH = PAD_TOP + probeRows * ROW_H + AXIS_PAD;
+    const r = fit($('c7timeline'), cssH); if (!r) return; const { c, w, h } = r; c.clearRect(0, 0, w, h);
+    const X = i => 12 + (w - 24) * i / (N - 1), axisY = h - 16;
+    c.font = '9.5px ' + MONO; c.textBaseline = 'alphabetic';
+    c.strokeStyle = '#e5e7eb'; c.lineWidth = 1; c.beginPath(); c.moveTo(12, axisY); c.lineTo(w - 12, axisY); c.stroke();
+    const edges = [];
     EVENTS.forEach(e => {
-      const x = X(e.i); c.strokeStyle = sevColor[e.sev]; c.globalAlpha = e.i <= cur ? 1 : .25;
-      c.beginPath(); c.moveTo(x, y - 16); c.lineTo(x, y + 16); c.stroke();
-      c.fillStyle = sevColor[e.sev]; c.beginPath(); c.arc(x, y - 16, 3, 0, 7); c.fill();
-      c.save(); c.translate(x + 4, y - 20); c.fillStyle = e.i <= cur ? '#1e293b' : '#94a3b8'; c.font = '9.5px ' + MONO;
-      c.fillText(e.t, 0, 0); c.restore(); c.globalAlpha = 1;
+      const x = X(e.i), tw = c.measureText(e.t).width;
+      let row = 0; while (edges[row] != null && x < edges[row] + GAP) row++;
+      edges[row] = x + tw;
+      const on = e.i <= cur, col = sevColor[e.sev];
+      const ly = axisY - AXIS_PAD - row * ROW_H + 4;   // 该行标签基线
+      let lx = x + 5; if (lx + tw > w - 4) lx = w - 4 - tw; if (lx < 4) lx = 4;
+      // 引导线：从坐标轴刻度上探到标签
+      c.strokeStyle = col; c.globalAlpha = on ? .45 : .18; c.lineWidth = 1;
+      c.beginPath(); c.moveTo(x, axisY - 6); c.lineTo(x, ly - 8); c.stroke();
+      // 刻度 + 圆点
+      c.globalAlpha = on ? 1 : .3; c.strokeStyle = col; c.lineWidth = 1.5;
+      c.beginPath(); c.moveTo(x, axisY - 6); c.lineTo(x, axisY + 6); c.stroke();
+      c.fillStyle = col; c.beginPath(); c.arc(x, axisY, 3, 0, 7); c.fill();
+      // 标签
+      c.fillStyle = on ? '#1e293b' : '#94a3b8'; c.fillText(e.t, lx, ly);
+      c.globalAlpha = 1;
     });
-    c.strokeStyle = 'rgba(15,23,42,.45)'; c.globalAlpha = .5; c.beginPath(); c.moveTo(X(cur), 4); c.lineTo(X(cur), h - 4); c.stroke(); c.globalAlpha = 1;
+    c.strokeStyle = 'rgba(15,23,42,.45)'; c.globalAlpha = .5; c.lineWidth = 1;
+    c.beginPath(); c.moveTo(X(cur), 4); c.lineTo(X(cur), axisY + 8); c.stroke(); c.globalAlpha = 1;
   }
 
   /* ============ 张量分布 ============ */
@@ -281,24 +349,72 @@ window.PtoHif8Case7 = (function () {
     const H = histFor(L, cur, tensorType);
     const scale = (H.clip / (H.max * 1.2)).toFixed(1); const ds = $('c7distScale'); if (ds) ds.textContent = scale;
     const r = fit($('c7hist'), 300); if (!r) return; const { c, w, h } = r; c.clearRect(0, 0, w, h);
-    const pad = 8, baseY = h - 20;
+    const pad = 8, baseY = h - 22;
     const X = b => pad + (w - pad * 2) * b / H.bins;
     const mx = Math.max(...H.raw, ...H.q);
-    const Y = v => baseY - (baseY - 8) * v / mx;
-    grid(c, w, h, 4);
+    const Y = v => baseY - (baseY - 10) * v / mx;
+
+    // 细灰网格（参考 precision-debugger 的 subtle grid）
+    c.strokeStyle = 'rgba(148,163,184,.18)'; c.lineWidth = 0.5;
+    for (let i = 0; i <= 4; i++) { const y = 10 + (baseY - 10) * i / 4 + 0.5; c.beginPath(); c.moveTo(pad, y); c.lineTo(w - pad, y); c.stroke(); }
+
     const clipB0 = Math.floor((-H.clip + H.lohi) / H.bw), clipB1 = Math.floor((H.clip + H.lohi) / H.bw);
-    c.fillStyle = 'rgba(220,38,38,.10)';
-    c.fillRect(pad, 8, X(clipB0) - pad, baseY - 8); c.fillRect(X(clipB1), 8, w - pad - X(clipB1), baseY - 8);
-    c.strokeStyle = 'rgba(148,163,184,.4)'; c.lineWidth = 1;
-    H.reps.forEach(rp => { if (Math.abs(rp) > H.lohi) return; const bx = X((rp + H.lohi) / H.bw); c.beginPath(); c.moveTo(bx, baseY); c.lineTo(bx, baseY - 6); c.stroke(); });
-    c.fillStyle = 'rgba(59,110,224,.5)';
-    H.q.forEach((v, b) => { const x = X(b), bwid = (w - pad * 2) / H.bins; c.fillRect(x, Y(v), bwid * 0.9, baseY - Y(v)); });
-    c.strokeStyle = '#0ea5e9'; c.lineWidth = 1.8; c.beginPath();
-    H.raw.forEach((v, b) => { const x = X(b) + (w - pad * 2) / H.bins / 2, y = Y(v); b ? c.lineTo(x, y) : c.moveTo(x, y); }); c.stroke();
-    c.strokeStyle = '#dc2626'; c.setLineDash([3, 3]);
-    [clipB0, clipB1].forEach(b => { c.beginPath(); c.moveTo(X(b), 8); c.lineTo(X(b), baseY); c.stroke(); }); c.setLineDash([]);
-    c.fillStyle = '#94a3b8'; c.font = '10px ' + MONO;
-    c.fillText('−448', X(clipB0) - 14, h - 6); c.fillText('+448', X(clipB1) - 14, h - 6); c.fillText('0', X(H.bins / 2) - 3, h - 6);
+
+    // 溢出区红晕（参考设计系统 danger-tinted panel）
+    c.fillStyle = 'rgba(220,38,38,.07)';
+    c.fillRect(pad, 10, X(clipB0) - pad, baseY - 10);
+    c.fillRect(X(clipB1), 10, w - pad - X(clipB1), baseY - 10);
+
+    // HiF8 可表示栅格刻度（细灰线，只画到柱区上方 4px）
+    c.strokeStyle = 'rgba(148,163,184,.32)'; c.lineWidth = 0.7;
+    H.reps.forEach(rp => {
+      if (Math.abs(rp) > H.lohi) return;
+      const bx = X((rp + H.lohi) / H.bw);
+      c.beginPath(); c.moveTo(bx, baseY); c.lineTo(bx, baseY - 4); c.stroke();
+    });
+
+    // 量化后柱状图（圆角顶、细间隙、design-system 蓝）
+    const bwid = (w - pad * 2) / H.bins;
+    const barGap = bwid * 0.12;
+    const barW = bwid - barGap;
+    const barR = Math.min(2, barW * 0.35);
+    H.q.forEach((v, b) => {
+      const bx = X(b) + barGap / 2;
+      const bh = baseY - Y(v);
+      if (bh < 1) return;
+      // bar gradient: top=opaque blue, bottom=slightly lighter
+      const grad = c.createLinearGradient(0, Y(v), 0, baseY);
+      grad.addColorStop(0, 'rgba(59,110,224,.72)');
+      grad.addColorStop(1, 'rgba(59,110,224,.38)');
+      c.fillStyle = grad;
+      drawRoundedBar(c, bx, Y(v), barW, bh, barR);
+    });
+
+    // 原始分布密度曲线（参考线）：半透明描边，无填充
+    c.strokeStyle = 'rgba(14,165,233,.62)'; c.lineWidth = 1.5;
+    c.beginPath();
+    H.raw.forEach((v, b) => {
+      const x = X(b) + bwid / 2, y = Y(v);
+      b ? c.lineTo(x, y) : c.moveTo(x, y);
+    });
+    c.stroke();
+
+    // FP8 截断边界（红色虚线，带半透明填充条）
+    c.fillStyle = 'rgba(220,38,38,.12)';
+    c.fillRect(X(clipB0) - 1.5, 10, 3, baseY - 10);
+    c.fillRect(X(clipB1) - 1.5, 10, 3, baseY - 10);
+    c.strokeStyle = '#dc2626'; c.lineWidth = 1; c.setLineDash([4, 3]);
+    [clipB0, clipB1].forEach(b => {
+      c.beginPath(); c.moveTo(X(b), 10); c.lineTo(X(b), baseY); c.stroke();
+    });
+    c.setLineDash([]);
+
+    // 轴标签（muted mono，参考设计系统 label 规范）
+    c.fillStyle = 'var(--foreground-muted, #94a3b8)'; c.font = '9.5px ' + MONO;
+    c.fillText('−448', X(clipB0) - 14, h - 6);
+    c.fillText('+448', X(clipB1) - 14, h - 6);
+    c.fillText('0', X(H.bins / 2) - 3, h - 6);
+
     drawRangeBar(H);
     const sq = L.sqnr[cur];
     const set = (id, html) => { const e = $(id); if (e) e.innerHTML = html; };
@@ -323,17 +439,22 @@ window.PtoHif8Case7 = (function () {
         : `拟合为<b style="color:var(--h8-crit)">${H.fit}</b>(${H.fitNote}),峰度 ${H.kurt.toFixed(1)}、离群值多,<b>不适合直接量化</b> → 保留 BF16 或裁剪重尾离群值。`;
   }
   function drawRangeBar(H) {
-    const r = fit($('c7range'), 76); if (!r) return; const { c, w, h } = r; c.clearRect(0, 0, w, h);
-    const y = h / 2, barH = 20;
-    c.fillStyle = '#eef2f7'; c.fillRect(0, y - barH / 2, w, barH);
-    c.strokeStyle = '#e5e7eb'; c.strokeRect(0.5, y - barH / 2 + .5, w - 1, barH - 1);
+    const r = fit($('c7range'), 52); if (!r) return; const { c, w, h } = r; c.clearRect(0, 0, w, h);
+    const y = h / 2, barH = 16;
+    // 浅灰轨道
+    c.fillStyle = 'rgba(148,163,184,.16)'; drawRoundedBar(c, 0, y - barH / 2, w, barH, 6);
     const util = selLayer.util[cur];
-    const uw = w * util; const g = c.createLinearGradient(0, 0, uw, 0);
-    g.addColorStop(0, '#93c5fd'); g.addColorStop(1, util > 0.85 ? '#dc2626' : '#0ea5e9');
-    c.fillStyle = g; c.fillRect((w - uw) / 2, y - barH / 2 + 2, uw, barH - 4);
-    c.fillStyle = '#ffffff'; c.font = '11px ' + MONO; c.textAlign = 'center';
-    c.fillText((util * 100).toFixed(1) + '% 利用', w / 2, y + 3); c.textAlign = 'left';
-    c.fillStyle = '#94a3b8'; c.font = '9px ' + MONO; c.fillText('−448', 2, h - 4); c.textAlign = 'right'; c.fillText('+448', w - 2, h - 4); c.textAlign = 'left';
+    const uw = Math.max(4, w * util);
+    const sev = util > 0.85 ? 'crit' : 'ok';
+    const clr = sevColor[sev];
+    const grad = c.createLinearGradient(0, 0, uw, 0);
+    grad.addColorStop(0, sev === 'crit' ? '#f87171' : '#60a5fa');
+    grad.addColorStop(1, clr);
+    c.fillStyle = grad;
+    drawRoundedBar(c, 0, y - barH / 2, uw, barH, 6);
+    // 利用率文字
+    c.fillStyle = '#fff'; c.font = 'bold 10px ' + MONO; c.textAlign = 'center';
+    c.fillText((util * 100).toFixed(1) + '%', w / 2, y + 3.5); c.textAlign = 'left';
   }
 
   /* ============ 量化误差 ============ */
@@ -372,6 +493,32 @@ window.PtoHif8Case7 = (function () {
     }).join('');
     tb.querySelectorAll('tr').forEach(tr => tr.onclick = () => selectLayer(layers.find(l => l.name === tr.dataset.n)));
   }
+
+  /* ---------- 整网图溢出率叠加：把每层当前步溢出率映射到默认 L5 整网图的算子节点 id ----------
+     红/绿 2 档阈值 OVER_THRESH（>1% 视为截断风险，与表格「>1% 即为嫌疑」一致）。整网图为单个代表性
+     decoder layer，故同名算子（q_b_proj 等）跨 6 个块取「最差块」的溢出率（放大首害算子，命中叙事）。 */
+  const OVER_THRESH = 0.01;
+  let stepCb = null;
+  function graphNodeIdOf(L) {
+    if (L.depth === 0) return 'token_embedding';
+    if (L.name === 'final_norm') return 'final_norm';
+    if (L.name === 'lm_head') return 'lm_head';
+    return L.name.replace(/^L\d+\./, '');   // 去掉块前缀 → 整网图算子节点 id
+  }
+  // 返回 { nodeId: { over, tier, name, sqnr } }，供 training-run-twin 在 #graphStage 上注入右上角溢出率徽标
+  function overflowMap() {
+    const m = {};
+    layers.forEach(L => {
+      const id = graphNodeIdOf(L), ov = L.over[cur];
+      if (!m[id] || ov > m[id].over) {
+        m[id] = { over: ov, tier: ov > OVER_THRESH ? 'crit' : 'ok', name: L.name, sqnr: L.sqnr[cur] };
+      }
+    });
+    return m;
+  }
+  // 注册训练步/选层变化回调，整网图叠加层据此重绘徽标
+  function onStep(cb) { stepCb = typeof cb === 'function' ? cb : null; }
+
   function renderMetricChart() {
     const es = $('c7errSel'); if (es) es.textContent = selLayer.name;
     const r = fit($('c7metric'), 150); if (!r) return; const { c, w, h } = r; c.clearRect(0, 0, w, h);
@@ -423,7 +570,7 @@ window.PtoHif8Case7 = (function () {
           <div class="h8-b" style="height:${gH}px;background:var(--h8-grad);opacity:.7"></div>
           <div class="h8-b" style="height:${fH}px;background:var(--h8-signal2)"></div>
         </div>
-        <div class="h8-lbl">${d === 0 ? 'emb' : d === depths.length - 1 ? 'head' : 'blk' + (d - 1)}</div>
+        <div class="h8-lbl">${d === 0 ? 'emb' : d === depths.length - 1 ? 'head' : 'L' + (d - 1)}</div>
       </div>`;
     }).join('');
     flow.querySelectorAll('.h8-pcol').forEach(p => p.onclick = () => selectLayer(layers.find(l => l.name === p.dataset.n)));
@@ -443,7 +590,7 @@ window.PtoHif8Case7 = (function () {
       <div class="h8-read"><div class="l">输入端单层误差</div><div class="v">${(cum[1] || 0).toFixed(2)}</div></div>
       <div class="h8-read"><div class="l">输出端累积误差</div><div class="v" style="color:var(--h8-crit)">${cum[cum.length - 1].toFixed(2)}</div></div>
       <div class="h8-read"><div class="l">累积放大倍数</div><div class="v" style="color:var(--h8-crit)">×${amp}</div></div>
-      <div class="h8-read"><div class="l">主要放大深度</div><div class="v">blk3–blk5</div></div>`;
+      <div class="h8-read"><div class="l">主要放大深度</div><div class="v">L3–L5</div></div>`;
     const firstBad = [...layers].filter(L => L.sqnr[cur] < 30).sort((a, b) => a.depth - b.depth)[0];
     const ps = $('c7propSource');
     if (ps) ps.innerHTML = firstBad ? `
@@ -484,9 +631,13 @@ window.PtoHif8Case7 = (function () {
       const bh = (h - 20) / top.length;
       top.forEach((L, i) => {
         const y = 10 + i * bh; const bw = (w - 160) * L.sensPct / mx;
+        const barH = bh - 8, barR = Math.min(4, barH / 2);
+        c.fillStyle = CULPRIT[L.name] ? 'rgba(220,38,38,.18)' : 'rgba(148,163,184,.14)';
+        drawRoundedBar(c, 150, y + 3, (w - 160), barH, barR);
         c.fillStyle = CULPRIT[L.name] ? '#dc2626' : '#3b6fe0';
         c.globalAlpha = CULPRIT[L.name] ? 1 : .6;
-        c.fillRect(150, y + 3, bw, bh - 8); c.globalAlpha = 1;
+        drawRoundedBar(c, 150, y + 3, bw, barH, barR);
+        c.globalAlpha = 1;
         c.fillStyle = '#64748b'; c.font = '10px ' + MONO; c.textAlign = 'right'; c.fillText(L.name.replace('_proj', ''), 144, y + bh / 2 + 3); c.textAlign = 'left';
         c.fillStyle = '#1e293b'; c.fillText((L.sensPct * 100).toFixed(1) + '%', 150 + bw + 6, y + bh / 2 + 3);
       });
@@ -494,7 +645,7 @@ window.PtoHif8Case7 = (function () {
     const r2 = fit($('c7corr'), 240); if (r2) {
       const { c: cc, w: cw, h: ch } = r2; cc.clearRect(0, 0, cw, ch);
       grid(cc, cw, ch, 4);
-      const cul = selLayer && CULPRIT[selLayer.name] ? selLayer : layers.find(l => l.name === 'blk4.mlp.down_proj');
+      const cul = selLayer && CULPRIT[selLayer.name] ? selLayer : layers.find(l => l.name === 'L4.q_b_proj');
       const pad = 26;
       const xs = cul.sqnr.map(v => 40 - v), ys = dloss;
       const xmx = Math.max(...xs), ymx = Math.max(...ys);
@@ -511,20 +662,20 @@ window.PtoHif8Case7 = (function () {
     }
     const susp = [...layers].sort((a, b) => b.sensPct - a.sensPct).slice(0, 4);
     const advice = {
-      'blk4.mlp.down_proj': '该层保留 BF16 / 提高 per-channel scaling',
-      'blk3.attn.o_proj': '启用动态 scaling · 裁剪重尾离群值',
-      'blk5.mlp.down_proj': 'per-tensor→per-channel 量化',
+      'L4.q_b_proj': '该层保留 BF16 / 提高 per-channel scaling',
+      'L3.o_proj': '启用动态 scaling · 裁剪重尾离群值',
+      'L5.router_gate': 'per-tensor→per-channel 量化',
     };
     const host = $('c7suspects');
     if (host) host.innerHTML = susp.map((L, i) => `
       <div class="h8-suspect">
         <div class="rank">#${i + 1}</div>
-        <div class="info">
-          <div class="n">${L.name} <span class="h8-tag ${L.type}">${L.type}</span></div>
-          <div class="m">SQNR ${L.sqnr[cur].toFixed(1)}dB · 溢出 ${(L.over[cur] * 100).toFixed(2)}% · loss 贡献 ${(L.sensPct * 100).toFixed(1)}%</div>
+        <div class="s-main">
+          <div class="s-name">${L.name}<span class="h8-tag ${L.type}">${L.type}</span><span class="s-contrib">loss 贡献 ${(L.sensPct * 100).toFixed(1)}%</span></div>
+          <div class="s-bar"><i style="width:${L.sensPct / susp[0].sensPct * 100}%"></i></div>
+          <div class="s-meta">SQNR ${L.sqnr[cur].toFixed(1)}dB · 溢出 ${(L.over[cur] * 100).toFixed(2)}%</div>
+          <div class="s-act">${advice[L.name] || '检查数值范围'}</div>
         </div>
-        <div class="bar"><i style="width:${L.sensPct / susp[0].sensPct * 100}%"></i></div>
-        <div class="act">${advice[L.name] || '检查数值范围'}</div>
       </div>`).join('');
   }
 
@@ -561,6 +712,7 @@ window.PtoHif8Case7 = (function () {
     renderProp();
     renderAttr();
     updateScrubUI();
+    if (stepCb) stepCb();   // 通知整网图叠加层刷新溢出率徽标
   }
 
   function setPlayIcon() {
@@ -588,6 +740,61 @@ window.PtoHif8Case7 = (function () {
   }
 
   /* ---------- 交互绑定 ---------- */
+  // 图表悬浮 tooltip：复用页面已有的 diagnosis-bubble，鼠标在关键图表上滑动时显示该步指标
+  let _chartTip = null;
+  function chartTipEl() {
+    if (!_chartTip) {
+      _chartTip = document.createElement('div');
+      _chartTip.className = 'diagnosis-bubble';
+      _chartTip.style.cssText = 'position:fixed;padding:5px 9px;font-family:var(--h8-mono);font-size:10.5px;line-height:1.45;pointer-events:none;z-index:200;white-space:nowrap;display:none;border-radius:5px;';
+      document.body.appendChild(_chartTip);
+    }
+    return _chartTip;
+  }
+  function showChartTip(e, html) {
+    const tip = chartTipEl();
+    tip.innerHTML = html;
+    tip.style.display = 'block';
+    tip.style.left = Math.min(e.clientX + 14, window.innerWidth - 200) + 'px';
+    tip.style.top = (e.clientY - 36) + 'px';
+  }
+  function hideChartTip() { const tip = chartTipEl(); tip.style.display = 'none'; }
+
+  // 为折线图画布绑定悬浮：传入 canvas id、数据数组、格式化函数。
+  // 图表使用标准 X 映射 X(i) = pad + (canvasW - pad - padR) * i/(N-1)，鼠标就近匹配最近点。
+  const _chartHoverBound = {};
+  function bindLineChartHover(canvasId, dataArr, fmtFn) {
+    const cv = document.getElementById(canvasId);
+    if (!cv || _chartHoverBound[canvasId]) return;
+    _chartHoverBound[canvasId] = true;
+    const onMove = function(e) {
+      const rect = cv.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const w = rect.width;
+      // 标准图表参数（与 renderLoss/renderDelta 等一致）
+      const pad = 30, padR = 8;
+      const X = i => pad + (w - pad - padR) * i / (N - 1);
+      let bestI = 0, bestDist = 1e9;
+      for (let i = 0; i < N; i++) {
+        const d = Math.abs(X(i) - mx);
+        if (d < bestDist) { bestDist = d; bestI = i; }
+      }
+      if (bestDist > 28) { hideChartTip(); return; }
+      // 动态获取最新数据（selLayer 可能已切换）
+      const arr = typeof dataArr === 'function' ? dataArr() : dataArr;
+      const val = arr[bestI];
+      const sev = bestI >= DIV
+        ? (bestI >= DIV + 40 ? 'crit' : 'warn')
+        : 'ok';
+      const clr = sev === 'crit' ? '#dc2626' : sev === 'warn' ? '#ea580c' : '#16a34a';
+      const dot = sev === 'crit' ? '●' : sev === 'warn' ? '●' : '●';
+      showChartTip(e, `<span style="color:${clr}">${dot}</span> step&nbsp;${stepOf(bestI)}<br><b>${fmtFn ? fmtFn(val) : (typeof val === 'number' ? val.toFixed(4) : val)}</b>`);
+    };
+    cv.addEventListener('mousemove', onMove);
+    cv.addEventListener('mouseleave', hideChartTip);
+    // 保存引用以便后续更新数据源
+    cv._hoverData = { getData: Array.isArray(dataArr) ? () => dataArr : dataArr, fmtFn };
+  }
   function bind() {
     const range = $('c7stepRange');
     if (range) range.oninput = e => { cur = +e.target.value; redraw(); };
@@ -603,6 +810,43 @@ window.PtoHif8Case7 = (function () {
       if (k === sortKey) sortAsc = !sortAsc; else { sortKey = k; sortAsc = (k === 'sqnr' || k === 'cos'); }
       table.querySelectorAll('th').forEach(x => x.classList.toggle('sorted', x.dataset.s === sortKey));
       renderErrorTable();
+    });
+    // 图表悬浮展示指标（对标训练监控「精度」面板的 cursor tooltip）
+    bindLineChartHover('c7loss', lossHif, v => 'HiF8 loss ' + v.toFixed(4));
+    bindLineChartHover('c7delta', dloss, v => 'Δloss ' + (v > 0 ? '+' : '') + v.toFixed(4));
+    bindLineChartHover('c7logit', logitUnif, v => '打散度 ' + v.toFixed(3));
+    bindLineChartHover('c7metric', () => selLayer.sqnr, v => 'SQNR ' + v.toFixed(1) + ' dB');
+    // h8-help 问号气泡：改用页面共享的 #diagnosisTooltip 替代原生 title（后者在 overflow:hidden 祖先中可能不显示）
+    bindHelpBubbles();
+  }
+
+  const HELP_TEXTS = {
+    'error-table': '<b>溢出率</b>是最关键指标：FP8 E4M3 硬截断（&gt;±448→±448）不可逆，SQNR/余弦/MSE 均为后果。先看溢出率找首害算子（&gt;1% 即为嫌疑），再看 SQNR 确认量级。<br><br><b>整网图节点覆盖说明</b>：HiF8 精度诊断仅模拟<b>投影算子、归一化层、MLP 门/专家库</b>的 FP8 溢出行为。通信算子（all-to-all/all-gather/reduce-scatter）、因果卷积、残差连接、注意力核心等节点本身不参与 FP8 量化，故整网图上这些节点暂无溢出率标注。',
+  };
+
+  function bindHelpBubbles() {
+    const bubble = document.getElementById('diagnosisTooltip');
+    if (!bubble) return;
+    document.querySelectorAll('.h8-help[data-help-key]').forEach(function (el) {
+      if (el.dataset.helpBound) return;
+      el.dataset.helpBound = '1';
+      var html = HELP_TEXTS[el.dataset.helpKey] || '';
+      if (!html) return;
+      el.addEventListener('mouseenter', function (e) {
+        bubble.innerHTML = html;
+        bubble.hidden = false;
+        bubble.style.maxWidth = '320px';
+        bubble.style.left = Math.min(e.clientX + 14, window.innerWidth - 340) + 'px';
+        bubble.style.top = (e.clientY + 10) + 'px';
+      });
+      el.addEventListener('mousemove', function (e) {
+        bubble.style.left = Math.min(e.clientX + 14, window.innerWidth - 340) + 'px';
+        bubble.style.top = (e.clientY + 10) + 'px';
+      });
+      el.addEventListener('mouseleave', function () {
+        bubble.hidden = true;
+        bubble.style.maxWidth = '';
+      });
     });
   }
 
@@ -658,7 +902,7 @@ window.PtoHif8Case7 = (function () {
       </div>
       <div class="h8-grid" style="grid-template-columns:1fr 1.55fr;margin-top:14px">
         <div class="h8-card">
-          <h3>batch logit 分布 · 打散度 <span class="hint">对标 DeepSeek · 防 spike</span></h3>
+          <h3>batch logit 分布 · 打散度 <span class="hint">openPangu 2.0 Flash · 防 spike</span></h3>
           <canvas id="c7logit"></canvas>
           <div class="h8-readgrid" style="grid-template-columns:1fr 1fr">
             <div class="h8-read"><div class="l">当前打散度</div><div class="v" id="c7ovUnif">—</div></div>
@@ -827,13 +1071,13 @@ window.PtoHif8Case7 = (function () {
   /* ---------- 对外：定位链结构 ---------- */
   function chain() {
     return {
-      title: "定位链 · HiF8 低精度训练精度诊断工作台",
-      meta: "路径:概览 → 张量分布 → 量化误差 → 误差传播 → 根因分析（对标 hif8-precision-workbench）",
+      title: "定位链 · HiF8 低精度训练精度诊断工作台（openPangu 2.0 Flash）",
+      meta: "路径:概览 → 张量分布 → 量化误差 → 误差传播 → 根因分析（算子对标 openPangu 2.0 Flash 整网图）",
       steps: [
-        { label: "概览", short: "健康分 / 多格式对照", sub: "WHEN · HiF8 候选格式 step 3150 首次发散，BF16 / MXFP8 正常收敛", content: sectionOverview() },
+        { label: "概览", short: "健康分 / 多格式对照", sub: "WHEN · HiF8 候选格式下 openPangu 2.0 Flash 训练至 step 3150 首次发散，BF16 / MXFP8 正常收敛", content: sectionOverview() },
         { label: "分叉判定", sub: "候选格式发散 · 切入数值精度分支", branch: true },
-        { label: "张量分布", short: "直方图 / 量化适配度", sub: "WHICH · 权重/激活/梯度分布 vs HiF8 ±448 可表示栅格", content: sectionDist() },
-        { label: "量化误差", short: "SQNR / 溢出 / 热力图", sub: "WHAT · 层×算子级 SQNR·余弦·MSE·溢出率与随步演化", content: sectionError() },
+        { label: "张量分布", short: "直方图 / 量化适配度", sub: "WHICH · 权重/激活/梯度分布 vs HiF8 E4M3 ±448 可表示栅格", content: sectionDist() },
+        { label: "量化误差", short: "SQNR / 溢出 / 热力图", sub: "WHAT · openPangu 2.0 Flash 层×算子级 SQNR·余弦·MSE·溢出率随步演化", content: sectionError() },
         { label: "误差传播", short: "累积放大 ×N", sub: "WHERE · 误差沿网络深度累积放大，定位首个越 30dB 红线算子", content: sectionProp() },
         { label: "根因分析", short: "敏感度 / 相关性 / 处置", sub: "FIX · 扰动归因 + SQNR-Δloss 相关性锁定嫌疑算子并给处置建议", content: sectionAttr() },
       ],
@@ -851,5 +1095,5 @@ window.PtoHif8Case7 = (function () {
     }));
   }
 
-  return { chain, renderAll, stop };
+  return { chain, renderAll, stop, overflowMap, onStep, bindHelpBubbles, OVER_THRESH };
 })();

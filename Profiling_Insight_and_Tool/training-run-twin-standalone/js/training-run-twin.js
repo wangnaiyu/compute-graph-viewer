@@ -1586,14 +1586,7 @@
     const group = stage?.querySelector(`[data-node-id="${nodeId}"]`);
     if (!group) return;
     group.classList.add(className);
-    if (className !== "pto-diagnosis-active" || group.querySelector(".pto-diagnosis-pulse-ring")) return;
-    const rect = group.querySelector("rect");
-    if (!rect) return;
-    const ring = rect.cloneNode(false);
-    ring.removeAttribute("fill");
-    ring.removeAttribute("fill-opacity");
-    ring.setAttribute("class", "pto-diagnosis-pulse-ring");
-    group.appendChild(ring);
+    // 涟漪(呼吸)效果已按需求移除:命中节点只保留静态红色描边,不再克隆脉冲环
   }
 
   function markEdgeActive(stage, source, target, className) {
@@ -1623,20 +1616,28 @@
       var dims = { w: parseFloat(rect.getAttribute("width") || "0"), h: parseFloat(rect.getAttribute("height") || "0") };
       if (!dims.w) return;
 
-      var FS = 18, PILLH = 32, PADX = 12, GAP = 4;
-      var labelText = "问题" + marker.num;
+      // 徽标改为「与所属节点同宽」的两行标签条：上排「问题N」+ 下排问题标题(超宽自动省略号截断)。
+      // 宽度严格等于节点本体宽度、左右边缘对齐节点，天然不会侵入相邻节点/连线的空间；
+      // 部分案例共用同一 anchor 节点(如 query_tensor 挂问题二+三、router_gate 挂问题一+六)时，
+      // 仍沿用原有「与已放置徽标重叠则整体上移一层」避让逻辑纵向堆叠，互不遮挡。
+      var ROW1_FS = 14, ROW2_FS = 11.5, PILLH = 46, PADX = 12, PADY = 6, ROW_GAP = 3, GAP = 4;
+      var numText = "问题" + marker.num;
+      var titleText = marker.label || "";
 
-      var tmpLabel = document.createElementNS(NS, "text");
-      tmpLabel.setAttribute("font-size", FS);
-      tmpLabel.setAttribute("font-weight", "700");
-      tmpLabel.setAttribute("font-family", "system-ui, sans-serif");
-      tmpLabel.textContent = labelText;
-      nodeGroup.appendChild(tmpLabel);
-      var tw = 0;
-      try { tw = tmpLabel.getBBox().width; } catch (e) { tw = labelText.length * FS * 0.62; }
-      nodeGroup.removeChild(tmpLabel);
+      function measure(str, fs, weight) {
+        var t = document.createElementNS(NS, "text");
+        t.setAttribute("font-size", fs);
+        t.setAttribute("font-weight", weight || "500");
+        t.setAttribute("font-family", "system-ui, sans-serif");
+        t.textContent = str;
+        nodeGroup.appendChild(t);
+        var w = 0;
+        try { w = t.getBBox().width; } catch (e) { w = str.length * fs * 0.62; }
+        nodeGroup.removeChild(t);
+        return w;
+      }
 
-      var pillW = PADX + tw + PADX;
+      var pillW = Math.max(dims.w, 96);
       // 贴在节点上方，不遮挡节点本体
       var pillLeft = -dims.w / 2;
       var pillTop = -dims.h / 2 - PILLH - GAP;
@@ -1662,21 +1663,40 @@
       var bg = document.createElementNS(NS, "rect");
       bg.setAttribute("x", pillLeft); bg.setAttribute("y", pillTop);
       bg.setAttribute("width", pillW); bg.setAttribute("height", PILLH);
-      bg.setAttribute("rx", PILLH / 2); bg.setAttribute("ry", PILLH / 2);
+      bg.setAttribute("rx", 10); bg.setAttribute("ry", 10);
       bg.setAttribute("fill", "var(--danger, #FF4B7B)");
       badge.appendChild(bg);
 
-      // 白色文字
-      var label = document.createElementNS(NS, "text");
-      label.setAttribute("x", pillLeft + PADX);
-      label.setAttribute("y", pillTop + PILLH / 2);
-      label.setAttribute("dominant-baseline", "central");
-      label.setAttribute("fill", "#ffffff");
-      label.setAttribute("font-size", FS);
-      label.setAttribute("font-weight", "700");
-      label.setAttribute("font-family", "system-ui, sans-serif");
-      label.textContent = labelText;
-      badge.appendChild(label);
+      // 上排：问题序号
+      var numEl = document.createElementNS(NS, "text");
+      numEl.setAttribute("x", pillLeft + PADX);
+      numEl.setAttribute("y", pillTop + PADY + ROW1_FS * 0.85);
+      numEl.setAttribute("fill", "#ffffff");
+      numEl.setAttribute("font-size", ROW1_FS);
+      numEl.setAttribute("font-weight", "700");
+      numEl.setAttribute("font-family", "system-ui, sans-serif");
+      numEl.textContent = numText;
+      badge.appendChild(numEl);
+
+      // 下排：问题标题，超出徽标可用宽度时逐字裁剪并加省略号(完整标题仍在 hover 提示中)
+      var maxTitleW = pillW - PADX * 2;
+      var shownTitle = titleText;
+      if (measure(shownTitle, ROW2_FS) > maxTitleW) {
+        while (shownTitle.length > 1 && measure(shownTitle + "…", ROW2_FS) > maxTitleW) {
+          shownTitle = shownTitle.slice(0, -1);
+        }
+        shownTitle = shownTitle + "…";
+      }
+      var titleEl = document.createElementNS(NS, "text");
+      titleEl.setAttribute("x", pillLeft + PADX);
+      titleEl.setAttribute("y", pillTop + PADY + ROW1_FS + ROW_GAP + ROW2_FS * 0.85);
+      titleEl.setAttribute("fill", "#ffffff");
+      titleEl.setAttribute("fill-opacity", "0.92");
+      titleEl.setAttribute("font-size", ROW2_FS);
+      titleEl.setAttribute("font-weight", "500");
+      titleEl.setAttribute("font-family", "system-ui, sans-serif");
+      titleEl.textContent = shownTitle;
+      badge.appendChild(titleEl);
 
       nodeGroup.appendChild(badge);
 
@@ -1874,9 +1894,14 @@
 
   // ── 热力图 infra 问题高亮 ─────────────────────────────────────────────────
   var INFRA_HEAT_MAP = {
-    "moe-a2a":           { hotCells: [23], warmCells: [16,17,18,19,20,21,22] },
-    "nvlink":            { hotCells: [19, 20], warmCells: [16,17,18,21,22,23] },
-    "perf-comm-straggler": { hotCells: [17, 23, 41] },
+    "moe-a2a":           { hotCells: [23], warmCells: [16,17,18,19,20,21,22],
+                           hotWarn: "空等 · all-to-all send/recv 死锁,阻塞其余 rank",
+                           warmWarn: "空等 · all-to-all 超时,等待 rank 23 迟迟不返回" },
+    "nvlink":            { hotCells: [19, 20], warmCells: [16,17,18,21,22,23],
+                           hotWarn: "空等 · HCCS 链路掉线,HCCL 回退 RoCE 慢路径",
+                           warmWarn: "空等 · PP pipeline 被慢路径拖住,等待上游数据" },
+    "perf-comm-straggler": { hotCells: [17, 23, 41],
+                           hotWarn: "空等 · straggler 承接 5× token,all-to-all 尾延迟拖慢全组" },
   };
 
   function applyInfraHeatHighlight(caseKey) {
@@ -1912,18 +1937,73 @@
     if (dstCells.length !== srcCells.length) {
       renderHeatShell(dst); // 首次或结构变化:重建与 #heat 同款的 DP/PP/EP 外壳
       dstCells = dst.querySelectorAll(".twin-heat-cell");
+      bindLocateInfraHeatBubble(dst); // 悬浮气泡(展示 rank 内容,复用监控栏 data-tip)只需绑定一次
     }
     for (var i = 0; i < srcCells.length; i++) {
       var s = srcCells[i], d = dstCells[i];
       if (!d) continue;
       d.className = s.className;            // util-low/mid/high、thermal、straggler 等
       d.style.cssText = s.style.cssText;    // EP 底色 + util 描边 + PP 分界
+      d.dataset.tip = s.dataset.tip || ""; // 镜像监控栏的 rank 悬浮内容(node/rank/util/温度/HBM/DP·Stage·EP)
       d.classList.remove("is-infra-hot", "is-infra-warm"); // 标记由下方按本问题重新叠加
+      delete d.dataset.tipWarn;            // 上一问题的「空等」红字先清掉
     }
     var map = INFRA_HEAT_MAP[caseKey];
     if (!map) return;
-    (map.hotCells || []).forEach(function (idx) { if (dstCells[idx]) dstCells[idx].classList.add("is-infra-hot"); });
-    (map.warmCells || []).forEach(function (idx) { if (dstCells[idx]) dstCells[idx].classList.add("is-infra-warm"); });
+    (map.hotCells || []).forEach(function (idx) {
+      if (!dstCells[idx]) return;
+      dstCells[idx].classList.add("is-infra-hot");
+      if (map.hotWarn) dstCells[idx].dataset.tipWarn = map.hotWarn;
+    });
+    (map.warmCells || []).forEach(function (idx) {
+      if (!dstCells[idx]) return;
+      dstCells[idx].classList.add("is-infra-warm");
+      if (map.warmWarn) dstCells[idx].dataset.tipWarn = map.warmWarn;
+    });
+  }
+
+  // infra层集群图悬浮气泡:复用监控栏 data-tip 的 rank 内容,有问题的 rank 再补一行「空等」红字。
+  // CSS ::after 的 attr() 无法给单行上色,故改用挂到 body 的 JS 气泡,跟随光标、不被 overflow 祖先截断。
+  var locateInfraBubble = null;
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function ensureLocateInfraBubble() {
+    if (locateInfraBubble) return locateInfraBubble;
+    locateInfraBubble = document.createElement("div");
+    locateInfraBubble.className = "locate-infra-bubble";
+    locateInfraBubble.hidden = true;
+    document.body.appendChild(locateInfraBubble);
+    return locateInfraBubble;
+  }
+  function bindLocateInfraHeatBubble(host) {
+    if (!host || host.dataset.bubbleBound) return;
+    host.dataset.bubbleBound = "1";
+    var bubble = ensureLocateInfraBubble();
+    function moveTo(e) {
+      var pad = 14;
+      var x = e.clientX + pad;
+      var y = e.clientY + pad;
+      var r = bubble.getBoundingClientRect();
+      if (x + r.width > window.innerWidth - 8) x = e.clientX - pad - r.width;
+      if (y + r.height > window.innerHeight - 8) y = e.clientY - pad - r.height;
+      bubble.style.left = Math.max(8, x) + "px";
+      bubble.style.top = Math.max(8, y) + "px";
+    }
+    host.addEventListener("mousemove", function (e) {
+      var cell = e.target.closest && e.target.closest(".twin-heat-cell");
+      if (!cell || !cell.dataset.tip) { bubble.hidden = true; return; }
+      var html = escapeHtml(cell.dataset.tip).replace(/\n/g, "<br>");
+      if (cell.dataset.tipWarn) {
+        html += '<div class="locate-infra-bubble__warn">' + escapeHtml(cell.dataset.tipWarn) + "</div>";
+      }
+      bubble.innerHTML = html;
+      bubble.hidden = false;
+      moveTo(e);
+    });
+    host.addEventListener("mouseleave", function () { bubble.hidden = true; });
   }
 
   // 点击后进入「聚焦」模式:命中节点/连线保持不透明,整网图其余部分淡出到 50%
@@ -1939,22 +2019,48 @@
       info.nodeIds.forEach(function(id) { markNodeActive(stage, id, "pto-diagnosis-focus-active"); });
       info.edges.forEach(function(e) { markEdgeActive(stage, e[0], e[1], "pto-diagnosis-focus-active"); });
       (info.clusterIds || []).forEach(function(cid) { markClusterActive(stage, cid, "pto-diagnosis-focus-active"); });
-      // 自动平移画布，让问题相关节点居中显示
-      panToProblemNodes(stage, info.nodeIds);
+      // 自动平移画布，让问题相关节点（含所属 cluster）居中显示
+      panToProblemNodes(stage, info.nodeIds, info.clusterIds || []);
     }
     hideDiagnosisLocator();
   }
 
-  // 将画布平移到问题命中节点的中心区域
-  function panToProblemNodes(stage, nodeIds) {
-    if (!nodeIds || !nodeIds.length) return;
+  // 将画布平移到问题命中节点/Cluster 的中心区域，以 cluster 边界为主精准缩放
+  function panToProblemNodes(stage, nodeIds, clusterIds) {
+    if ((!nodeIds || !nodeIds.length) && (!clusterIds || !clusterIds.length)) return;
     var svg = stage.querySelector("svg");
     if (!svg) return;
     // 从 opv-modelviz 的 state 获取 controller（挂载在 svg 上）
     var ctrl = svg.ptoModelGraphvizController;
     if (!ctrl) return;
     var bounds = null;
-    nodeIds.forEach(function(id) {
+    var expand = function(x, y, w, h) {
+      if (!bounds) { bounds = { x1: x, y1: y, x2: x + w, y2: y + h }; }
+      else {
+        bounds.x1 = Math.min(bounds.x1, x);
+        bounds.y1 = Math.min(bounds.y1, y);
+        bounds.x2 = Math.max(bounds.x2, x + w);
+        bounds.y2 = Math.max(bounds.y2, y + h);
+      }
+    };
+
+    // 1) 优先取 cluster 的边界框（cluster 已经包含其内部所有子节点，精准代表"整个框"）
+    if (clusterIds && clusterIds.length) {
+      clusterIds.forEach(function(cid) {
+        var cluster = stage.querySelector('[data-cluster-id="' + cid + '"]');
+        if (!cluster) return;
+        var rect = cluster.querySelector("rect");
+        if (!rect) return;
+        var x = parseFloat(rect.getAttribute("x") || "0");
+        var y = parseFloat(rect.getAttribute("y") || "0");
+        var w = parseFloat(rect.getAttribute("width") || "0");
+        var h = parseFloat(rect.getAttribute("height") || "0");
+        if (w > 0 && h > 0) expand(x, y, w, h);
+      });
+    }
+
+    // 2) 再补上独立节点（不在任何命中 cluster 内的散点）
+    (nodeIds || []).forEach(function(id) {
       var group = stage.querySelector('[data-node-id="' + id + '"]');
       if (!group) return;
       var rect = group.querySelector("rect");
@@ -1966,21 +2072,16 @@
       // 节点坐标在 group 的 transform 中
       var tx = parseFloat(group.getAttribute("transform")?.match(/translate\(([^,]+)/)?.[1] || "0");
       var ty = parseFloat(group.getAttribute("transform")?.match(/,\s*([^)]+)/)?.[1] || "0");
-      if (!bounds) { bounds = { x1: tx + x, y1: ty + y, x2: tx + x + w, y2: ty + y + h }; }
-      else {
-        bounds.x1 = Math.min(bounds.x1, tx + x);
-        bounds.y1 = Math.min(bounds.y1, ty + y);
-        bounds.x2 = Math.max(bounds.x2, tx + x + w);
-        bounds.y2 = Math.max(bounds.y2, ty + y + h);
-      }
+      expand(tx + x, ty + y, w, h);
     });
+
     if (!bounds) return;
     var cx = (bounds.x1 + bounds.x2) / 2;
     var cy = (bounds.y1 + bounds.y2) / 2;
-    var viewBox = svg.viewBox.baseVal;
-    var vbW = viewBox.width, vbH = viewBox.height;
     var stageW = stage.clientWidth, stageH = stage.clientHeight;
-    var zoom = Math.min(stageW / (bounds.x2 - bounds.x1 + 120), stageH / (bounds.y2 - bounds.y1 + 120), 1.8);
+    // 四周留白（SVG viewport 坐标）：上下各 40px，左右各 60px 让红框不会贴边
+    var padX = 60, padY = 40;
+    var zoom = Math.min(stageW / (bounds.x2 - bounds.x1 + padX * 2), stageH / (bounds.y2 - bounds.y1 + padY * 2), 1.8);
     zoom = Math.max(0.25, Math.min(2.6, zoom));
     ctrl.setTransform({ zoom: zoom, tx: stageW / 2 - cx * zoom, ty: stageH / 2 - cy * zoom });
   }
@@ -2033,6 +2134,7 @@
           // 由 syncLocateInfraHeat() 把当前 util 着色镜像到 #locateInfraHeat,再叠加本问题的 hot/warm 标记。
           content: `
             <div class="twin-infra-heat-block">
+              <p style="margin:0 0 8px;font-size:11px;color:var(--foreground-secondary);line-height:1.5"><strong style="color:#dc2626">node 2</strong> 的异常着色形成了本次病因指纹：</p>
               <div id="locateInfraHeat" class="twin-heat locate-infra-heat"></div>
               <div class="twin-legend" style="margin-top:8px;font-size:11px">
                 <span><i class="twin-swatch twin-swatch-util-low"></i>&lt;70% util</span>
@@ -2561,9 +2663,10 @@
       const el = container.querySelector(`[data-locate-chart="${key}"]`);
       if (!el || !baseCfg) return;
       const cfg = buildLocateMetricCfg(baseCfg);
-      // 图例挂在 head 里(固定高度,不参与图表容器的测量),不用引擎内置图例,避免高度反复增长
-      const head = el.closest(".twin-locate-metric-card")?.querySelector(".twin-locate-metric-card__head");
-      if (head) head.appendChild(buildAccLegend(cfg.series));
+      // 图例参考「精度」图表:放在标题(head)下方独占一行,而非挤在标题右侧;
+      // 仍不用引擎内置图例(会参与图表容器测量,配合 auto-height 越拉越高)
+      const card = el.closest(".twin-locate-metric-card");
+      if (card) card.insertBefore(buildAccLegend(cfg.series), el);
       locateMetricCards.push({ el, cfg, ctrl: null, size: { w: 0, h: 0 } });
     });
     if (locateMetricCards.length) requestAnimationFrame(() => syncLocateMetricCharts(true));
@@ -2934,15 +3037,15 @@
   //   router → dispatch(all-to-all) → {shared + routed experts} → combine(all-to-all) → MoE merge(+残差)
   function lvModules() {
     return [
-      { id: "in_norm",   y: 648, h: 30, color: LV_BASE.cExpert, label: "input_layernorm", note: "RmsNorm" },
-      { id: "mla",       y: 536, h: 92, color: LV_BASE.cAttn,   label: "MLA 注意力",
+      { id: "in_norm",   y: 688, h: 30, color: LV_BASE.cExpert, label: "input_layernorm", note: "RmsNorm" },
+      { id: "mla",       y: 584, h: 92, color: LV_BASE.cAttn,   label: "MLA 注意力",
         note: ["q_lora[7168→1536] · kv_lora[7168→512]", "128 heads · d=192 · attn_output→7168"] },
-      { id: "post_norm", y: 484, h: 30, color: LV_BASE.cExpert, label: "post_attention_layernorm", note: "RmsNorm · +残差" },
-      { id: "router",    y: 430, h: 34, color: LV_BASE.cRoute,  label: "router",
+      { id: "post_norm", y: 534, h: 38, color: LV_BASE.cExpert, label: "post_attention_layernorm", note: "RmsNorm · +残差" },
+      { id: "router",    y: 488, h: 34, color: LV_BASE.cRoute,  label: "router",
         note: `top-${LV_BASE.topK}/${LV_BASE.routedExperts} · n_group=${LV_BASE.nGroup} · topk_group=${LV_BASE.topkGroup}` },
-      { id: "dispatch",  y: 392, h: 26, color: LV_BASE.cRoute,  label: "token dispatch", note: "all-to-all (EP dispatch)" },
-      { id: "experts",   y: 210, h: 158, color: LV_BASE.cExpert, label: "expert pool", note: "" }, // 64 卡 × 4 expert 网格,特殊绘制
-      { id: "combine",   y: 158, h: 26, color: LV_BASE.cRoute,  label: "token combine", note: "all-to-all (EP combine)" },
+      { id: "dispatch",  y: 438, h: 38, color: LV_BASE.cRoute,  label: "token dispatch", note: "all-to-all (EP dispatch)" },
+      { id: "experts",   y: 222, h: 180, color: LV_BASE.cExpert, label: "expert pool", note: "" }, // 64 卡 × 4 expert 网格,特殊绘制
+      { id: "combine",   y: 158, h: 38, color: LV_BASE.cRoute,  label: "token combine", note: "all-to-all (EP combine)" },
       { id: "merge",     y: 110, h: 30, color: LV_BASE.cFlow,   label: "MoE merge",
         note: "shared + Σ(routed_i × g_i) · +残差" },
     ];
@@ -2976,7 +3079,7 @@
     const LV = lvColorMode === "off"
       ? Object.assign({}, LV_BASE, { cAttn: LV_NEUTRAL, cRoute: LV_NEUTRAL, cExpert: LV_NEUTRAL, cFlow: LV_NEUTRAL })
       : LV_BASE;
-    const VW = 1180, VH = 720;
+    const VW = 1180, VH = 820;
     const x0 = 150, railW = 1018;
     const panelW = 752, gap = 20;
     const normalStep = (railW - panelW - gap * 2) / (LV.layers - 1);
@@ -2987,7 +3090,7 @@
     };
     const modules = lvModules().map((m) => (lvColorMode === "off" ? Object.assign({}, m, { color: LV_NEUTRAL }) : m));
     const laneY = Object.fromEntries(modules.map((m) => [m.id, m.y]));
-    const railTop = 78, railBot = 678;
+    const railTop = 78, railBot = 778;
     const isMoe = expandedLayer >= LV.denseLayers;
 
     // 背景 lane 引导线(横跨层轨,对齐展开面板各模块中心)——让展开面板读起来就是被拉宽的那一层
@@ -3010,13 +3113,13 @@
         if (isDense && ["router", "dispatch", "experts", "combine"].includes(m.id)) return "";
         const cy = m.y + m.h / 2;
         const mh = Math.min(m.h, 24);
-        return `<rect x="${x - 3}" y="${cy - mh / 2}" width="6" height="${mh}" rx="1.5" fill="${m.color}" opacity=".5"></rect>`;
+        return `<rect x="${x - 3}" y="${cy - mh / 2}" width="6" height="${mh}" rx="1.5" fill="${m.color}" opacity=".65"></rect>`;
       }).join("");
       const denseFfn = isDense
-        ? `<rect x="${x - 3}" y="${laneY.experts + 40}" width="6" height="70" rx="1.5" fill="#9ca3af" opacity=".5"></rect>`
+        ? `<rect x="${x - 3}" y="${laneY.experts + 40}" width="6" height="70" rx="1.5" fill="#9ca3af" opacity=".65"></rect>`
         : "";
       layerTicks.push(`
-        <g data-lv-layer="${layer}" opacity=".6">
+        <g data-lv-layer="${layer}" opacity=".8">
           <rect x="${x - 7}" y="${railTop}" width="14" height="${railBot - railTop}" rx="3" fill="transparent"></rect>
           ${marks}${denseFfn}
         </g>`);
@@ -3035,7 +3138,7 @@
       if (denseMode && m.id === "merge") { label = "Dense FFN 输出"; notes = ["+ 残差"]; }
       const bx = px + 40, bw = panelW - 80;
       const noteLines = notes.map((line, i) =>
-        `<text class="lv-tiny mono" x="${pcx}" y="${m.y + m.h - 8 - (notes.length - 1 - i) * 13}" text-anchor="middle" opacity=".85">${line}</text>`).join("");
+        `<text class="lv-tiny mono" x="${pcx}" y="${m.y + m.h - 8 - (notes.length - 1 - i) * 13}" text-anchor="middle">${line}</text>`).join("");
       return `
         <rect x="${bx}" y="${m.y}" width="${bw}" height="${m.h}" rx="7"
           fill="color-mix(in srgb, ${m.color} 22%, var(--surface-1))" stroke="${m.color}" stroke-opacity=".7"></rect>
@@ -3074,10 +3177,10 @@
         const hot = selected.find((s) => s.card === card && s.cell === cell && s.hot);
         let fill, op, extra = "";
         if (hotExpert != null) {
-          // 事故层:格子亮度 ∝ 该 expert 的 token 量。98% 全压在 E47(亮红),其余 63 个 ≈0(极淡)——
+          // 事故层:格子亮度 ∝ 该 expert 的 token 量。98% 全压在 E47(亮红),其余 63 个用可见底色——
           // 直接体现模型层 §4「98% token → expert 47,其余 63 expert 几乎无 token」的路由倾斜。
           fill = hot ? LV.cHot : LV.cExpert;
-          op = hot ? 1 : 0.12;
+          op = hot ? 1 : 0.35;
         } else {
           // 均衡层:高亮该 token 命中的 top-8
           const sel = selKey.has(`${card}.${cell}`);
@@ -3089,14 +3192,14 @@
           fill="${fill}" opacity="${op}" ${extra}></rect>`;
       }
     }
-    // 卡编号:每 4 卡标一次 rank,外加倾斜卡 r23
+    // 卡编号:每 4 卡标一次 rank,外加倾斜卡 r23(缩小字号避免与邻近 r20/r24 标签重叠)
     let cardLabels = "";
     for (let card = 0; card < 64; card += 4) {
       const p = cardPos(card);
-      cardLabels += `<text class="lv-tiny mono" x="${p.x}" y="${p.y - 2}" opacity=".5" style="font-size:8px">r${card}</text>`;
+      cardLabels += `<text class="lv-tiny mono" x="${p.x}" y="${p.y - 2}" style="font-size:7px">r${card}</text>`;
     }
     const rHot = cardPos(23);
-    cardLabels += `<text class="lv-tiny mono" x="${rHot.x + cardW / 2}" y="${rHot.y - 3}" text-anchor="middle" fill="${LV.cHot}" style="font-weight:800;font-size:9px">EP rank 23</text>`;
+    cardLabels += `<text class="lv-tiny mono" x="${rHot.x + cardW / 2}" y="${rHot.y - 6}" text-anchor="middle" fill="${LV.cHot}" style="font-weight:800;font-size:7px">EP rank 23</text>`;
 
     // 均衡层:dispatch 条 → 命中 expert → combine 条 的静态扇形连线(粗细 ∝ vol)。
     // 事故层不画这套,改用下面的两阶段 all-to-all 动画。
@@ -3151,7 +3254,6 @@
       <text class="lv-tiny" x="${shX + shW / 2}" y="${gY + gH / 2 + 10}" text-anchor="middle">×1</text>
       <path d="M${shX + shW / 2} ${dispY + 6} V${gY + gH}" stroke="${LV.cAttn}" stroke-width="3" fill="none" opacity=".6" stroke-dasharray="5 4"></path>
       <path d="M${shX + shW / 2} ${gY} V${combY - 6}" stroke="${LV.cAttn}" stroke-width="3" fill="none" opacity=".6" stroke-dasharray="5 4"></path>
-      <text class="lv-tiny" x="${shX}" y="${gY - 8}" fill="color-mix(in srgb, ${LV.cAttn} 90%, #000)">全 token · 不走 a2a</text>
     ` : "";
 
     // ── 体现 定位链.md L128:rank 23 的 all-to-all send/recv buffer 失配 ──
@@ -3162,13 +3264,13 @@
       const gx = px + 396, barX = gx + 40, barMaxW = 148;
       const recvW = barMaxW, sendW = 3; // send≈0 只画一个空心红槽
       mismatchGauge = `
-        <text class="lv-tiny" x="${gx}" y="${em + 12}" fill="${LV.cHot}" style="font-weight:800">EP rank 23 all-to-all buffer 失配 → 死锁</text>
-        <text class="lv-tiny" x="${gx}" y="${em + 27}">send</text>
-        <rect x="${barX}" y="${em + 20}" width="${sendW}" height="8" rx="1" fill="none" stroke="${LV.cHot}" stroke-width="1"></rect>
-        <text class="lv-tiny mono" x="${barX + 10}" y="${em + 27}" fill="${LV.cHot}" style="font-weight:800">0(无 token 外发)</text>
-        <text class="lv-tiny" x="${gx}" y="${em + 39}">recv</text>
-        <rect x="${barX}" y="${em + 32}" width="${recvW}" height="8" rx="1" fill="${LV.cHot}"></rect>
-        <text class="lv-tiny mono" x="${barX + recvW + 6}" y="${em + 39}" fill="${LV.cHot}" style="font-weight:800">2048×4608×8 ≈ 151MB</text>`;
+        <text class="lv-tiny" x="${gx}" y="${em + 50}" fill="${LV.cHot}" style="font-weight:800">EP rank 23 all-to-all buffer 失配 → 死锁</text>
+        <text class="lv-tiny" x="${gx}" y="${em + 62}">send</text>
+        <rect x="${barX}" y="${em + 55}" width="${sendW}" height="8" rx="1" fill="none" stroke="${LV.cHot}" stroke-width="1"></rect>
+        <text class="lv-tiny mono" x="${barX + 10}" y="${em + 62}" fill="${LV.cHot}" style="font-weight:800">0(无 token 外发)</text>
+        <text class="lv-tiny" x="${gx}" y="${em + 74}">recv</text>
+        <rect x="${barX}" y="${em + 67}" width="${recvW}" height="8" rx="1" fill="${LV.cHot}"></rect>
+        <text class="lv-tiny mono" x="${barX + recvW + 6}" y="${em + 74}" fill="${LV.cHot}" style="font-weight:800">2048×4608×8 ≈ 151MB</text>`;
     }
     const expertsTitle = isMoe && hotExpert != null
       ? `routed experts · ${LV.routedExperts} → EP64(64 卡 × 4)`
@@ -3196,7 +3298,7 @@
     const cyOf = (id) => { const m = modules.find((x) => x.id === id); return m.y + m.h / 2; };
     const seg = (id) => modules.find((m) => m.id === id).h / 2;
     let order = ["in_norm", "mla", "post_norm", "router", "dispatch"];
-    let flow = `<path d="M${pcx} 690 V${cyOf("in_norm") + 15}" stroke="${LV.cFlow}" stroke-width="3.4" fill="none" marker-end="url(#lvArrow)" opacity=".85"></path>`;
+    let flow = `<path d="M${pcx} 700 V${cyOf("in_norm") + 15}" stroke="${LV.cFlow}" stroke-width="3.4" fill="none" marker-end="url(#lvArrow)" opacity=".85"></path>`;
     if (denseMode) order = ["in_norm", "mla", "post_norm"];
     for (let i = 0; i < order.length - 1; i += 1) {
       flow += `<path d="M${pcx} ${cyOf(order[i]) - seg(order[i])} V${cyOf(order[i + 1]) + seg(order[i + 1])}"
@@ -3214,7 +3316,7 @@
     // 残差跳线
     const resX = px + panelW - 22;
     const residual = `
-      <path d="M${resX} 690 V${cyOf("post_norm")}" stroke="${LV.cFlow}" stroke-width="1.6" stroke-dasharray="4 4" fill="none" opacity=".4"></path>
+      <path d="M${resX} 700 V${cyOf("post_norm")}" stroke="${LV.cFlow}" stroke-width="1.6" stroke-dasharray="4 4" fill="none" opacity=".4"></path>
       <path d="M${resX} ${cyOf("mla")} V${cyOf("merge")}" stroke="${LV.cFlow}" stroke-width="1.6" stroke-dasharray="4 4" fill="none" opacity=".4"></path>
       <text class="lv-tiny" x="${resX + 4}" y="${(cyOf("post_norm") + cyOf("merge")) / 2}" opacity=".5">残差</text>`;
 
@@ -3250,12 +3352,12 @@
           </marker>
         </defs>
         <rect x="0" y="0" width="${VW}" height="${VH}" rx="12" fill="color-mix(in srgb, var(--surface-1) 40%, transparent)"></rect>
-        <rect x="${moeX1}" y="52" width="${moeX2 - moeX1}" height="632" rx="6" fill="none" stroke="${LV.cRoute}" stroke-width="1.6" stroke-dasharray="7 6" opacity=".4"></rect>
+        <rect x="${moeX1}" y="52" width="${moeX2 - moeX1}" height="706" rx="6" fill="none" stroke="${LV.cRoute}" stroke-width="1.6" stroke-dasharray="7 6" opacity=".4"></rect>
         <text class="lv-tiny" x="${(moeX1 + moeX2) / 2}" y="46" text-anchor="middle" opacity=".7">MoE 层 L3–L60(前 3 层为 Dense)</text>
         ${guides}
         <g data-lv-object="input">
-          <rect x="40" y="654" width="104" height="38" rx="6" fill="color-mix(in srgb, var(--surface-1) 80%, transparent)" stroke="currentColor" stroke-opacity=".28"></rect>
-          <text class="lv-tiny" x="92" y="677" text-anchor="middle">hidden [S,7168]</text>
+          <rect x="40" y="662" width="104" height="38" rx="6" fill="color-mix(in srgb, var(--surface-1) 80%, transparent)" stroke="currentColor" stroke-opacity=".28"></rect>
+          <text class="lv-tiny" x="92" y="685" text-anchor="middle">hidden [S,7168]</text>
         </g>
         <g data-lv-object="output">
           <rect x="40" y="46" width="104" height="38" rx="6" fill="color-mix(in srgb, var(--surface-1) 80%, transparent)" stroke="currentColor" stroke-opacity=".28"></rect>
@@ -3263,7 +3365,7 @@
         </g>
         ${layerTicks.join("")}
         ${panelBox}
-        <text class="lv-legend" x="150" y="712">自底(输入)向上(输出) · 格子亮度 ∝ token 量(仅 E${hotExpert} 亮=98%,其余 255≈0)· 蓝环=all-to-all 的 8 个参与 rank · 红=rank 收到数据/rank 23 死锁 · 虚线=残差 / shared 旁路</text>
+        <text class="lv-legend" x="150" y="812">自底(输入)向上(输出) · 格子亮度 ∝ token 量(仅 E${hotExpert} 亮=98%,其余 255≈0)· 蓝环=all-to-all 的 8 个参与 rank · 红=rank 收到数据/rank 23 死锁 · 虚线=残差 / shared 旁路</text>
       </svg>`;
   }
 
@@ -3860,17 +3962,88 @@
     applyHif8SidePanel(caseKey);
   }
 
-  // 问题二(qproj-overflow / hif8-precision)专属:进入时隐藏整网图,把定位链「量化误差」
-  // 节里的「层/算子级量化误差指标」表整卡搬到左侧整网图位置(表 DOM 原样搬运,排序/选层联动照旧)。
-  // 传入非 qproj-overflow / hif8-precision 的 caseKey(或 null)则复位:清空搬运槽、恢复整网图。
+  // 问题二(qproj-overflow / hif8-precision)专属:把整网图区改造为「整网图 | 表格」双视图。
+  // 右列侧栏(#hif8SideStage)自上而下 = 训练步回放 scrubber + 「整网图 | 表格」切换栏 + 整网图槽 + 表格槽。
+  //   · 整网图槽:把默认页面的 L5 整网图卡(.twin-graph-card)原样搬进来复用,并在其算子节点右上角注入溢出率徽标;
+  //   · 表格槽:把定位链「量化误差」节里的「层/算子级量化误差指标」表整卡搬进来(排序/选层联动照旧)。
+  // 默认选中「整网图」。传入非问题二的 caseKey(或 null)则复位:整网图卡搬回原网格、清空侧栏。
+  function restoreHif8Graph() {
+    // 把可能搬进侧栏的整网图卡搬回 .twin-center-scroll 原位(order:1 由 CSS 归位),并清掉注入的溢出率徽标
+    const centerScroll = document.querySelector(".twin-center-scroll");
+    const graphCard = document.querySelector(".twin-graph-card");
+    if (graphCard && centerScroll && graphCard.parentElement && graphCard.parentElement.id === "hif8GraphSlot") {
+      centerScroll.appendChild(graphCard);
+    }
+    document.querySelectorAll("#graphStage .c7over-badge").forEach((el) => el.remove());
+    document.querySelectorAll("#graphStage .c7over-node-crit, #graphStage .c7over-node-ok")
+      .forEach((el) => el.classList.remove("c7over-node", "c7over-node-crit", "c7over-node-ok"));
+  }
+
+  // 把每层当前步溢出率(取自 hif8-case7)注入到 #graphStage 命中算子节点的右上角(药丸徽标,红/绿 2 档)
+  // 返回命中并注入的节点数,供 scheduleHif8GraphBadges 判断整网图是否已就绪(未就绪则重试)
+  function refreshHif8GraphBadges() {
+    const stage = document.getElementById("graphStage");
+    if (!stage || !window.PtoHif8Case7 || !window.PtoHif8Case7.overflowMap) return 0;
+    if (!stage.querySelector("svg")) return 0;                    // 整网图 SVG 未就绪
+    const map = window.PtoHif8Case7.overflowMap();
+    const NS = "http://www.w3.org/2000/svg";
+    stage.querySelectorAll(".c7over-badge").forEach((el) => el.remove());   // 清旧徽标(逐步重画)
+    stage.querySelectorAll(".c7over-node-crit, .c7over-node-ok").forEach((el) => el.classList.remove("c7over-node", "c7over-node-crit", "c7over-node-ok"));
+    let hit = 0;
+    Object.keys(map).forEach((id) => {
+      const group = stage.querySelector('[data-node-id="' + id + '"]');
+      if (!group) return;
+      const rect = group.querySelector("rect");
+      if (!rect) return;
+      const w = parseFloat(rect.getAttribute("width") || "0");
+      const h = parseFloat(rect.getAttribute("height") || "0");
+      if (!w) return;
+      const info = map[id];
+      // 节点本体描边:命中算子给节点加对应颜色描边(与右上角徽标同色,参考 precision-debugger prec-crit/high)
+      group.classList.add("c7over-node", "c7over-node-" + info.tier);
+      // 节点组局部坐标以节点中心为原点(与 drawBadge 一致)→ 右上角 = (w/2, -h/2)
+      const g = document.createElementNS(NS, "g");
+      g.setAttribute("class", "c7over-badge c7over-" + info.tier);
+      g.setAttribute("transform", "translate(" + (w / 2 + 4) + "," + (-h / 2) + ")");
+      const bw = 64, bh = 26;
+      const bg = document.createElementNS(NS, "rect");
+      bg.setAttribute("x", -bw); bg.setAttribute("y", -bh / 2);
+      bg.setAttribute("width", bw); bg.setAttribute("height", bh);
+      bg.setAttribute("rx", 13); bg.setAttribute("ry", 13);
+      const tx = document.createElementNS(NS, "text");
+      tx.setAttribute("x", -bw / 2); tx.setAttribute("y", 1);
+      tx.setAttribute("text-anchor", "middle"); tx.setAttribute("dominant-baseline", "central");
+      tx.textContent = (info.over * 100).toFixed(2) + "%";
+      const ttl = document.createElementNS(NS, "title");
+      ttl.textContent = info.name + " · 溢出率 " + (info.over * 100).toFixed(2) + "% · SQNR " + info.sqnr.toFixed(1) + "dB";
+      g.appendChild(bg); g.appendChild(tx); g.appendChild(ttl);
+      group.appendChild(g);
+      hit++;
+    });
+    return hit;
+  }
+
+  // 整网图可能在进入问题二时尚未渲染完 SVG，重试注入直到命中算子节点(与 applyDefaultDiagnosisMarkers 同思路)
+  let hif8BadgeTimer = null;
+  function scheduleHif8GraphBadges(tries) {
+    if (hif8BadgeTimer) { clearTimeout(hif8BadgeTimer); hif8BadgeTimer = null; }
+    if (refreshHif8GraphBadges() > 0) return;                    // 已命中即停
+    if (tries <= 0) return;
+    hif8BadgeTimer = setTimeout(() => scheduleHif8GraphBadges(tries - 1), 200);
+  }
+
   function applyHif8SidePanel(caseKey) {
     const centerPane = document.querySelector(".twin-center-pane");
     const centerScroll = document.querySelector(".twin-center-scroll");
     if (!centerPane || !centerScroll) return;
     let host = document.getElementById("hif8SideStage");
-    if (host) { host.innerHTML = ""; host.hidden = true; } // 复位:清掉上次搬运的表
+    // 复位:先把整网图卡搬回原位,再清空/隐藏侧栏
+    restoreHif8Graph();
+    if (host) { host.innerHTML = ""; host.hidden = true; }
     centerPane.classList.remove("is-hif8-side-table");
+    if (window.PtoHif8Case7 && window.PtoHif8Case7.onStep) window.PtoHif8Case7.onStep(null);
     if (caseKey !== "hif8-precision" && caseKey !== "qproj-overflow") return;
+
     if (!host) {
       host = document.createElement("div");
       host.id = "hif8SideStage";
@@ -3881,22 +4054,77 @@
     if (!card) return; // 表尚未渲染则跳过
     const grid = card.parentElement;
     if (grid) grid.style.gridTemplateColumns = "1fr"; // 源栅格收成单列(右侧只剩演化图+热力图)
+
     host.innerHTML = '<div class="hif8c7"></div>'; // 保留 .hif8c7 作用域,搬过去仍带 --h8-* 变量
     const wrap = host.firstElementChild;
-    // 训练步回放 scrubber 一并从概览节搬到表上方(仍按 ID 绑定,拖动照旧驱动全部图表)
+    // 训练步回放 scrubber 从概览节搬到切换栏上方(仍按 ID 绑定,拖动照旧驱动全部图表 + 整网图徽标)
     const scrub = document.getElementById("c7play")?.closest(".h8-scrub");
     if (scrub) wrap.appendChild(scrub);
-    wrap.appendChild(card);
+
+    // 「整网图 | 表格」切换栏(复用整网图工具栏的算子染色分段样式 .seg/.segbtn)
+    const bar = document.createElement("div");
+    bar.className = "hif8-view-bar";
+    bar.innerHTML =
+      '<span class="seg" id="hif8ViewSeg">' +
+        '<button type="button" class="segbtn on" data-v="graph">整网图</button>' +
+        '<button type="button" class="segbtn" data-v="table">表格</button>' +
+      '</span>' +
+      '<span class="h8-help" data-help-key="error-table" style="margin-left:auto">?</span>';
+    wrap.appendChild(bar);
+
+    // 整网图槽:搬入默认页面的 L5 整网图卡复用
+    const graphSlot = document.createElement("div");
+    graphSlot.id = "hif8GraphSlot";
+    graphSlot.className = "hif8-slot";
+    const graphCard = document.querySelector(".twin-graph-card");
+    if (graphCard) graphSlot.appendChild(graphCard);
+    wrap.appendChild(graphSlot);
+
+    // 表格槽:搬入「层/算子级量化误差指标」表卡(默认隐藏)
+    const tableSlot = document.createElement("div");
+    tableSlot.id = "hif8TableSlot";
+    tableSlot.className = "hif8-slot";
+    tableSlot.hidden = true;
+    tableSlot.appendChild(card);
+    wrap.appendChild(tableSlot);
+
     host.hidden = false;
     centerPane.classList.add("is-hif8-side-table");
+
+    // 视图切换
+    const seg = document.getElementById("hif8ViewSeg");
+    function setView(v) {
+      const isGraph = v === "graph";
+      graphSlot.hidden = !isGraph;
+      tableSlot.hidden = isGraph;
+      if (seg) seg.querySelectorAll("button").forEach((b) => b.classList.toggle("on", b.dataset.v === v));
+      if (isGraph) {
+        // 整网图重新显示后,触发引擎 re-fit(监听 resize→centerView)并重试注入徽标直到就绪
+        requestAnimationFrame(() => {
+          window.dispatchEvent(new Event("resize"));
+          scheduleHif8GraphBadges(40);
+        });
+      }
+    }
+    if (seg) seg.querySelectorAll("button").forEach((b) => (b.onclick = () => setView(b.dataset.v)));
+
+    // 训练步/选层变化时刷新整网图溢出率徽标
+    if (window.PtoHif8Case7.onStep) window.PtoHif8Case7.onStep(refreshHif8GraphBadges);
+
+    // 默认整网图视图 + 初次注入徽标(等一帧让搬运后的布局稳定)
+    setView("graph");
+    // 页签栏中的 ? 气泡是在这里动态创建的，需补绑事件（bindHelpBubbles 已做去重）
+    if (window.PtoHif8Case7 && window.PtoHif8Case7.bindHelpBubbles) {
+      window.PtoHif8Case7.bindHelpBubbles();
+    }
   }
 
   // 「问题一」通信调度层的 Timeline (node2 GPU 7) 泳道图：自包含渲染,不再走 iframe。
   // 占位 div 由 renderLocateChain 从 locateChains 的 content 里插入(data-problem-one-timeline)。
   function renderProblemOneTimeline() {
     const host = document.querySelector("[data-problem-one-timeline]");
-    // 底部 Timeline 面板已有全量泳道图,这里只保留异常相关的 r22/r23 两条泳道。
-    if (host && window.PtoProblemOneTimeline) window.PtoProblemOneTimeline.render(host, { rankFilter: { from: 22, to: 23 } });
+    // 底部 Timeline 面板已有全量泳道图,这里只保留有问题的 r23 一条泳道。
+    if (host && window.PtoProblemOneTimeline) window.PtoProblemOneTimeline.render(host, { rankFilter: { from: 23, to: 23 } });
   }
 
   // 底部「Timeline」面板:就地渲染同一张自包含 1F1B 泳道图(复制自 op-rank-time.html
@@ -4047,6 +4275,15 @@
     // 新整网图由 opv-modelviz 异步渲染,renderArchitecture 内已跳过旧图;
     // applyDefaultDiagnosisMarkers 内部自带重试等待 #graphStage SVG 就绪再画标记
     applyDefaultDiagnosisMarkers();
+    // opv-modelviz 每次重建整网图 SVG(算子染色 / 层级 / 主题切换)都会清掉挂在旧 SVG 上的
+    // 诊断标记与溢出率徽标;监听其广播的重建事件,重新注入这两类叠加标记。
+    document.addEventListener("opv-graph-rendered", () => {
+      applyDefaultDiagnosisMarkers();
+      // 溢出率徽标只在问题二(HiF8)侧栏「整网图」视图激活时存在,复位后不再注入
+      if (document.querySelector(".twin-center-pane")?.classList.contains("is-hif8-side-table")) {
+        scheduleHif8GraphBadges(40);
+      }
+    });
     $("hardwareSummary").textContent = `${hardwareProfiles[state.hardware].label}，每格为${hardwareProfiles[state.hardware].unit}。`;
     resetDevices();
     seedEvents();

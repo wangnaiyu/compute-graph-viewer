@@ -279,7 +279,7 @@ html[data-theme="light"] .train-twin-page .twin-status,
   width: 148px;
   height: 5px;
   border-radius: 999px;
-  background: var(--surface-2);
+  background: rgba(0, 0, 0, 0.05);
   transition: height 180ms ease;
 }
 .twin-progress-status:hover .twin-progress-status-track {
@@ -439,6 +439,8 @@ html[data-theme="light"] .train-twin-page .twin-status,
    --ide-frame-header-height token override 加高,而不是重写 .pto-ide-frame__pane-header 本身 */
 .twin-pane-header {
   --ide-frame-header-height: 58px;
+  padding-left: 24px;
+  padding-right: 24px;
 }
 
 .twin-pane-header-title-row {
@@ -1002,6 +1004,37 @@ html[data-theme="light"] .train-twin-page .twin-status,
   outline-offset: 1px;
   z-index: 1;
   position: relative;
+}
+
+/* infra层集群图改用 JS 气泡(可给「空等」上红字),关掉纯 CSS 的 ::after tooltip 以免双气泡 */
+.locate-infra-heat .twin-heat-cell::after {
+  content: none;
+}
+
+/* infra层集群图悬浮气泡:视觉沿用监控栏 .twin-heat-cell::after,末行「空等」问题描述用 danger 红字 */
+.locate-infra-bubble {
+  position: fixed;
+  z-index: 1000;
+  max-width: 240px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--surface-1) 96%, black);
+  color: var(--foreground);
+  font-size: 12px;
+  line-height: 1.45;
+  box-shadow: var(--shadow-md, 0 4px 16px rgba(0,0,0,.28));
+  pointer-events: none;
+}
+.locate-infra-bubble[hidden] {
+  display: none;
+}
+.locate-infra-bubble__warn {
+  margin-top: 5px;
+  padding-top: 5px;
+  border-top: 1px solid var(--border-subtle);
+  color: var(--danger, #dc2626);
+  font-weight: 700;
 }
 
 .twin-legend {
