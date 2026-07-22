@@ -1345,6 +1345,7 @@
     let suppressClick = false;
     let hover = null;
     let resizeObserver = null;
+    let resizeRaf = 0;
 
     stage.classList.add('pto-model-graphviz-interactive');
     if (opts.className) {
@@ -1597,8 +1598,14 @@
 
     resizeObserver = typeof ResizeObserver !== 'undefined'
       ? new ResizeObserver(() => {
-        if (opts.autoFit === false) return;
-        if (!selectedItemId) fit();
+        // 拖拽分栏等连续 resize 场景下,多个组件各自的 ResizeObserver 可能在同一帧收到通知;
+        // 合并到下一帧再读布局/写 transform,避免和其他观察者的读写交叉造成多次强制回流。
+        if (resizeRaf) cancelAnimationFrame(resizeRaf);
+        resizeRaf = requestAnimationFrame(() => {
+          resizeRaf = 0;
+          if (opts.autoFit === false) return;
+          if (!selectedItemId) fit();
+        });
       })
       : null;
     if (resizeObserver) resizeObserver.observe(stage);
@@ -1629,6 +1636,7 @@
       },
       destroy() {
         abortController?.abort();
+        if (resizeRaf) cancelAnimationFrame(resizeRaf);
         resizeObserver?.disconnect();
         stage.innerHTML = '';
       },

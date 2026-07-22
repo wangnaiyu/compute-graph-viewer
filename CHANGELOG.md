@@ -5,6 +5,46 @@
 
 ---
 
+## 2026-07-22 — `TaskCompare.html` 统一全页字体
+
+- 页面大量中英混排文案（指标名「GPU 利用率」、分组名「运行参数」、标签「基线」「清除」等）套用 `--font-mono`（`JetBrains Mono`/`Fira Code`/`Consolas`），这三款字体不含中文字形，中文部分会回退到浏览器默认等宽字体，与 `--font-sans` 统一使用的 PingFang SC/Noto Sans SC 中文字形不一致。页面级 `<style>` 里新增 `:root` 覆盖，给 `--font-mono` 补上与 `--font-sans` 相同的中文回退字体，西文/数字部分等宽观感不变，全页中文字形统一。
+
+## 2026-07-21 — 智能对话面板头部收纳：Key 设置改齿轮图标，去掉三行状态条
+
+- `#trainChatKeyBtn`（设置 DeepSeek API Key）从原来挤在标题下方的独立"Key 状态条"整行，收成抽屉右上角关闭按钮左侧的一枚齿轮图标按钮；配置状态只通过图标颜色（`.is-configured` 时描边变 `--accent`）和 `title`/`aria-label` 文案区分，不再单独占一行。
+- 连带去掉标题下方原本的三行：训练上下文行（`#trainChatContextLabel`）、Key 状态行（`#trainChatKeybar`）、每日额度行（`#trainChatQuotabar`）；额度限流本身（`quotaLeft()`/`bumpQuota()`）逻辑不变，只是不再有独立进度条 UI。`js/training-chat-panel.js` 相应删掉 `updateQuotaUI()`/`fmtContextLabel()` 等只服务于这些行的死代码。
+- 标题栏 `.wzh-chat-head` 去掉 `border-bottom` 分割线，头部直接过渡到消息区，减少视觉分层。
+
+## 2026-07-21 — `training-monitoring-v2.html` 新增「日志」抽屉（全量/任务/系统 + SQL 搜索）
+
+- 顶栏主题切换图标左侧新增线性「日志」图标入口 `#trainLogToggle`，默认收起；点击后从底部滑出非模态抽屉 `#trainLogDrawer`（日志行信息密度高偏宽，不采用 `wzh-chat-panel` 那种竖版右侧面板），含「全量日志｜任务日志｜系统日志」页签（复用页面已有的 `.seg`/`.segbtn` 分段控件）与一条 SQL 风格搜索框。
+- 新增 `js/training-log-drawer.js`：内置 50 行固定重演日志（时间/级别/组件/消息 + 关联 step），时间线与 `js/training-run-twin.js` 的 `INCIDENT_STEP=41230`（问题一：router FP8 softmax 溢出→98.3% token 塌缩到 expert193→loss NaN + all-to-all 死锁双发）、问题三（q_proj 溢出，step 8500）、问题五（HCCS 掉链路，step 20000）三处事故点对齐，而非随机生成；「任务日志」/「系统日志」按组件（trainer/dataloader/ckpt/eval/router 为任务，scheduler/npu-driver/network/node-health/hccl 为系统）拆分。
+- SQL 搜索实现了对这份静态数组的简化 WHERE 解析：支持 `level`/`comp`/`message`/`step` 列，`= != > >= < <= LIKE IN` 运算符，多条件用 `AND` 连接；解析不出结构化条件时退化为对整行文本的关键字子串匹配。抽屉内 context 复用 `window.twinGetTrainingContext()` 显示当前模型/step，逻辑与 `js/training-chat-panel.js` 的面板开合模式一致（Escape 关闭、独立 `is-open` 状态）。
+
+## 2026-07-21 — `training-monitoring-v2.html` 「问题定位」卡片改挂顶栏，不再挤占整网图高度
+
+- 点击进度轴问题点弹出的「问题定位」卡片（`#diagnosisLocator`）原本插在 `.twin-graph-card` 内、位于 `.twin-architecture-stage` 上方，弹出时会挤压整网图的可用高度；现改为挂载到顶栏原本空白的 48px 区域,不再影响图区尺寸。
+- 顶栏空间有限，描述文字（原两行 clamp）收起改走原生 `title` 提示（hover 卡片可见完整文案，见 `js/training-run-twin.js` `activateProblemOneLens()`）；`showDiagnosisLocator()`/`hideDiagnosisLocator()`/`exitTimeMachine()` 等既有逻辑和 DOM id 不变，仅挪动位置与重排 CSS。
+- 卡片再从顶栏正中挪到 `.pto-ide-frame__topbar-left`、紧跟页面标题之后，并把 `.pto-ide-frame__topbar-center`/`-right` 的 flex-grow 就地清零（本页覆写，不改 `ide-frame-pattern.css`），让标题到进度条之间的整段留白都归它，问题标题因此少截断、多显本文；操作区「详情与修复建议」精简为「详情」，「关闭」文字按钮换成与顶栏其余按钮同款的 28×28 × 图标（`.pto-ide-frame__window-action`）。
+- 卡片标题字号 12px 收到 11px，与胶囊内其余徽标字号更协调；同时把 `.pto-ide-frame__host-chip`/`.pto-ide-frame__workspace`（页面标题）钉死 `flex: none` + `white-space: nowrap`，空间紧张时改由卡片自己收缩/走省略号，避免页面标题被挤成两行。
+- 首版挂在顶栏中央 `.pto-ide-frame__topbar-center`；按反馈改挂到顶栏左侧、紧跟页面标题之后（标题与右侧进度条之间本就大片留白，更靠左、不遮挡任何元素）。顺手把 `.pto-ide-frame__topbar-center` 原本固定的 420px flex-basis 收窄成 `auto`（该页此槽位已不再使用），否则这段空间被空置的中央槽占着，标题会被挤到换行。
+
+## 2026-07-21 — `training-monitoring-v2.html` 新增「智能对话」AI 助手面板
+
+- 参考 MindStudioNext 右侧 AI 对话 inspector 的实现手法（前端直连 DeepSeek API、用户自带 Key、按浏览器/天限额），在训练监控大盘顶栏右上角新增线性图标入口，默认收起；点击后从右侧滑出非模态面板（不遮挡左侧整网图/指标），面板含 API Key 状态条、每日额度条、训练场景快捷提问、流式回复。
+- 系统提示改为围绕当前训练运行作答（模型/step/loss/MFU/已定位问题），而非解读离线性能分析报告；训练态由 `training-run-twin.js` 新增的只读 `window.twinGetTrainingContext()` 实时提供，对话逻辑独立成 `js/training-chat-panel.js`，不引入外部 CDN 依赖（内置极简 Markdown 渲染器，保持离线可用）。
+- 新增「消息设置」固定演示场景（快捷提问区首位）：点击后发送带任务名 mention 胶囊的用户消息，走脚本直出（不经 DeepSeek、不占每日额度、无需 API Key）固定文案 + 一张构造的 WeLink 消息预览卡片（任务/时长/step/loss/acc/MFU/显存利用率字段 + 通知强度规则标签）。
+- 新增「调整图表」固定演示场景：回答用 Markdown 表格列出精度栏 4 张图的替换前/替换后/日志提取结果，随后调用 `training-run-twin.js` 新增的 `window.twinDemoApplyAccuracyOverride()`，把精度栏 precision/recall/f1/rollout 相关系数 4 张卡换成 WPLC val loss/LAMBADA val loss/Z loss/数值 t 分布（ν）——复用真实图表引擎(`buildAccCard`/`renderMetricChart`)和 `metricsAtStep` 同款事故态曲线形状生成虚构数据，而非贴图；关闭对话框时 `window.twinDemoResetAccuracyOverride()` 自动还原成默认 8 图。`renderMarkdown` 同步补上 GFM 管道表格解析。
+- 打磨「消息设置」「调整图表」两个演示场景的业务正确性与真实感：前者用户提问改为携带动机的自然口吻，回答拆成「识别信息→给理由→具体方案→播报样例→确认生效+邀请调整」分段，样例卡片改为"任务开始运行约 6 小时后的首次播报"（此前用具体日期时间戳，与上文"排队中"矛盾），且卡片内 loss/acc/step 进度按 5.6 天总时长与本页 acc≈1-loss/6 的换算关系重新配平，不再是收敛期读数错配到刚开始跑的任务；后者用户诉求改为先指出 precision/recall/f1（分类指标）与 rollout 相关系数（RL 后训练指标）放在 task=pretrain 页面里本来就文不对题（呼应 `body[data-task]` 声明的真实业务背景），回答先认同该诊断再给替换方案，表格新增「不适用原因」列。
+- 重做智能对话消息气泡视觉：参考 shadcn/ui 的 [Bubble 组件](https://ui.shadcn.com/docs/components/base/bubble)规范（用户消息 end-aligned + 内容自适应宽度 ≤80% 的实心气泡，AI 回复用不带底色的 ghost 形态，避免表格/卡片被塞进有色气泡里变形），改掉此前"提问和回答都只是散字、没有气泡容器"的问题。用户气泡加圆角+底色+投影，右下角收成小直角当视觉锚点；AI 回复统一走 `js/training-chat-panel.js` 新增的 `createAiMessageShell()`（头像圆标 + "PTO 助手"标签 + 缩进正文的外壳），流式更新/脚本演示/报错只需改 `bodyEl.innerHTML`，头像行不用重建；四处发消息的入口（`sendMessage`/`appendSystemNotice`/两个脚本化场景）统一收敛到这一份外壳，不再各自拼 DOM。
+- 「消息设置」预览卡片瘦身:去掉底部"定时播报/事件通知/异常升级"三个规则胶囊(方案文字里已经讲过,卡片没必要重复列)与顶部"首次播报示例"标签;字段行由"标签换行数值"改成 key/value 同一行、两端对齐。快捷提问栏(`.wzh-chat-suggestions`)改成中性色(不再借用 primary/accent)、不换行改横向滚动保持单行,并去掉与上方消息区、下方输入框之间的分割线。
+
+## 2026-07-21 — `TaskCompare.html` 图表曲线业务化 + 按 TensorBoard scalars 范式分组
+
+- 曲线业务化：新增 `enrichSeries()`（配 `cmpNoise()`/`cmpHashSeed()`），把手工 20 点序列上采样到 77 点并叠加确定性抖动，手法参考 `training-monitoring-v2.html` 精度/infra 10 图的 `stepNoise` 正弦哈希噪声。抖动幅度按「相邻步长中位数」而非全局值域定标，避免 loss spike 撑大值域后把收敛平坦段淹没；尖峰段走阶跃插值保持陡直。首尾端点精确保留，故 `last()`/稳态均值/Borda 排名/末值最优口径完全不变，且不改写 `TASKS.series`（仅绘图用）。
+- 图表分组：新增 `CMP_GROUPS`（训练收敛 / 算力·基础设施 / 优化·策略），`CMP_METRICS` 各项补 `group` 字段并新增 `mfu`、`tput` 两个 infra 指标（6 → 8 图）。「图表对比」与单任务「数据趋势」两处均改为按分区渲染，分区标题栏可折叠（对应 TensorBoard Scalars 按 tag 首个 `/` 前缀自动归入折叠目录的范式）。
+- 折叠后隐藏的图不重绘（`offsetParent` 为 null 时跳过），展开时重绘；单任务页签图表联动缓存改为按元素身份查找，避免分区折叠后序号不连续导致取错缓存。
+
 ## 2026-07-21 — `training-monitoring-v3.html` 合并入 `training-monitoring-v2.html`
 
 - 删除旧 `training-monitoring-v2.html`（SVG 整网图版），将 `training-monitoring-v3.html`（3D deck 整网图版）重命名为 `training-monitoring-v2.html`。

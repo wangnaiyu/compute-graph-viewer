@@ -771,11 +771,11 @@
           var index = dp * rowsPerDp * cols + row * cols + col;
           var ppStage = Math.floor(col / PP_COLS_PER_STAGE);
           var cell = document.createElement("div");
-          cell.className = "twin-heat-cell";
+          // ep-tint-N 类携带底色(见 training-run-twin.css),避免给每个格子单独写内联 background
+          cell.className = "twin-heat-cell ep-tint-" + (col % EP_TINT_COLORS.length);
           cell.dataset.index = String(index);
           cell.dataset.epRank = String(col);
           cell.dataset.ppStage = String(ppStage);
-          cell.style.background = EP_TINT_COLORS[col % EP_TINT_COLORS.length];
           // PP 阶段分界：每 8 列右侧加粗分隔
           if ((col + 1) % PP_COLS_PER_STAGE === 0 && col < cols - 1) {
             cell.style.marginRight = "3px";
@@ -834,9 +834,9 @@
       if (device.util < 0.7) lowUtil += 1;
       const cell = cells[index];
       if (!cell) return;
-      // 在 EP 底色之上叠加 util 着色（保留 EP rank 列背景作为基底）
-      cell.className = "twin-heat-cell";
-      cell.style.background = EP_TINT_COLORS[col % EP_TINT_COLORS.length];
+      // 在 EP 底色之上叠加 util 着色（ep-tint-N 类保留 EP rank 列背景作为基底,
+      // 避免像之前那样对每个格子重新解析一次内联 background 颜色字符串）
+      cell.className = "twin-heat-cell ep-tint-" + (col % EP_TINT_COLORS.length);
       var utilOverlay = "";
       // PP 分界线保留
       var ppShadow = (col + 1) % PP_COLS_PER_STAGE === 0 && col < cols - 1
@@ -1382,6 +1382,102 @@
     renderAccReadouts();
   }
 
+  // ── 智能对话「调整图表」演示场景专用:临时把精度栏 4 张卡换成新指标,关闭对话框(见
+  // js/training-chat-panel.js 的 revertChartsOverrideIfActive)即还原。复用真实图表引擎
+  // (buildAccCard/renderMetricChart)与 metricsAtStep 同款"先快后缓收敛 + 事故态回弹"曲线形状,
+  // 只是喂入虚构的新指标数据,不写回 ACC_DATA/ACC_CARD_DEFS,不影响其余联动逻辑。
+  function demoMetricSeries(seed, base, span, noiseAmp, incidentBump) {
+    return accSteps.map((step, i) => {
+      const t = accSteps.length > 1 ? i / (accSteps.length - 1) : 1;
+      const recRaw = (step - INCIDENT_STEP - 1) / (RECOVERY_STEPS - 1 || 1);
+      const rec = step <= INCIDENT_STEP ? 0 : step >= RECOVERY_END ? 1 : Math.min(1, Math.max(0, recRaw));
+      const ease = rec < 0.5 ? 2 * rec * rec : -1 + (4 - 2 * rec) * rec;
+      const atIncident = step === INCIDENT_STEP;
+      const inRecovery = step > INCIDENT_STEP && step < RECOVERY_END;
+      const convUp = t >= 1 ? 1 : 1 - Math.pow(2, -5.5 * t);
+      const baseVal = base - span * convUp + stepNoise(seed, step, noiseAmp);
+      if (atIncident) return NaN;
+      return +(inRecovery ? baseVal + incidentBump * (1 - ease) : baseVal).toFixed(4);
+    });
+  }
+
+  // 「数值 t 分布」自由度 ν:不跟随主事故步,而是在已定位的问题四(低精训练 loss 不收敛,
+  // step 28000~35000)窗口内走低,呼应 diagnosisCases["low-precision-training"] 的叙事。
+  function demoTDistSeries() {
+    const mid = 31500, half = 3500;
+    return accSteps.map((step) => {
+      if (step === INCIDENT_STEP) return NaN;
+      const baseNu = 7.2 + stepNoise(21, step, 0.35);
+      if (step >= 28000 && step <= 35000) {
+        const dipT = 1 - Math.min(1, Math.abs(step - mid) / half);
+        return +(baseNu - 3.6 * dipT).toFixed(2);
+      }
+      return +baseNu.toFixed(2);
+    });
+  }
+
+  const fmtDemoLoss = (digits) => (v) => (v == null || !isFinite(v) ? "—" : v.toFixed(digits));
+
+  const ACC_DEMO_REPLACEMENTS = [
+    { targetId: "precision", id: "wplc_val_loss", key: "wplc_val_loss", name: "WPLC val loss",
+      note: "WPLC(Wikipedia+Pile 混合语料)验证集 loss，衡量通用语言建模能力",
+      colorVar: "--twin-chart-precision", formatValue: fmtDemoLoss(3),
+      genSeries: () => demoMetricSeries(31, 4.6, 1.7, 0.08, 1.4) },
+    { targetId: "recall", id: "lambada_val_loss", key: "lambada_val_loss", name: "LAMBADA val loss",
+      note: "LAMBADA 完形填空评测集验证 loss，衡量长程上下文理解能力",
+      colorVar: "--twin-chart-recall", formatValue: fmtDemoLoss(3),
+      genSeries: () => demoMetricSeries(32, 5.8, 2.4, 0.12, 2.0) },
+    { targetId: "f1", id: "z_loss", key: "z_loss", name: "Z loss",
+      note: "logits 归一化正则项(z-loss)，抑制 softmax 前 logits 幅值发散",
+      colorVar: "--twin-chart-f1", formatValue: fmtDemoLoss(4),
+      genSeries: () => demoMetricSeries(33, 0.18, 0.14, 0.012, 0.25) },
+    { targetId: "corr", id: "t_dist_nu", key: "t_dist_nu", name: "数值 t 分布 (ν)",
+      note: "逐层激活值分布拟合为 t 分布后的自由度 ν，越低代表尾部越重、越易在 FP8 下溢出；日志无直接字段，按激活值分布派生计算",
+      colorVar: "--twin-chart-corr", formatValue: fmtDemoLoss(2),
+      genSeries: () => demoTDistSeries() },
+  ];
+
+  let accDemoOverrideBackup = null; // null = 未应用；应用后存 [{idx, original, originalCardEl}]
+
+  window.twinDemoApplyAccuracyOverride = function () {
+    if (accDemoOverrideBackup || !accCards.length) return false;
+    const backup = [];
+    ACC_DEMO_REPLACEMENTS.forEach((rep) => {
+      const idx = accCards.findIndex((c) => c.cfg.id === rep.targetId);
+      if (idx === -1) return;
+      const original = accCards[idx];
+      const originalCardEl = original.wrap.parentElement;
+      backup.push({ idx, original, originalCardEl });
+      const cfg = {
+        id: rep.id, name: rep.name, legend: false, note: rep.note,
+        formatValue: rep.formatValue, tipCarryForward: false, markerStep: INCIDENT_STEP,
+        data: { [rep.key]: rep.genSeries() },
+        series: [{ id: rep.id, label: rep.name, key: rep.key, colorVar: rep.colorVar, emphasis: true }],
+      };
+      const built = buildAccCard(cfg);
+      originalCardEl.replaceWith(built.card);
+      const entry = { cfg, valEl: built.valEl, wrap: built.wrap, ctrl: null, size: { w: 0, h: 0 } };
+      accCards[idx] = entry;
+      syncAccCard(entry, true);
+    });
+    accDemoOverrideBackup = backup;
+    renderAccReadouts();
+    return true;
+  };
+
+  window.twinDemoResetAccuracyOverride = function () {
+    if (!accDemoOverrideBackup) return false;
+    accDemoOverrideBackup.forEach(({ idx, original, originalCardEl }) => {
+      const currentCardEl = accCards[idx] && accCards[idx].wrap && accCards[idx].wrap.parentElement;
+      if (currentCardEl && currentCardEl.parentNode) currentCardEl.replaceWith(originalCardEl);
+      accCards[idx] = original;
+      syncAccCard(original, true);
+    });
+    accDemoOverrideBackup = null;
+    renderAccReadouts();
+    return true;
+  };
+
   // ── infra 图表（MFU / 显存利用率）────────────────────────────────────────
   let infraCards = []; // [{cfg, valEl, wrap, ctrl, size}]
 
@@ -1793,6 +1889,45 @@
     return state.step;
   };
   window.twinGetStep = function () { return state.step; };
+
+  // 供智能对话面板(js/training-chat-panel.js)读取当前训练态作为系统提示上下文,
+  // 只读汇总,不暴露 state 本身引用,避免外部误改内部状态。
+  window.twinGetTrainingContext = function () {
+    const model = models[state.model] || {};
+    const hw = hardwareProfiles[state.hardware] || {};
+    return {
+      model: {
+        name: model.name || state.model,
+        title: model.title || "",
+        summary: model.summary || "",
+        seq: model.seq || "",
+        parallel: model.parallel || "",
+        batch: model.batch || "",
+        params: model.params || null,
+      },
+      task: state.task,
+      hardwareLabel: hw.label || state.hardware,
+      step: state.step,
+      totalSteps: state.totalSteps,
+      stepsPerEpoch: state.stepsPerEpoch,
+      loss: state.loss,
+      lossEMA: state.lossEMA,
+      val: state.val,
+      mfu: state.mfu,
+      seenTokens: state.seen,
+      phase: state.phase,
+      diagnosisMarkers: diagnosisMarkers.map((m) => ({
+        num: m.num,
+        severity: m.severity,
+        category: m.category,
+        label: m.label,
+        sub: m.sub,
+        step: m.step != null ? m.step : null,
+        stepFrom: m.stepFrom != null ? m.stepFrom : null,
+        stepTo: m.stepTo != null ? m.stepTo : null,
+      })),
+    };
+  };
 
   // 供 training-monitoring-v2.html 的 3D deck 适配器复用本文件里的诊断联动入口
   // (适配器负责画图,业务语义仍只有这一份实现)。函数声明会提升,这里引用晚定义的函数是安全的。
@@ -2737,6 +2872,8 @@
       sevEl.textContent = (marker.severity || "").toUpperCase();
       sevEl.className = "twin-diagnosis-locator-severity is-" + (marker.severity || "");
       $("diagnosisLocatorDesc").textContent = marker.sub || "";
+      // 卡片挪进顶栏后一行放不下描述,完整文字改走原生 title 提示(hover 卡片可见)
+      locator.title = marker.sub || "";
       showDiagnosisLocator();
     }
   }
@@ -4028,8 +4165,12 @@
   //   ③ 收尾(5800~6800):rank 23 红色淡出、mesh 淡出,回到起点循环。
   // 单个 rAF 句柄(全页仅一个展开图),重画前先取消,避免泄漏。
   let lvAnimRaf = null;
+  let lvAnimIO = null;
+  let lvAnimVisHandler = null;
   function startLayerA2A(host) {
     if (lvAnimRaf) { cancelAnimationFrame(lvAnimRaf); lvAnimRaf = null; }
+    if (lvAnimIO) { lvAnimIO.disconnect(); lvAnimIO = null; }
+    if (lvAnimVisHandler) { document.removeEventListener("visibilitychange", lvAnimVisHandler); lvAnimVisHandler = null; }
     const mesh = Array.from(host.querySelectorAll(".lv-a2a-mesh"));
     const nodes = Array.from(host.querySelectorAll(".lv-a2a-node"));
     if (!mesh.length && !nodes.length) return;
@@ -4085,7 +4226,31 @@
       if (labelComb) labelComb.style.opacity = t >= 2600 ? "1" : "0.15";
       lvAnimRaf = requestAnimationFrame(frame);
     };
-    lvAnimRaf = requestAnimationFrame(frame);
+    // 该动画会一直循环播放;面板被折叠/滚出可视区或页面切到后台标签时暂停,
+    // 避免看不见的动画常驻占用主线程(IntersectionObserver 对 hidden/display:none 也会报 not-intersecting)。
+    let running = false;
+    const play = () => {
+      if (running) return;
+      running = true;
+      t0 = null; // 纯装饰性动画,恢复时重新起算相位即可,无需保留暂停前的进度
+      lvAnimRaf = requestAnimationFrame(frame);
+    };
+    const pause = () => {
+      running = false;
+      if (lvAnimRaf) { cancelAnimationFrame(lvAnimRaf); lvAnimRaf = null; }
+    };
+    let intersecting = true;
+    const sync = () => { if (!document.hidden && intersecting) play(); else pause(); };
+    if (typeof IntersectionObserver === "function") {
+      lvAnimIO = new IntersectionObserver((entries) => {
+        intersecting = entries[entries.length - 1]?.isIntersecting ?? true;
+        sync();
+      }, { threshold: 0 });
+      lvAnimIO.observe(host);
+    }
+    lvAnimVisHandler = sync;
+    document.addEventListener("visibilitychange", lvAnimVisHandler);
+    sync();
   }
 
   // 最大化:给 .twin-layerview 加 is-maximized(CSS 变 position:fixed 铺满) + 一层背板;
@@ -4123,7 +4288,10 @@
   }
 
   function renderTwinLayerViews() {
-    if (lvAnimRaf) { cancelAnimationFrame(lvAnimRaf); lvAnimRaf = null; } // 切换案例/重画前先停掉旧动画
+    // 切换案例/重画前先停掉旧动画及其可见性监听,避免 [data-layer-view] 为空时残留观察者
+    if (lvAnimRaf) { cancelAnimationFrame(lvAnimRaf); lvAnimRaf = null; }
+    if (lvAnimIO) { lvAnimIO.disconnect(); lvAnimIO = null; }
+    if (lvAnimVisHandler) { document.removeEventListener("visibilitychange", lvAnimVisHandler); lvAnimVisHandler = null; }
     document.querySelectorAll("[data-layer-view]").forEach((host) => {
       const draw = () => {
         const expanded = Number(host.dataset.lvExpanded ?? 38);

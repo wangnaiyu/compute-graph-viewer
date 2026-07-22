@@ -974,6 +974,12 @@ html[data-theme="light"] .train-twin-page .twin-status,
   display: grid;
   grid-template-columns: repeat(32, minmax(0, 1fr));
   gap: 3px;
+  /* 集群规模默认 2048 格,子树内部状态变化(util 随机游走等)不该逼着浏览器重新排布
+     页面其它区域,反过来也是——整网侧视图拖拽时对自己那批层卡片做 getBoundingClientRect()
+     本会强制刷新整个文档的布局,这里用 layout containment 把这颗上千节点的子树隔离出去,
+     不再被牵连进无关区域触发的强制回流。不用 contain:paint,因为格子悬浮提示(::after)
+     会溢出到格子上方,paint containment 会把首行的提示气泡裁掉。 */
+  contain: layout style;
 }
 
 .twin-heat-cell {
@@ -982,6 +988,17 @@ html[data-theme="light"] .train-twin-page .twin-status,
   border-radius: 2px;
   cursor: help;
 }
+/* EP rank 列底色(8 色调循环),从 JS 内联 style.background 挪成类,配合 training-run-twin.js
+   的 EP_TINT_COLORS 数组保持颜色一致 —— 数千个热力图格子共享同一批类,浏览器可复用计算样式,
+   避免每格各自解析一次唯一的内联颜色字符串(大集群规模下这是首屏/每次刷新的明显开销)。 */
+.twin-heat-cell.ep-tint-0 { background: rgba(59, 130, 246, 0.06); }
+.twin-heat-cell.ep-tint-1 { background: rgba(16, 185, 129, 0.06); }
+.twin-heat-cell.ep-tint-2 { background: rgba(245, 158, 11, 0.06); }
+.twin-heat-cell.ep-tint-3 { background: rgba(139, 92, 246, 0.06); }
+.twin-heat-cell.ep-tint-4 { background: rgba(6, 182, 212, 0.06); }
+.twin-heat-cell.ep-tint-5 { background: rgba(239, 68, 68, 0.06); }
+.twin-heat-cell.ep-tint-6 { background: rgba(34, 197, 94, 0.06); }
+.twin-heat-cell.ep-tint-7 { background: rgba(168, 85, 247, 0.06); }
 /* DP 分组容器：带边框和标签 */
 .twin-heat-dp-group {
   position: relative;

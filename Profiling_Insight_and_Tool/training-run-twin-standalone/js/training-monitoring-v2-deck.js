@@ -580,7 +580,99 @@
       curveSvg.setAttribute('preserveAspectRatio', 'none');
       viewport.appendChild(curveSvg);       // 与 side-guides 同级,共享 viewport 屏幕坐标
     }
+    if (viewport && !hoverSvg) {
+      // 悬浮数据线/气泡单独一层,盖在 curveSvg 之上:curveSvg 只在 renderMetricCurve 整帧重画
+      // 时更新,悬浮态要跟手,靠 pointermove 直接改这一层,不等下一次 overlay 帧。
+      hoverSvg = document.createElementNS(NS_SVG, 'svg');
+      hoverSvg.setAttribute('class', 'deck-metric-curve-hover');
+      hoverSvg.setAttribute('aria-hidden', 'true');
+      hoverSvg.setAttribute('preserveAspectRatio', 'none');
+      viewport.appendChild(hoverSvg);
+      viewport.addEventListener('pointermove', onDeckHoverMove);
+      viewport.addEventListener('pointerleave', onDeckHoverLeave);
+    }
     if (!metricPanel) buildMetricPanel();
+  }
+
+  // ── 悬浮数据线:侧视下鼠标划过层堆 → 一条纵向线从画布底部拉到曲线堆叠区顶部,
+  // 贴着最近的那一层,气泡里报 Layer 号 + 当前勾选各指标在该层的具体值(text-anchor 左右自适应)。
+  // 只读 renderMetricCurve 每帧缓存的 lastFrame,不重新量一次 DOM,和曲线本体严格同源不会错位。
+  function onDeckHoverMove(e) {
+    if (!lastFrame || !hoverSvg) return;
+    var viewport = root && root.querySelector('.pto-model-deck__viewport');
+    if (!viewport || viewport.classList.contains('is-grabbing')) { hideHoverCrosshair(); return; }
+    var rect = viewport.getBoundingClientRect();
+    var mx = e.clientX - rect.left;
+    if (mx < lastFrame.minX - 24 || mx > lastFrame.maxX + 24) { hideHoverCrosshair(); return; }
+    var bestL = -1, bestD = Infinity;
+    lastFrame.xs.forEach(function (x, L) {
+      if (x == null) return;
+      var d = Math.abs(x - mx);
+      if (d < bestD) { bestD = d; bestL = L; }
+    });
+    if (bestL < 0) { hideHoverCrosshair(); return; }
+    drawHoverCrosshair(bestL);
+  }
+  function onDeckHoverLeave() { hideHoverCrosshair(); }
+  function hideHoverCrosshair() { if (hoverSvg) hoverSvg.innerHTML = ''; }
+  function resetHoverFrame() { lastFrame = null; hideHoverCrosshair(); }
+
+  // 近似文本宽度(CJK 按 10px、其余 6.1px 估算),参考 training-metrics-chart.js 的 textW,
+  // 用来给气泡量出刚好够用的宽度,不让中文指标名撑爆或裁切。
+  function hoverTextW(str) {
+    var w = 0;
+    for (var i = 0; i < str.length; i++) w += str.charCodeAt(i) > 0x2e80 ? 10 : 6.1;
+    return w;
+  }
+  // 气泡样式复用 css/training-run-twin.css 里 op-rank-time/precision 系图表已有的
+  // .pto-tmchart__cursor-tip-* 类,和页面其它悬浮气泡一个视觉语言,不用重新定义一套。
+  function hoverBubbleHtml(cx, topY, lines, canvasWidth) {
+    var lh = 14, padX = 8, padY = 6, sw = 8;
+    var bw = 0;
+    lines.forEach(function (l) { bw = Math.max(bw, (l.color ? sw + 5 : 0) + hoverTextW(l.text)); });
+    bw = Math.ceil(bw) + padX * 2;
+    var bh = lines.length * lh + padY * 2;
+    var bx = cx + 10;
+    if (bx + bw > canvasWidth - 4) bx = cx - 10 - bw;
+    if (bx < 4) bx = 4;
+    // 气泡贴在曲线堆叠区顶部之上(底边落在 topY-6),而不是从 topY 往下长——
+    // 否则气泡会整个盖在它刚标出来的那圈打点高亮上面。
+    var by = Math.max(4, topY - bh - 6);
+    var html = '<g class="deck-metric-curve-hover__tip">' +
+      '<rect class="pto-tmchart__cursor-tip-bg" x="' + bx.toFixed(1) + '" y="' + by.toFixed(1) +
+      '" width="' + bw + '" height="' + bh + '" rx="5"/>';
+    lines.forEach(function (l, k) {
+      var ty = by + padY + lh * k + 10;
+      var tx = bx + padX;
+      if (l.color) {
+        html += '<rect x="' + tx.toFixed(1) + '" y="' + (ty - 8).toFixed(1) + '" width="' + sw + '" height="' + sw + '" rx="2" fill="' + l.color + '"/>';
+        tx += sw + 5;
+      }
+      html += '<text class="' + (l.color ? 'pto-tmchart__cursor-tip-val' : 'pto-tmchart__cursor-tip-step') + '" x="' + tx.toFixed(1) + '" y="' + ty.toFixed(1) + '">' + l.text + '</text>';
+    });
+    html += '</g>';
+    return html;
+  }
+  function drawHoverCrosshair(L) {
+    var f = lastFrame, cx = f.xs[L];
+    if (cx == null) { hideHoverCrosshair(); return; }
+    var prog = animProgress();
+    var parts = [];
+    parts.push('<line class="pto-tmchart__cursor" x1="' + cx.toFixed(1) + '" y1="' + f.height.toFixed(1) +
+      '" x2="' + cx.toFixed(1) + '" y2="' + (f.stackTop - 6).toFixed(1) + '"/>');
+    var lines = [{ text: 'Layer ' + L, color: null }];
+    f.lanes.forEach(function (lane) {
+      var shown = lane.flow === 'bwd' ? (L >= LAYER_COUNT - prog.bwd) : (L < prog.fwd);
+      if (!shown) return;                        // 只报已经画出打点的指标,悬浮气泡与曲线本体严格对齐
+      var v = lane.series[L];
+      if (v == null || !isFinite(v)) return;
+      var y = lane.laneBottom - lane.pad - (v - lane.lo) / lane.span * (lane.laneH - 2 * lane.pad);
+      parts.push('<circle class="deck-metric-curve-hover__ring" cx="' + cx.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="5" stroke="' + lane.color + '"/>');
+      var txt = lane.def.unit === '%' ? v.toFixed(1) + '%' : v.toFixed(v < 10 ? 3 : 1) + (lane.def.unit && lane.def.unit !== '%' ? lane.def.unit : '');
+      lines.push({ text: lane.def.name + '  ' + txt, color: lane.color });
+    });
+    parts.push(hoverBubbleHtml(cx, f.stackTop, lines, f.width));
+    hoverSvg.innerHTML = parts.join('');
   }
 
   function updateMetricDDLabel() {
@@ -674,7 +766,7 @@
     if (inSide && !anim.running) startAnim();
     else if (!inSide && anim.running) { stopAnim(); clearLayerLighting(); }
     if (!curveSvg) return;
-    if (!inSide) { curveSvg.innerHTML = ''; curveSvg.style.display = 'none'; return; }
+    if (!inSide) { curveSvg.innerHTML = ''; curveSvg.style.display = 'none'; resetHoverFrame(); return; }
     curveSvg.style.display = 'block';
     var prog = animProgress();
     // 时序:某层先亮起(开始计算)→ 算完 1s 后才产出该层的曲线打点。
@@ -695,7 +787,7 @@
     // 恰好相等时才对齐。用同一个 base 的宽高即可从根上消除这个缩放。
     var base = viewport.getBoundingClientRect();
     var width = base.width, height = base.height;
-    if (!width || !height || !cards.length) { curveSvg.innerHTML = ''; return; }
+    if (!width || !height || !cards.length) { curveSvg.innerHTML = ''; resetHoverFrame(); return; }
     curveSvg.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
 
     // 每层中心 x + 卡片顶,曲线要"贴着模型层顶部"而不是独立占一块
@@ -710,7 +802,7 @@
     xs.forEach(function (x) { if (x != null) { minX = Math.min(minX, x); maxX = Math.max(maxX, x); } });
 
     var keys = METRIC_DEFS.filter(function (m) { return selectedMetrics[m.key]; }).map(function (m) { return m.key; });
-    if (!keys.length) { curveSvg.innerHTML = ''; return; }
+    if (!keys.length) { curveSvg.innerHTML = ''; resetHoverFrame(); return; }
 
     // 各指标一条 lane,自模型层顶部往上依次堆叠,紧贴模型层。lane 高度按条数自适应压缩,
     // 保证多选时也不会顶出画面;抖动大部分靠"小 lane 高 + 平滑 + 阈值下限"一起压下去。
@@ -727,6 +819,7 @@
 
     var parts = [];
     var stackTop = anchor;                                   // 全部 lane 里最靠上的一条的顶,供 PP 分组标注避让
+    var lanesInfo = [];                                       // 供悬浮数据线按 L 反查各指标数值,见 drawHoverCrosshair
     keys.forEach(function (key, idx) {
       var def = METRIC_DEFS.find(function (m) { return m.key === key; });
       var series = metricSeries(key);
@@ -745,6 +838,7 @@
       // 按训练进度 + 前/反向,决定这条曲线当前揭示到哪些层:
       //   fwd → L∈[0,prog.fwd) 随前向扫层从左往右长出;bwd → L∈[46-prog.bwd,46) 反向后从右往左长出。
       var flow = metricFlow(key);
+      lanesInfo.push({ def: def, series: series, laneBottom: laneBottom, laneH: laneH, lo: lo, span: span, pad: pad, flow: flow, color: def.color });
       var pts = [];
       for (var L = 0; L < LAYER_COUNT; L++) {
         if (xs[L] == null) continue;
@@ -788,6 +882,7 @@
     });
 
     curveSvg.innerHTML = parts.join('');
+    lastFrame = { xs: xs, width: width, height: height, stackTop: stackTop, minX: minX, maxX: maxX, lanes: lanesInfo };
 
     // PP 分组标注(pattern 默认贴卡片顶)在有曲线展示时会被 lane 堆叠区盖住,
     // 这里按实际画出的 lane 堆叠顶再往上让一截,曲线勾选越多让得越高。

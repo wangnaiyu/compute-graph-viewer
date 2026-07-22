@@ -118,56 +118,75 @@
       line-height: 1.5;
       letter-spacing: 0.04em;
     }
-    /* 点击右侧诊断卡片后,在架构图上方提示概念对应的层/分支;图为通用层模板,不代表真实的第 N 层实例。
-       填色复用顶栏进度条面板「问题1」条目(.wzh-tm-issue.is-p0)同一套中性描边 + 顶部柔和
-       inset 光晕,保持"问题一"红色语义在两处一致;最右侧「关闭」按钮取代原进度条面板里的
-       「返回」,点击即退出时光机回放并收起本卡(见 training-run-twin.js exitTimeMachine())。 */
+    /* 点击进度轴问题点后弹出的「问题定位」卡片:改挂在顶栏左侧、紧跟页面标题之后
+       (.pto-ide-frame__topbar-left,标题与右侧进度条之间本就大片留白,不再插在整网图卡
+       内部挤占图区高度)。单行紧凑布局,靠左对齐,吃满标题到进度条之间的剩余宽度(见下面
+       topbar-left/-right 的 flex 覆写),问题标题跟着拿到更多空间、少截断,超宽兜底仍走
+       省略号;完整描述收进原生 title 提示(hover 卡片可见,见 training-run-twin.js
+       activateProblemOneLens());填色仍复用顶栏进度条面板「问题1」条目(.wzh-tm-issue.is-p0)
+       同一套中性描边 + 柔和 inset 光晕,保持"问题一"红色语义一致;右侧 × 图标按钮点击即退出
+       时光机回放并收起本卡(见 exitTimeMachine())。 */
     .twin-diagnosis-locator {
-      display: flex;
-      align-items: flex-start;
-      gap: var(--space-3);
-      padding: 10px 12px;
-      margin: 8px 8px 0;
-      border-radius: var(--radius-md);
+      display: none;
+      align-items: center;
+      gap: 8px;
+      flex: 1 1 auto;
+      min-width: 0;
+      max-width: 100%;
+      padding: 5px 10px;
+      border-radius: var(--radius-pill, 999px);
       border: 1px solid var(--border-subtle);
-      background: color-mix(in srgb, #dc2626 3.5%, var(--surface-1));
-      box-shadow: inset 0 14px 28px -26px color-mix(in srgb, #dc2626 42%, transparent);
-      flex-shrink: 0;
+      background: color-mix(in srgb, #dc2626 5%, var(--surface-1));
+      box-shadow: inset 0 10px 20px -18px color-mix(in srgb, #dc2626 42%, transparent);
+      cursor: default;
     }
-    .twin-diagnosis-locator { display: none; }
     .twin-diagnosis-locator.is-visible { display: flex; }
     .twin-diagnosis-locator-body {
       flex: 1 1 auto; min-width: 0;
-      display: flex; flex-direction: column; gap: 5px;
+      display: flex; align-items: center; gap: 6px;
+      overflow: hidden;
     }
     .twin-diagnosis-locator-title {
-      flex: none; font-size: 12px; font-weight: var(--font-weight-semibold);
+      flex: 1 1 auto; min-width: 0; font-size: 11px; font-weight: var(--font-weight-semibold);
       color: var(--foreground); line-height: 1.3;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .twin-diagnosis-locator-tags {
-      display: flex; align-items: center; gap: 5px; flex-wrap: wrap;
+      display: flex; align-items: center; gap: 5px; flex: none;
     }
     .twin-diagnosis-locator-tag {
       display: inline-flex; align-items: center; padding: 1px 6px;
       border-radius: var(--radius-pill); font-size: 10px; font-weight: var(--font-weight-medium);
-      line-height: 1.5;
+      line-height: 1.5; white-space: nowrap;
       background: color-mix(in srgb, var(--foreground-secondary) 18%, transparent);
       color: var(--foreground-secondary);
     }
     .twin-diagnosis-locator-severity {
       display: inline-flex; align-items: center; padding: 1px 6px;
       border-radius: var(--radius-pill); color: var(--surface-1);
-      font-size: 10px; font-weight: var(--font-weight-semibold); line-height: 1.5;
+      font-size: 10px; font-weight: var(--font-weight-semibold); line-height: 1.5; flex: none;
     }
     .twin-diagnosis-locator-severity.is-p0 { background: #dc2626; }
     .twin-diagnosis-locator-severity.is-p1 { background: #ea580c; }
-    .twin-diagnosis-locator-desc {
-      display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
-      overflow: hidden; font-size: 11px; line-height: 1.45;
-      color: var(--foreground-secondary);
-    }
+    /* 顶栏一行放不下第二行描述,完整文字改用 title 属性走浏览器原生 hover 提示 */
+    .twin-diagnosis-locator-desc { display: none; }
     .twin-diagnosis-locator-actions {
-      flex: none; display: flex; align-items: center; gap: var(--space-2); flex-shrink: 0;
+      flex: none; display: flex; align-items: center; gap: 4px;
+    }
+    /* 顶栏中央槽位本页不再放东西(卡片已挪到左侧标题旁),把它固定的 420px flex-basis
+       收窄成 auto,把这段预留空间还给左侧,避免标题被挤到换行。
+       右侧槽位(进度条+窗口按钮)内容本就右对齐、grow 出的空间对它而言是不可见的,
+       把它的 grow 也关掉,这份空间才会整段流向左侧,卡片才能吃满标题到进度条之间的全部宽度。 */
+    .pto-ide-frame__topbar-center { flex: 0 0 auto; min-width: 0; }
+    .pto-ide-frame__topbar-right { flex: 0 0 auto; }
+    /* 卡片挪来后与页面标题共享顶栏左侧一行:标题(host-chip+workspace)必须钉死原始尺寸、
+       禁止折行,空间紧张时全部由问题定位卡片自己收缩/省略号兜底,不能让标题被挤成两行。 */
+    .pto-ide-frame__topbar-left > .pto-ide-frame__host-chip,
+    .pto-ide-frame__topbar-left > .pto-ide-frame__workspace {
+      flex: none;
+    }
+    .pto-ide-frame__topbar-left > .pto-ide-frame__workspace span {
+      white-space: nowrap;
     }
     /* 进度条问题点标注(带白边纵向线)+ 顶栏进度条默认极简/悬浮撑大样式,统一在
        css/training-run-twin.css 的 .twin-progress-status 一节维护 */
@@ -224,9 +243,9 @@
       box-shadow: 0 4px 14px rgba(0, 0, 0, .32);
       transition: opacity 160ms ease, transform 160ms ease;
     }
-    .v3-problem-badge b { font: 700 13px/1.1 system-ui, sans-serif; }
+    .v3-problem-badge b { font: 700 13px/1.1 var(--font-sans, system-ui); }
     .v3-problem-badge span {
-      font: 500 10.5px/1.15 system-ui, sans-serif;
+      font: 500 10.5px/1.15 var(--font-sans, system-ui);
       opacity: .92;
       white-space: nowrap;
       overflow: hidden;
@@ -263,7 +282,7 @@
       z-index: 7;
       padding: 2px 7px;
       border-radius: 10px;
-      font: 700 10px/1.3 ui-monospace, monospace;
+      font: 700 10px/1.3 var(--font-mono, ui-monospace, monospace);
       background: rgba(255, 255, 255, .94);
       white-space: nowrap;
     }
@@ -305,6 +324,13 @@
     .deck-metric-curve__sublabel { fill: var(--foreground-muted); font: 500 9px/1 var(--font-mono, ui-monospace, monospace); }
     .deck-metric-curve__sw { stroke: var(--ide-pane-bg, var(--surface-1)); stroke-width: 1; }
 
+    /* 悬浮数据线:侧视划过层堆时,一条纵向线从画布底部拉到曲线堆叠区顶部,贴最近的那一层;
+       线/气泡样式直接复用 css/training-run-twin.css 里 op-rank-time/precision 系图表已有的
+       .pto-tmchart__cursor 系类,不重新定义一套视觉语言。独立于 .deck-metric-curve 一层,
+       因为悬浮要跟手,靠 pointermove 直接改这一层,不等 curveSvg 的整帧重画。 */
+    .deck-metric-curve-hover { position: absolute; inset: 0; z-index: 32; pointer-events: none; width: 100%; height: 100%; }
+    .deck-metric-curve-hover__ring { fill: none; stroke-width: 1.6; opacity: .9; }
+
     /* 逐层指标下拉:挂在工具栏「算子染色」右侧,点按钮展开/收起,面板贴按钮右下角。
        按钮字号/字色对齐同一工具栏的 .seg-lbl(「算子染色」等),不用 .btn-ghost 默认的 12px 灰字。 */
     .deck-metric-dd { position: relative; display: inline-flex; }
@@ -325,7 +351,20 @@
     .deck-metric-row { display: flex; align-items: center; gap: 4px; padding: 2px 3px; border-radius: 6px; }
     .deck-metric-row:hover { background: var(--state-hover, color-mix(in srgb, var(--foreground) 6%, transparent)); }
     .deck-metric-row__main { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; cursor: pointer; }
-    .deck-metric-row input { margin: 0; accent-color: var(--primary); cursor: pointer; }
+    /* 原生 checkbox 在暗色面板上默认是刺眼的白底方块，appearance:none 后按 token 自绘：
+       未勾选态贴合面板底色（border-default 描边 + surface-2 底），勾选态用 ::after 画对勾 */
+    .deck-metric-row input {
+      appearance: none; -webkit-appearance: none; margin: 0; width: 13px; height: 13px; flex: 0 0 auto;
+      border-radius: 3px; border: 1.5px solid var(--border-default); background: var(--surface-2);
+      cursor: pointer; position: relative;
+      transition: background var(--duration-fast, .15s) var(--easing-default, ease), border-color var(--duration-fast, .15s) var(--easing-default, ease);
+    }
+    .deck-metric-row input:hover { border-color: var(--border-strong); }
+    .deck-metric-row input:checked { background: var(--primary); border-color: var(--primary); }
+    .deck-metric-row input:checked::after {
+      content: ""; position: absolute; left: 3.5px; top: 0.5px; width: 3px; height: 6.5px;
+      border: solid var(--primary-foreground); border-width: 0 1.5px 1.5px 0; transform: rotate(45deg);
+    }
     .deck-metric-sw { width: 12px; height: 3px; border-radius: 2px; flex: 0 0 auto; }
     .deck-metric-rank { font: 700 9px/1 var(--font-mono, ui-monospace, monospace); color: var(--foreground-muted); flex: 0 0 auto; }
     .deck-metric-name { font: 500 11px/1.2 var(--font-sans, system-ui); color: var(--foreground-secondary); }
@@ -596,9 +635,9 @@
 
     .locate-code-block { border: 1px solid var(--border-subtle); border-radius: var(--radius-md); overflow: hidden; margin: 6px 0; }
     .locate-code-block__head { padding: 7px 12px; background: var(--surface-2); font-size: 11px; font-weight: var(--font-weight-semibold); }
-    .locate-code-block__body { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 10px; line-height: 1.7; padding: 7px 12px; background: var(--surface-1); overflow-x: auto; white-space: pre; }
+    .locate-code-block__body { font-family: var(--font-mono, ui-monospace, monospace); font-size: 10px; line-height: 1.7; padding: 7px 12px; background: var(--surface-1); overflow-x: auto; white-space: pre; }
 
-    .locate-causal { margin: 8px 0; padding: 10px 12px; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); background: var(--surface-2); font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 10px; line-height: 1.55; white-space: pre; overflow-x: auto; color: var(--foreground-secondary); }
+    .locate-causal { margin: 8px 0; padding: 10px 12px; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); background: var(--surface-2); font-family: var(--font-mono, ui-monospace, monospace); font-size: 10px; line-height: 1.55; white-space: pre; overflow-x: auto; color: var(--foreground-secondary); }
 
     /* 「Pangu 2.0 flash 整网图」标题：font 简写自带的 line-height 偏小(~15px)导致文字被 overflow:hidden 截断，
        放大 line-height 让字完整显示 */
@@ -647,7 +686,7 @@
       --h8-grad: #8b5cf6;                            /* backward pass */
       --h8-ok: #16a34a; --h8-warn: #ea580c; --h8-crit: var(--danger, #dc2626);
       --h8-sel: var(--highlight-copy-blue-100, #dde8fd);
-      --h8-mono: ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+      --h8-mono: var(--font-mono, ui-monospace, monospace);
       color: var(--foreground); font-size: 13px; margin: 2px 0 4px;
     }
     .hif8c7 .mono { font-family:var(--h8-mono); }
@@ -843,7 +882,7 @@
       display: grid;
       grid-template-columns: minmax(280px, 27%) minmax(0, 1fr) minmax(280px, 27%);
       grid-template-rows: minmax(0, 1fr);
-      gap: var(--space-3);
+      gap: var(--space-2);
       overflow: hidden;
       padding: 0 8px 0 0;   /* 上0 右8 下0 左0 */
     }
@@ -854,11 +893,11 @@
     }
     .twin-center-scroll.is-left-collapsed {
       grid-template-columns: 0 minmax(0, 1fr) minmax(280px, 27%);
-      margin-left: calc(var(--space-3) * -1);   /* 抵消塌陷轨道残留的 column-gap */
+      margin-left: calc(var(--space-2) * -1);   /* 抵消塌陷轨道残留的 column-gap */
     }
     .twin-center-scroll.is-right-collapsed {
       grid-template-columns: minmax(280px, 27%) minmax(0, 1fr) 0;
-      margin-right: calc(var(--space-3) * -1);
+      margin-right: calc(var(--space-2) * -1);
     }
     .twin-center-scroll.is-left-collapsed.is-right-collapsed {
       grid-template-columns: 0 minmax(0, 1fr) 0;
@@ -1175,7 +1214,7 @@
       gap: 7px;
       flex: none;
       white-space: nowrap;
-      font: 500 11px/1 var(--font-mono, ui-monospace, monospace);
+      font: 500 11px/1 var(--font-sans, system-ui);
       color: var(--foreground-secondary);
     }
     .wzh-tm-compact-elapsed strong { color: var(--foreground); font-weight: var(--font-weight-semibold, 600); }
@@ -1652,6 +1691,307 @@
       border: 0;
       display: block;
     }
+
+    /* ── 智能对话:训练场景 AI 助手,右侧滑出面板,默认收起(见 #trainChatToggle/js/training-chat-panel.js)。
+         沿用 wzh-locate-drawer 的滑出手法但不加暗背景遮罩 —— 对话过程中仍要能看到左侧整网图/指标。 ── */
+    .wzh-chat-panel {
+      position: fixed;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: 380px;
+      max-width: 92vw;
+      z-index: 1900;
+      display: flex;
+      flex-direction: column;
+      background: var(--surface-1);
+      border-left: 1px solid var(--border-default);
+      box-shadow: var(--shadow-lg);
+      transform: translateX(100%);
+      transition: transform var(--duration-base) var(--easing-default);
+      pointer-events: none;
+    }
+    .wzh-chat-panel.is-open {
+      transform: translateX(0);
+      pointer-events: auto;
+    }
+    /* 标题栏下不加分割线——右上角只留"设置 Key(齿轮) + 关闭"两个图标按钮,
+       原来的上下文行/Key 状态行/额度行都收进了这一个齿轮按钮里(见 #trainChatKeyBtn)。 */
+    .wzh-chat-head {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: var(--space-3); flex: 0 0 auto;
+      padding: var(--space-3) var(--space-4);
+    }
+    .wzh-chat-head-title-row { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
+    .wzh-chat-head-icon { width: 16px; height: 16px; flex-shrink: 0; fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .wzh-chat-head-title { font: 600 13px/1.4 var(--font-sans); color: var(--foreground); }
+    .wzh-chat-head-actions { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
+    /* 齿轮图标默认中性色;Key 已配置时略微提亮，作为"已配置"的唯一视觉线索(悬浮 title 给出完整文案) */
+    .wzh-chat-key-icon { width: 16px; height: 16px; fill: none; stroke: var(--foreground-muted); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: stroke var(--duration-fast); }
+    #trainChatKeyBtn.is-configured .wzh-chat-key-icon { stroke: var(--accent); }
+
+    .wzh-chat-body { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
+
+    .wzh-chat-messages {
+      flex: 1; overflow-y: auto; padding: var(--space-3) 12px;
+      display: flex; flex-direction: column; gap: 16px;
+      font-size: 12px; line-height: 1.65; color: var(--foreground-secondary); word-break: break-word;
+    }
+    .wzh-chat-welcome {
+      flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 10px; padding: 20px 14px; text-align: center;
+    }
+    .wzh-chat-welcome-icon { width: 26px; height: 26px; fill: none; stroke: var(--foreground-muted); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+    .wzh-chat-welcome-text { font-size: 12px; color: var(--foreground-muted); line-height: 1.6; }
+
+    /* 用户气泡:靠右、有底色，右下角收成小直角当"尖角"，与 shadcn Bubble 的
+       end-aligned + 内容自适应宽度(≤ 80%) 用法一致。 */
+    .wzh-chat-message.user {
+      align-self: flex-end;
+      max-width: 80%;
+      padding: 8px 12px;
+      border-radius: 14px 14px 3px 14px;
+      background: color-mix(in srgb, var(--primary) 16%, var(--surface-2));
+      color: var(--foreground);
+      box-shadow: var(--shadow-sm);
+    }
+    /* AI 回复:不上底色(shadcn 的 ghost 变体)，改用头像行 + 缩进正文来标识发言方——
+       长文本/表格/卡片在窄面板里挤在有色气泡里会很难看，全宽 + 头像是更合适的形态。 */
+    .wzh-chat-message.ai { align-self: stretch; display: flex; flex-direction: column; gap: 6px; }
+    .wzh-chat-avatar-row { display: flex; align-items: center; gap: 6px; }
+    .wzh-chat-avatar {
+      width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
+      background: color-mix(in srgb, var(--primary) 16%, var(--surface-2));
+      display: inline-flex; align-items: center; justify-content: center;
+    }
+    .wzh-chat-avatar svg { width: 12px; height: 12px; fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .wzh-chat-sender { font-size: 10.5px; font-weight: 600; color: var(--foreground-muted); letter-spacing: .02em; }
+    .wzh-chat-body-content { padding-left: 26px; } /* 与头像+间距对齐(20px + 6px) */
+
+    .wzh-chat-messages p { margin: 0 0 6px; }
+    .wzh-chat-messages p:last-child { margin-bottom: 0; }
+    .wzh-chat-messages strong { color: var(--foreground); }
+    .wzh-chat-messages ul, .wzh-chat-messages ol { padding-left: 16px; margin: 0 0 6px; }
+    .wzh-chat-messages li { margin-bottom: 2px; }
+    .wzh-chat-messages code { font-family: var(--font-mono); font-size: 11px; color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); padding: 1px 4px; border-radius: 3px; }
+    .wzh-chat-messages pre { margin: 0 0 6px; padding: 8px 10px; background: var(--surface-2); border-radius: var(--radius-sm); overflow-x: auto; }
+    .wzh-chat-messages pre code { background: none; padding: 0; }
+    .wzh-chat-messages h1, .wzh-chat-messages h2, .wzh-chat-messages h3 { font-size: 12px; color: var(--foreground); margin: 0 0 5px; }
+    .wzh-chat-table { width: 100%; border-collapse: collapse; margin: 0 0 8px; font-size: 11px; }
+    .wzh-chat-table th, .wzh-chat-table td { border: 1px solid var(--border-default); padding: 4px 6px; text-align: left; vertical-align: top; }
+    .wzh-chat-table th { background: var(--surface-3); color: var(--foreground-secondary); font-weight: 600; white-space: nowrap; }
+    .wzh-chat-table td { color: var(--foreground-secondary); }
+
+    /* 提示语单行横向排列(超出滚动,不换行)，中性色，栏上下不加分割线 */
+    .wzh-chat-suggestions {
+      padding: 6px 10px 5px; display: flex; flex-wrap: nowrap; gap: 5px; flex-shrink: 0;
+      overflow-x: auto; scrollbar-width: none;
+    }
+    .wzh-chat-suggestions::-webkit-scrollbar { display: none; }
+    .wzh-chat-suggestion {
+      padding: 4px 10px; border-radius: var(--radius-pill); flex-shrink: 0;
+      border: 1px solid var(--border-default); color: var(--foreground-secondary);
+      background: var(--surface-2); cursor: pointer; font-size: 11px;
+      white-space: nowrap; transition: background var(--duration-fast), border-color var(--duration-fast);
+    }
+    .wzh-chat-suggestion:hover { background: var(--surface-3); border-color: var(--border-strong); }
+    .wzh-chat-suggestion:disabled { opacity: .4; cursor: not-allowed; pointer-events: none; }
+
+    .wzh-chat-input-bar { padding: 8px 10px; position: relative; flex-shrink: 0; }
+    .wzh-chat-input {
+      width: 100%; box-sizing: border-box;
+      background: var(--surface-2); border: 1px solid var(--border-default);
+      border-radius: var(--radius-md); padding: 7px 42px 7px 10px; color: var(--foreground);
+      font-size: 12px; font-family: var(--font-sans); resize: none; max-height: 120px;
+      overflow-y: auto; line-height: 1.5; transition: border-color var(--duration-fast);
+    }
+    .wzh-chat-input:focus { outline: none; border-color: color-mix(in srgb, var(--primary) 55%, transparent); }
+    .wzh-chat-input::placeholder { color: var(--foreground-muted); }
+    .wzh-chat-send-btn {
+      position: absolute; right: 16px; bottom: 20px;
+      width: 28px; height: 28px; border-radius: var(--radius-md);
+      background: var(--primary); border: none; color: var(--primary-foreground);
+      cursor: pointer; font-size: 15px; font-weight: 700;
+      transition: background var(--duration-fast); display: flex; align-items: center; justify-content: center;
+    }
+    .wzh-chat-send-btn:hover { background: var(--primary-hover); }
+    .wzh-chat-send-btn:disabled { opacity: .45; cursor: not-allowed; }
+
+    .wzh-chat-typing { display: inline-flex; align-items: center; gap: 4px; padding: 3px 0; }
+    .wzh-chat-typing span { width: 6px; height: 6px; border-radius: 50%; background: var(--foreground-muted); opacity: .4; animation: wzh-chat-typing-blink 1.2s infinite ease-in-out both; }
+    .wzh-chat-typing span:nth-child(2) { animation-delay: .18s; }
+    .wzh-chat-typing span:nth-child(3) { animation-delay: .36s; }
+    @keyframes wzh-chat-typing-blink {
+      0%, 80%, 100% { opacity: .25; transform: scale(.85); }
+      40% { opacity: .9; transform: scale(1); }
+    }
+
+    /* 输入框锚定当前训练任务:与发送按钮同一行,贴左显示"任务图标 + 任务名",
+       提示用户提问时无需再报任务名,AI 已按此上下文作答。纯展示,不接收点击。 */
+    .wzh-chat-anchor-chip {
+      position: absolute; left: 16px; bottom: 20px;
+      display: inline-flex; align-items: center; gap: 4px;
+      max-width: calc(100% - 76px); overflow: hidden;
+      padding: 3px 8px; border-radius: var(--radius-pill);
+      background: var(--surface-3);
+      color: var(--foreground-secondary); font-size: 10.5px; font-weight: 400;
+      pointer-events: none;
+    }
+    .wzh-chat-anchor-chip svg {
+      width: 12px; height: 12px; flex-shrink: 0;
+      fill: none; stroke: var(--foreground-muted); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+    }
+    .wzh-chat-anchor-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .wzh-chat-notify-card {
+      margin-top: 8px;
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-lg);
+      background: var(--surface-2);
+      overflow: hidden;
+    }
+    .wzh-chat-notify-head {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: var(--space-2);
+      padding: 8px 12px;
+      background: var(--surface-3);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .wzh-chat-notify-app { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; color: var(--foreground-secondary); }
+    .wzh-chat-notify-app-dot {
+      width: 15px; height: 15px; border-radius: 4px; flex-shrink: 0;
+      background: var(--primary); color: var(--primary-foreground);
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 9px; font-weight: 700;
+    }
+    .wzh-chat-notify-body { padding: 10px 12px; }
+    .wzh-chat-notify-task { font-size: 12px; font-weight: 600; color: var(--foreground); margin-bottom: 2px; font-family: var(--font-mono); }
+    .wzh-chat-notify-time { font-size: 10px; color: var(--foreground-muted); margin-bottom: 8px; }
+    /* key:value 同一行:左侧标签、右侧数值，两端对齐 */
+    .wzh-chat-notify-grid { display: flex; flex-direction: column; gap: 5px; }
+    .wzh-chat-notify-item { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+    .wzh-chat-notify-item-label { font-size: 10px; color: var(--foreground-muted); text-transform: uppercase; letter-spacing: .02em; flex-shrink: 0; }
+    .wzh-chat-notify-item-value { font-size: 12px; font-weight: 600; color: var(--foreground-secondary); font-family: var(--font-mono); text-align: right; }
+
+    #trainChatToggle.is-active { background: var(--state-selected); color: var(--foreground); }
+    #trainChatToggle.is-active .pto-ide-frame__window-icon { stroke: var(--accent); opacity: 1; }
+
+    @media (max-width: 720px) {
+      .wzh-chat-panel { width: 100vw; max-width: 100vw; }
+    }
+
+    /* ── 日志:训练全量/任务/系统日志抽屉,右上角 #trainLogToggle 入口,默认收起(见 js/training-log-drawer.js)。
+         日志行信息密度高、偏宽,采用底部滑出(而非 wzh-chat-panel 那种右侧竖版),不遮挡左侧整网图/指标。 ── */
+    .wzh-log-drawer {
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      height: 46vh;
+      min-height: 340px;
+      max-height: 620px;
+      z-index: 1900;
+      display: flex;
+      flex-direction: column;
+      background: var(--surface-1);
+      border-top: 1px solid var(--border-default);
+      box-shadow: var(--shadow-lg);
+      transform: translateY(100%);
+      transition: transform var(--duration-base) var(--easing-default);
+      pointer-events: none;
+    }
+    .wzh-log-drawer.is-open { transform: translateY(0); pointer-events: auto; }
+
+    .wzh-log-head {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: var(--space-3); flex: 0 0 auto;
+      padding: var(--space-3) var(--space-4);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .wzh-log-head-title-row { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
+    .wzh-log-head-icon { width: 16px; height: 16px; flex-shrink: 0; fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .wzh-log-head-title { font: 600 13px/1.4 var(--font-sans); color: var(--foreground); }
+    .wzh-log-head-context { font-size: 11px; color: var(--foreground-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .wzh-log-toolbar {
+      display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;
+      flex: 0 0 auto; padding: 8px var(--space-4);
+      border-bottom: 1px solid var(--border-subtle);
+      background: var(--surface-2);
+    }
+    .wzh-log-search { flex: 1 1 320px; min-width: 220px; display: flex; align-items: center; gap: 6px; }
+    .wzh-log-search-input {
+      flex: 1; min-width: 0; box-sizing: border-box;
+      background: var(--surface-1); border: 1px solid var(--border-default);
+      border-radius: var(--radius-md); padding: 6px 10px; color: var(--foreground);
+      font-size: 11.5px; font-family: var(--font-mono); transition: border-color var(--duration-fast);
+    }
+    .wzh-log-search-input:focus { outline: none; border-color: color-mix(in srgb, var(--primary) 55%, transparent); }
+    .wzh-log-search-input::placeholder { color: var(--foreground-muted); }
+    .wzh-log-search-hint {
+      flex: 1 1 100%; order: 3;
+      font-size: 10.5px; font-family: var(--font-mono); color: var(--foreground-muted);
+    }
+    .wzh-log-search-hint code { color: var(--foreground-secondary); }
+
+    .wzh-log-status {
+      display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;
+      flex: 0 0 auto; padding: 5px var(--space-4);
+      border-bottom: 1px solid var(--border-subtle);
+      font-size: 10.5px; color: var(--foreground-muted); font-family: var(--font-mono);
+    }
+    .wzh-log-status b { color: var(--foreground-secondary); font-weight: 600; }
+    .wzh-log-status .lvl-error { color: var(--danger); font-weight: 600; }
+    .wzh-log-status .lvl-warn { color: var(--warning); font-weight: 600; }
+    .wzh-log-status-live { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; }
+    .wzh-log-status-live i { width: 6px; height: 6px; border-radius: 50%; background: var(--success); box-shadow: 0 0 0 3px color-mix(in srgb, var(--success) 20%, transparent); }
+
+    .wzh-log-body {
+      flex: 1; min-height: 0; overflow-y: auto;
+      font-family: var(--font-mono); font-size: 11.5px; line-height: 1.6;
+    }
+    .wzh-log-row {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 3px var(--space-4);
+      border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 55%, transparent);
+    }
+    .wzh-log-row:hover { background: var(--state-hover); }
+    .wzh-log-col-time { flex: 0 0 148px; color: var(--foreground-muted); white-space: nowrap; }
+    .wzh-log-col-level {
+      flex: 0 0 48px; font-weight: 700; letter-spacing: .02em;
+    }
+    .wzh-log-col-level.lvl-INFO { color: var(--foreground-secondary); }
+    .wzh-log-col-level.lvl-DEBUG { color: var(--foreground-muted); }
+    .wzh-log-col-level.lvl-WARN { color: var(--warning); }
+    .wzh-log-col-level.lvl-ERROR { color: var(--danger); }
+    .wzh-log-col-comp {
+      flex: 0 0 88px; color: var(--foreground-secondary);
+      background: color-mix(in srgb, var(--foreground) 7%, transparent);
+      border-radius: 4px; padding: 0 5px; text-align: center;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .wzh-log-col-msg {
+      flex: 1; min-width: 0; color: var(--foreground);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .wzh-log-row.lvl-ERROR .wzh-log-col-msg { color: var(--danger); }
+    .wzh-log-row.lvl-WARN .wzh-log-col-msg { color: color-mix(in srgb, var(--warning) 85%, var(--foreground)); }
+    .wzh-log-empty { padding: var(--space-4); text-align: center; color: var(--foreground-muted); font-size: 12px; font-family: var(--font-sans); }
+
+    /* 抽屉打开/切换页签/搜索后自动滚到关键报错行(见 js/training-log-drawer.js 的 scrollToRelevantRow),
+       用一次性红色脉冲把视线引导过去,而不是要求用户自己在几十行里找 */
+    .wzh-log-row.is-flash { animation: wzh-log-flash 850ms ease-out 2; }
+    @keyframes wzh-log-flash {
+      0% { background: color-mix(in srgb, var(--danger) 32%, transparent); }
+      100% { background: transparent; }
+    }
+
+    #trainLogToggle.is-active { background: var(--state-selected); color: var(--foreground); }
+    #trainLogToggle.is-active .pto-ide-frame__window-icon { stroke: var(--accent); opacity: 1; }
+
+    @media (max-width: 720px) {
+      .wzh-log-drawer { height: 68vh; }
+      .wzh-log-col-time { flex-basis: 108px; }
+      .wzh-log-col-comp { display: none; }
+    }
   </style>
 </head>
 <body class="train-twin-page" data-theme="dark" data-model="deepseek" data-task="pretrain" data-hardware="cluster2048">
@@ -1666,7 +2006,32 @@
           </svg>
         </div>
         <div class="pto-ide-frame__workspace" data-ide-slot="workspace-switcher">
-          <span>模型训练监控大盘</span>
+          <span>训练监控</span>
+        </div>
+        <!-- 点击进度轴问题点后浮现的「问题定位」卡片,紧跟标题挂在顶栏左侧的空白处
+             (标题与右侧进度条之间大片留白,不遮挡任何元素),不再占用下方整网图卡的高度
+             (原位置见 activateProblemOneLens()/showDiagnosisLocator())。 -->
+        <div class="twin-diagnosis-locator" id="diagnosisLocator">
+          <div class="twin-diagnosis-locator-body">
+            <strong class="twin-diagnosis-locator-title" id="diagnosisLocatorTitle">--</strong>
+            <div class="twin-diagnosis-locator-tags">
+              <span class="twin-diagnosis-locator-tag" id="diagnosisLocatorLayerTag">--</span>
+              <span class="twin-diagnosis-locator-tag" id="diagnosisLocatorCategoryTag">--</span>
+              <span class="twin-diagnosis-locator-severity" id="diagnosisLocatorSeverityTag">--</span>
+            </div>
+            <span class="twin-diagnosis-locator-desc" id="diagnosisLocatorDesc">--</span>
+          </div>
+          <div class="twin-diagnosis-locator-actions">
+            <button class="btn btn-ghost btn-sm" type="button" id="diagnosisLocatorDrawerBtn" style="font-size:11px">详情</button>
+            <!-- 复用顶栏其余按钮同款 28×28 图标按钮(.pto-ide-frame__window-action/-icon),
+                 与 themeToggle/twinTimelineToggle 等保持同一套视觉语言,不新造按钮样式 -->
+            <button class="pto-ide-frame__window-action" type="button" id="diagnosisLocatorClose" title="关闭并回到最新 step" aria-label="关闭并回到最新 step">
+              <svg class="pto-ide-frame__window-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M18 6 6 18"></path>
+                <path d="M6 6l12 12"></path>
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
       <div class="pto-ide-frame__topbar-center"></div>
@@ -1695,6 +2060,17 @@
           </div>
         </div>
         <div class="pto-ide-frame__window-actions" data-ide-slot="window-controls" aria-label="Window controls">
+          <!-- 日志:训练全量/任务/系统日志抽屉入口,默认收起,置于主题切换左侧;面板与逻辑见
+               js/training-log-drawer.js、#trainLogDrawer(从底部滑出,不遮挡整网图/指标) -->
+          <button class="pto-ide-frame__window-action" id="trainLogToggle" type="button" aria-controls="trainLogDrawer" aria-expanded="false" aria-pressed="false" title="打开日志" aria-label="打开日志">
+            <svg class="pto-ide-frame__window-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"></path>
+              <path d="M15 3v5h5"></path>
+              <path d="M8 13h8"></path>
+              <path d="M8 17h8"></path>
+              <path d="M8 9h3"></path>
+            </svg>
+          </button>
           <!-- 主题切换:单一图标按钮(月亮/太阳互换),参照 pangu-moe-trainviz/op-rank-time.html 的 .opv-theme-toggle,
                避免和整网图组件内部的 opvTopThemeToggle/floatingThemeToggle 文字按钮重复出现两套主题开关 -->
           <button class="pto-ide-frame__window-action" id="themeToggle" type="button" aria-pressed="false" title="切换主题" aria-label="切换主题">
@@ -1721,13 +2097,20 @@
               <path d="M15 3v18"></path>
             </svg>
           </button>
+          <span class="pto-ide-frame__window-separator" aria-hidden="true"></span>
+          <!-- 智能对话:训练场景 AI 助手入口,默认收起,面板与逻辑见 js/training-chat-panel.js -->
+          <button class="pto-ide-frame__window-action" id="trainChatToggle" type="button" aria-controls="trainChatPanel" aria-expanded="false" aria-pressed="false" title="打开智能对话" aria-label="打开智能对话">
+            <svg class="pto-ide-frame__window-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z"></path>
+            </svg>
+          </button>
         </div>
       </div>
     </header>
 
     <div class="pto-ide-frame__body">
       <nav class="pto-ide-frame__activity-rail pto-ide-frame__standalone-chrome" data-ide-slot="activity-rail" aria-label="Activity rail">
-        <button class="btn btn-icon btn-ghost pto-ide-frame__rail-button" type="button" aria-label="Explorer" title="Explorer">
+        <button class="btn btn-icon btn-ghost pto-ide-frame__rail-button is-selected" type="button" aria-label="Explorer" title="Explorer" aria-pressed="true">
           <svg class="pto-ide-frame__rail-icon" viewBox="0 0 24 24" aria-hidden="true">
             <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9l-.81-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"></path>
           </svg>
@@ -1751,6 +2134,13 @@
             <rect x="3" y="5" width="18" height="14" rx="2"></rect>
             <path d="m7 9 3 3-3 3"></path>
             <path d="M12 15h5"></path>
+          </svg>
+        </button>
+        <!-- 与 TaskCompare.html 的「对比」图标同款，点击跳转任务对比页，实现两页互跳 -->
+        <button class="btn btn-icon btn-ghost pto-ide-frame__rail-button" type="button" id="navTaskCompare" aria-label="对比" title="对比">
+          <svg class="pto-ide-frame__rail-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+            <path d="M12 3v18"></path>
           </svg>
         </button>
       </nav>
@@ -1777,21 +2167,6 @@
                       <!-- 训练进度已迁回顶栏缩略部件(.wzh-tm-widget，见 topbar-right)，
                            中央列不再单独占一行，整网图卡填满整列高度。 -->
                       <section class="twin-graph-card" aria-label="模型架构图">
-          <div class="twin-diagnosis-locator" id="diagnosisLocator">
-            <div class="twin-diagnosis-locator-body">
-              <strong class="twin-diagnosis-locator-title" id="diagnosisLocatorTitle">--</strong>
-              <div class="twin-diagnosis-locator-tags">
-                <span class="twin-diagnosis-locator-tag" id="diagnosisLocatorLayerTag">--</span>
-                <span class="twin-diagnosis-locator-tag" id="diagnosisLocatorCategoryTag">--</span>
-                <span class="twin-diagnosis-locator-severity" id="diagnosisLocatorSeverityTag">--</span>
-              </div>
-              <span class="twin-diagnosis-locator-desc" id="diagnosisLocatorDesc">--</span>
-            </div>
-            <div class="twin-diagnosis-locator-actions">
-              <button class="btn btn-ghost btn-sm" type="button" id="diagnosisLocatorDrawerBtn" style="font-size:11px">详情与修复建议</button>
-              <button class="btn btn-ghost btn-sm" type="button" id="diagnosisLocatorClose" title="关闭并回到最新 step" style="font-size:11px">关闭</button>
-            </div>
-          </div>
           <div class="twin-architecture-stage">
             <!-- 整网图改用 pto-design-system 的 model-architecture-3d-deck pattern(CSS 3D 层叠,非 iframe):
                  样式 css/model-architecture-3d-deck-pattern.css、逻辑 js/model-architecture-3d-deck-pattern.js,
@@ -2501,6 +2876,13 @@ MoE：256+1（top-8 路由 · EP 切分）">?</span>
   <script src="./js/workbench-shell-pattern.js"></script>
   <script src="./js/ide-frame-pattern.js"></script>
   <script>
+    // activity rail 的「对比」图标（与 TaskCompare.html 同款）跳转到任务对比页，实现两页互跳。
+    (function () {
+      const btn = document.getElementById('navTaskCompare');
+      if (btn) btn.addEventListener('click', () => { window.location.href = './TaskCompare.html'; });
+    })();
+  </script>
+  <script>
     // 「问题诊断」「分析记录」为 standalone-main split 里两个可独立展开/收起的侧栏面板;
     // ide-frame-pattern.js 内建的 explorer 折叠逻辑只支持单一 toggle/pane 配对,这里改为本地维护
     // 两组开关状态。必须等 ide-frame-pattern.js 的 DOMContentLoaded 初始化(创建 split gutter)
@@ -2618,5 +3000,93 @@ MoE：256+1（top-8 路由 · EP 切分）">?</span>
       injectHelp("infraCharts");
     })();
   </script>
+
+  <!-- 智能对话:训练场景 AI 助手,右上角 #trainChatToggle 入口,默认收起。参考 MindStudioNext 的
+       右侧 AI 对话 inspector(前端直连 DeepSeek API、用户自带 Key、按浏览器/天限额),系统提示改为
+       围绕当前训练运行(模型/step/loss/MFU/已定位问题)作答,而非性能报告解读。逻辑见 js/training-chat-panel.js。 -->
+  <aside class="wzh-chat-panel" id="trainChatPanel" aria-label="智能对话" aria-hidden="true">
+    <header class="wzh-chat-head">
+      <div class="wzh-chat-head-title-row">
+        <svg class="wzh-chat-head-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z"></path>
+        </svg>
+        <span class="wzh-chat-head-title">智能对话</span>
+      </div>
+      <div class="wzh-chat-head-actions">
+        <button class="btn btn-ghost btn-icon btn-sm" id="trainChatKeyBtn" type="button" aria-label="设置 DeepSeek API Key（未配置）" title="设置 DeepSeek API Key（未配置）">
+          <svg class="wzh-chat-key-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
+        <button class="btn btn-ghost btn-icon btn-sm" id="trainChatCloseBtn" type="button" aria-label="关闭智能对话" title="关闭">✕</button>
+      </div>
+    </header>
+
+    <div class="wzh-chat-body">
+      <div class="wzh-chat-messages" id="trainChatMessages">
+        <div class="wzh-chat-welcome">
+          <svg class="wzh-chat-welcome-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z"></path>
+          </svg>
+          <div class="wzh-chat-welcome-text">我可以帮你诊断问题、修改配置、定制面板。</div>
+        </div>
+      </div>
+      <div class="wzh-chat-suggestions" id="trainChatSuggestions"></div>
+      <div class="wzh-chat-input-bar">
+        <textarea class="wzh-chat-input" id="trainChatInput" placeholder="请输入" rows="3"></textarea>
+        <div class="wzh-chat-anchor-chip" id="trainChatAnchorChip" title="当前对话已锚定到该任务，提问无需再报任务名" aria-hidden="true">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="9" y="3" width="6" height="4" rx="1" ry="1"></rect>
+            <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"></path>
+          </svg>
+          <span id="trainChatAnchorName"></span>
+        </div>
+        <button class="wzh-chat-send-btn" id="trainChatSendBtn" type="button" title="发送" aria-label="发送">↑</button>
+      </div>
+    </div>
+  </aside>
+
+  <script src="./js/training-chat-panel.js"></script>
+
+  <!-- 日志:右上角 #trainLogToggle 入口,默认收起。从底部滑出,含「全量日志｜任务日志｜系统日志」
+       页签 + SQL 风格搜索框(支持 level=/message LIKE/step 比较/AND 组合,解析不出结构化条件时
+       退化为对 时间/级别/组件/消息 的普通子串匹配)。日志数据与渲染逻辑见 js/training-log-drawer.js。 -->
+  <aside class="wzh-log-drawer" id="trainLogDrawer" aria-label="训练日志" aria-hidden="true">
+    <header class="wzh-log-head">
+      <div class="wzh-log-head-title-row">
+        <svg class="wzh-log-head-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"></path>
+          <path d="M15 3v5h5"></path>
+          <path d="M8 13h8"></path>
+          <path d="M8 17h8"></path>
+          <path d="M8 9h3"></path>
+        </svg>
+        <span class="wzh-log-head-title">训练日志</span>
+        <span class="wzh-log-head-context" id="trainLogContext">--</span>
+      </div>
+      <button class="btn btn-ghost btn-icon btn-sm" id="trainLogCloseBtn" type="button" aria-label="关闭日志" title="关闭">✕</button>
+    </header>
+
+    <div class="wzh-log-toolbar">
+      <span class="seg" id="trainLogTabSeg" role="tablist" aria-label="日志分类">
+        <button class="segbtn on" type="button" data-log-tab="all" role="tab" aria-selected="true">全量日志</button>
+        <button class="segbtn" type="button" data-log-tab="task" role="tab" aria-selected="false">任务日志</button>
+        <button class="segbtn" type="button" data-log-tab="system" role="tab" aria-selected="false">系统日志</button>
+      </span>
+      <div class="wzh-log-search">
+        <input class="wzh-log-search-input" id="trainLogSearchInput" type="text" spellcheck="false" placeholder="SQL 搜索，如 level='ERROR' AND message LIKE '%nan%'">
+        <button class="btn btn-ghost btn-sm" id="trainLogSearchBtn" type="button">搜索</button>
+        <button class="btn btn-ghost btn-sm" id="trainLogSearchClearBtn" type="button">清空</button>
+      </div>
+      <span class="wzh-log-search-hint">支持列：level / comp / message / step，运算符 = != &gt; &gt;= &lt; &lt;= LIKE IN，多条件用 <code>AND</code> 连接；非结构化输入按关键字全文匹配。</span>
+    </div>
+
+    <div class="wzh-log-status" id="trainLogStatus"></div>
+
+    <div class="wzh-log-body" id="trainLogBody"></div>
+  </aside>
+
+  <script src="./js/training-log-drawer.js"></script>
 </body>
 </html>
