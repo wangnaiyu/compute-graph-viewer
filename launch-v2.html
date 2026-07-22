@@ -1206,13 +1206,13 @@ const launchItems = [
     group: "模型图与 IR",
     status: "hi-fi",
     desc: "在经过架构校验的模型图上叠加 profiling 报告，联动定位问题节点、诊断证据与时间线。",
-    href: "graphviz/deepseek_v32_report_overlay_demo_v2.html",
+    href: "deepseek-v32-report-overlay/index.html",
     preview: "assets/preview-deepseek-v32-report-overlay.png",
     fit: "contain",
     tags: ["Graph", "Report", "Profiling"],
     variants: [
       { label: "OpenPangu Mock", href: "openpangu-2-0-flash-report-overlay/index.html" },
-      { label: "DeepSeek 新版", href: "graphviz/deepseek_v32_report_overlay_demo_v2.html" },
+      { label: "DeepSeek 新版", href: "deepseek-v32-report-overlay/index.html" },
       { label: "DeepSeek 旧版", href: "graphviz/deepseek_v32_report_overlay_demo.html" }
     ]
   },
@@ -1262,13 +1262,11 @@ const launchItems = [
     tags: ["Precision", "RL", "Alignment"]
   },
   {
-    title: "PyPTOUX 泳道性能分析",
-    sub: "Swimlane Profiler · 外部",
     title: "PTO性能分析",
     sub: "Swimlane Profiler · 本地",
     group: "执行与性能分析",
     status: "hi-fi",
-    desc: "融合泳道视图、Profiler 报告、同步等待与性能下钻,展示 PTO 性能分析工作流。",
+    desc: "通过同步竞争、调度空泡与流水失衡三类场景，展示 PTO 泳道性能分析与下钻工作流。",
     href: "pto-swimlane-profiler/index.html",
     preview: "assets/pto-swimlane-profiler.png",
     fit: "contain",
