@@ -191,6 +191,7 @@ body.col-resizing{cursor:col-resize;user-select:none}
 .ide-tkind svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .ide-tkind.k-mig{color:var(--op-sem-rope);background:color-mix(in srgb,var(--op-sem-rope) 14%,transparent);border-color:color-mix(in srgb,var(--op-sem-rope) 30%,transparent)}
 .ide-tkind.k-net{color:var(--op-sem-attention);background:color-mix(in srgb,var(--op-sem-attention) 14%,transparent);border-color:color-mix(in srgb,var(--op-sem-attention) 30%,transparent)}
+.ide-tkind.k-op{color:var(--op-sem-act);background:color-mix(in srgb,var(--op-sem-act) 14%,transparent);border-color:color-mix(in srgb,var(--op-sem-act) 30%,transparent)}
 .ide-tname{min-width:0;font:var(--text-title-2);color:var(--foreground);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:340px}
 @media (max-width:900px){.ide-ws{display:none}}
 /* 主图卡片（bento）：原 .center 的卡面下沉到这里，终端成为独立卡片、之间留 gap */
@@ -912,6 +913,123 @@ table.diff td{padding:4px 8px;border-bottom:1px solid var(--border-subtle);color
 .cl-rect.foc-off{opacity:.28}
 /* comparability gate */
 .compat{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+/* ===== 算子加速库入口准入预检（横切门禁 · preflight）=====
+   与「可比性」同构：默认全通过，点项模拟命中。
+   关键约束：严重级用「形态」区分（实心方块=阻断 / 空心方块=提示 / 短横=信息），
+   不与精度状态争颜色通道——精度红只表首错/超阈。 */
+.pf-chip{display:flex;align-items:center;gap:7px;width:100%;padding:7px 9px;border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:color-mix(in srgb,var(--foreground) 3%,transparent);cursor:pointer;font:var(--text-body-sm);font-size:11.5px;color:var(--foreground-secondary);text-align:left;transition:border-color .15s}
+.pf-chip:hover{border-color:var(--border-strong)}
+.pf-chip .pf-mk{width:9px;height:9px;flex:0 0 auto;border-radius:2px;background:var(--success)}
+.pf-chip.warn .pf-mk{background:transparent;box-shadow:inset 0 0 0 1.6px var(--warning)}
+.pf-chip.block .pf-mk{background:var(--danger)}
+.pf-chip .pf-chev{margin-left:auto;color:var(--foreground-muted);font-size:10px}
+.pf-panel{margin-top:7px;display:flex;flex-direction:column;gap:7px;padding:9px 10px;border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:color-mix(in srgb,var(--foreground) 3%,transparent)}
+.pf-panel[hidden]{display:none}
+.pf-note{font:var(--text-body-sm);font-size:11px;color:var(--foreground-secondary);line-height:1.5}
+.pf-list{display:flex;flex-direction:column;gap:5px}
+.pf-item{border:1px solid var(--border-subtle);border-radius:var(--radius-sm);background:var(--surface-1);cursor:pointer;overflow:hidden}
+.pf-item:hover{border-color:var(--border-strong)}
+.pf-ih{display:flex;align-items:center;gap:6px;padding:6px 8px}
+.pf-mk2{width:8px;height:8px;flex:0 0 auto;border-radius:2px;background:color-mix(in srgb,var(--foreground) 22%,transparent)}
+.pf-item.hit.block .pf-mk2{background:var(--danger)}
+.pf-item.hit.warn .pf-mk2{background:transparent;box-shadow:inset 0 0 0 1.5px var(--warning)}
+.pf-item.hit.info .pf-mk2{background:transparent;box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--foreground) 40%,transparent)}
+.pf-code{font:500 10px/1.4 var(--font-mono);letter-spacing:.3px;color:var(--foreground-muted)}
+.pf-item.hit .pf-code{color:var(--foreground-secondary)}
+.pf-lbl{font:var(--text-body-sm);font-size:11.5px;color:var(--foreground-secondary);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pf-item.hit .pf-lbl{color:var(--foreground)}
+.pf-st{font:500 10px/1.4 var(--font-mono);color:var(--foreground-muted);flex:0 0 auto}
+.pf-item.hit.block .pf-st{color:var(--danger)}
+.pf-item.hit.warn .pf-st{color:var(--warning)}
+.pf-body{padding:0 8px 8px 22px;display:flex;flex-direction:column;gap:4px}
+.pf-kv{font:var(--text-body-sm);font-size:10.5px;line-height:1.5;color:var(--foreground-secondary)}
+.pf-kv b{color:var(--foreground);font-weight:600}
+.pf-kv .pf-k{display:inline-block;min-width:30px;color:var(--foreground-muted)}
+.pf-how{margin:2px 0 0;padding-left:14px;font:var(--text-body-sm);font-size:10.5px;line-height:1.6;color:var(--foreground-secondary)}
+.pf-act{display:flex;gap:6px;margin-top:2px}
+.pf-act .btn{flex:1;justify-content:center;font-size:11px;padding:5px 8px}
+/* ===== 算子开发态工作台（workMode='opdev'）· CPU golden ↔ AscendC 逐步对标 ===== */
+.op-stage{position:absolute;inset:0;display:flex;flex-direction:column;overflow:hidden}
+.op-scroll{flex:1;min-height:0;overflow:auto;padding:14px 16px 18px}
+.op-side{display:flex;flex-direction:column}
+body:not(.wm-opdev) .op-side{display:none}
+body.wm-opdev #peelStatusSec,body.wm-opdev #migSide,body.wm-opdev #migObjRow,body.wm-opdev #migCtxRow,body.wm-opdev #migRefRow,body.wm-opdev #migCandRow,
+body.wm-opdev #scenRow,body.wm-opdev #rankRow{display:none}
+/* 算子开发态：整网图专用的工具不适用（精度视图段控 / 画布缩放 / 图例都属于整网与层内图） */
+body.wm-opdev #precMode,body.wm-opdev #precModeLbl,body.wm-opdev .graph-pane > .canvas-zoom,body.wm-opdev .graph-pane > .canvas-legend{display:none!important}
+.op-band{width:100%;display:block}
+.op-gtxt{font:600 12.5px/1.3 var(--font-sans);fill:var(--foreground)}
+.op-gsub{font:500 10.5px/1.3 var(--font-mono);fill:var(--foreground-muted)}
+.op-stxt{font-size:13px;font-weight:500;fill:#fff;font-family:var(--font-sans)}
+.op-stxt-sub{font-size:9.5px;fill:rgba(255,255,255,.72);font-family:var(--font-sans)}
+.op-kind{font-size:9.5px;fill:rgba(255,255,255,.55);font-family:var(--font-mono)}
+.op-glyph{font-size:10.5px;font-weight:700;font-style:italic;fill:#fff;font-family:var(--font-mono)}
+.op-below{font:500 10px/1.3 var(--font-mono);fill:var(--foreground-muted)}
+.op-ssub{font:500 10px/1.3 var(--font-mono);fill:var(--foreground-muted)}
+.op-ntag{font-size:8.5px;fill:#fff;font-weight:700;font-family:var(--font-sans)}
+.op-cosbadge{font-size:9.5px;font-weight:700;font-family:var(--font-mono);fill:rgba(255,255,255,.92)}
+.op-cosbadge.crit{fill:#ff8fb0}
+.op-cosbadge.warn{fill:#ffc978}
+/* 夹逼区间两端点：右栏只给端点指标，不复述中央结论条 */
+/* 算子精度 Inspector：指标平铺与下方分节之间留气；夹逼两端点卡自带间距 */
+body.wm-opdev .insp-body .mig-tiles{margin-top:2px;margin-bottom:16px}
+body.wm-opdev .insp-body .isec{margin-bottom:18px}
+.op-bound + .op-bound-mid,.op-bound-mid + .op-bound{margin-top:0}
+.op-bound{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--surface-1)}
+.op-bound.ok{border-color:color-mix(in srgb,var(--success) 34%,transparent)}
+.op-bound.bad{border-color:color-mix(in srgb,var(--danger) 46%,transparent);background:linear-gradient(135deg,color-mix(in srgb,var(--danger) 11%,var(--surface-1)) 0%,var(--surface-1) 62%)}
+.op-bound .ob-n{flex:1;min-width:0;font:var(--text-body-sm);font-size:12px;color:var(--foreground);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.op-bound .ob-c{flex:0 0 auto;font:600 11.5px/1 var(--font-mono);color:var(--foreground-secondary)}
+.op-bound.ok .ob-c{color:var(--success)}
+.op-bound.bad .ob-c{color:var(--danger)}
+.op-bound-mid{padding:5px 10px 5px 22px;font:var(--text-body-sm);font-size:10.5px;color:var(--foreground-muted);position:relative}
+.op-bound-mid::before{content:'';position:absolute;left:11px;top:0;bottom:0;width:1px;background:repeating-linear-gradient(to bottom,var(--border-strong) 0 3px,transparent 3px 6px)}
+.op-smet{font:600 10.5px/1.3 var(--font-mono);fill:var(--foreground-secondary)}
+.op-smet.bad{fill:var(--danger)}
+.op-smet.warn{fill:var(--warning)}
+.op-kick{font:600 10px/1.2 var(--font-mono);letter-spacing:.6px;fill:var(--foreground-muted)}
+.op-anchor{font:700 11px/1 var(--font-sans);fill:var(--success)}
+.op-noanchor{font:700 11px/1 var(--font-sans);fill:var(--foreground-muted)}
+.op-fbtag{font:700 11px/1 var(--font-sans);fill:#fff}
+.op-node{cursor:pointer}
+.op-node:hover .op-nrect{stroke:var(--foreground-muted)}
+/* 结论条：一句白话把「展开几步 / 可对标点几个 / 首次差异夹在哪」说完 */
+.op-concl{margin-top:12px;display:flex;gap:10px;align-items:flex-start;padding:11px 13px;border:1px solid var(--border-subtle);border-radius:var(--radius-md);
+  background:linear-gradient(135deg,color-mix(in srgb,var(--danger) 11%,var(--surface-1)) 0%,var(--surface-1) 62%)}
+.op-concl .oc-i{flex:0 0 auto;color:var(--danger);font-size:13px;line-height:1.3}
+.op-concl .oc-b{min-width:0;font:var(--text-body-sm);font-size:12px;line-height:1.6;color:var(--foreground-secondary)}
+.op-concl .oc-t{font-weight:650;color:var(--foreground);margin-bottom:2px;font-size:12.5px}
+.op-concl b{color:var(--foreground)}
+.op-concl code{font:600 11.5px/1 var(--font-mono);color:var(--danger);padding:1px 4px;border-radius:3px;background:color-mix(in srgb,var(--danger) 12%,transparent)}
+/* 执行坐标时间轴：断点做不到，但「按 tile / 按迭代回放」做得到 */
+.op-tl{margin-top:12px;padding:11px 13px;border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:var(--surface-1)}
+.op-tl-h{display:flex;align-items:center;gap:8px;margin-bottom:9px}
+.op-tl-k{font:600 11px/1 var(--font-sans);color:var(--foreground)}
+.op-tl-sub{font:500 10.5px/1 var(--font-mono);color:var(--foreground-muted)}
+.op-tl-row{display:flex;align-items:center;gap:10px;margin-top:7px}
+.op-tl-lbl{flex:0 0 92px;font:500 10.5px/1 var(--font-mono);color:var(--foreground-secondary)}
+.op-tl-row input[type=range]{flex:1;min-width:0;accent-color:var(--foreground-muted)}
+.op-tl-val{flex:0 0 82px;text-align:right;font:600 11px/1 var(--font-mono);color:var(--foreground)}
+.op-tl-note{margin-top:9px;font:var(--text-body-sm);font-size:10.5px;line-height:1.55;color:var(--foreground-muted)}
+.op-tl-note b{color:var(--foreground-secondary)}
+/* 左栏 · 算子任务配置只读行 */
+.op-side .side-sec{border-top:1px solid var(--border-subtle)}
+.op-krow{display:flex;justify-content:space-between;gap:10px;padding:4px 0;font:var(--text-body-sm);font-size:11.5px;color:var(--foreground-secondary)}
+.op-krow .ok-v{font:500 11px/1.4 var(--font-mono);color:var(--foreground);text-align:right;word-break:break-all}
+.op-cover{margin-top:8px;display:flex;gap:3px}
+.op-cov{flex:1;height:6px;border-radius:2px;background:color-mix(in srgb,var(--foreground) 12%,transparent)}
+.op-cov.anchor{background:var(--success)}
+.op-cov.bad{background:var(--danger)}
+.op-cov.span{background:color-mix(in srgb,var(--warning) 60%,transparent)}
+/* 分流卡：先回答「这到底是不是精度问题」，再回答「精度问题出在哪」 */
+.pf-triage{display:flex;gap:8px;align-items:flex-start;margin-top:8px;padding:9px 10px;border:1px solid var(--border-subtle);border-radius:var(--radius-md);background:linear-gradient(135deg,color-mix(in srgb,var(--success) 9%,var(--surface-1)) 0%,var(--surface-1) 62%)}
+.pf-triage.hit{background:linear-gradient(135deg,color-mix(in srgb,var(--warning) 14%,var(--surface-1)) 0%,var(--surface-1) 62%)}
+.pf-triage .pf-ti{flex:0 0 auto;font-size:12px;line-height:1.35;color:var(--success)}
+.pf-triage.hit .pf-ti{color:var(--warning)}
+.pf-triage .pf-tb{min-width:0;font:var(--text-body-sm);font-size:11.5px;line-height:1.55;color:var(--foreground-secondary)}
+.pf-triage .pf-tt{font-weight:650;color:var(--foreground);margin-bottom:2px}
+.pf-triage .pf-tacts{display:flex;gap:6px;margin-top:7px;flex-wrap:wrap}
+.pf-triage .btn{font-size:11px;padding:4px 9px}
 .cmt{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:var(--radius-pill);border:1px solid var(--border-default);background:var(--surface-1);font:var(--text-mono);font-size:10px;color:var(--foreground-secondary)}
 .cmt.ok{border-color:color-mix(in srgb,var(--success) 40%,transparent)}
 .cmt .ci{color:var(--success);font-weight:700}
@@ -1071,8 +1189,15 @@ body.wm-peel #migSide{display:none}
 .drill-side-h em{flex:1 1 100%;font-style:normal;font:500 8.5px/1.3 var(--font-mono);color:var(--foreground-muted);margin-top:1px}
 .drill-side-b{flex:1 1 auto;display:flex;flex-direction:column;justify-content:center}
 .drill-side-f{margin-top:9px;padding-top:8px;border-top:1px solid var(--border-subtle);font:500 9px/1.3 var(--font-mono);color:var(--foreground-muted)}
-.drill-step{display:flex;align-items:center;justify-content:center;width:100%;height:32px;padding:0 12px;border-radius:999px;border:1px solid rgba(0,0,0,.34);color:#fff;font:600 10.5px/1 var(--font-mono);cursor:pointer;overflow:hidden;transition:filter .14s ease,box-shadow .14s ease}
-.drill-step:hover{filter:brightness(1.14)}
+/* 算子节点 = 整网架构图（pass-ir capsule）那套：渐变胶囊 + 左侧 fx 字形徽章 + 白字左对齐 + 右侧类型标签 */
+.drill-step{display:flex;align-items:center;gap:9px;width:100%;height:38px;padding:0 12px 0 5px;border-radius:999px;border:1px solid rgba(0,0,0,.24);color:#fff;cursor:pointer;overflow:hidden;
+  background:linear-gradient(135deg,color-mix(in srgb,var(--sem) 86%,#fff) 0%,var(--sem) 58%,color-mix(in srgb,var(--sem) 86%,#000) 100%);
+  transition:filter .14s ease,box-shadow .14s ease}
+.drill-step:hover{filter:brightness(1.1)}
+.cap-g{flex:0 0 auto;display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:rgba(10,16,22,.62);
+  font:italic 700 10.5px/1 var(--font-mono);color:#fff}
+.cap-l{flex:1;min-width:0;text-align:left;font:500 12.5px/1.2 var(--font-sans);color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cap-k{flex:0 0 auto;font:500 9.5px/1 var(--font-mono);color:rgba(255,255,255,.55)}
 .drill-side.on .drill-step{box-shadow:0 0 0 2px color-mix(in srgb,#5aa2ff 70%,transparent)}
 .drill-rail{width:1.4px;height:9px;margin:0 auto;background:color-mix(in srgb,var(--foreground) 24%,transparent)}
 /* 中间：多对一映射（一条整组虚线，不画多条内部连线）*/
@@ -1090,7 +1215,10 @@ body.wm-peel #migSide{display:none}
 .drill-kernel{display:flex;flex-direction:column;align-items:stretch;gap:4px;width:100%;padding:12px;border-radius:10px;border:1.4px solid color-mix(in srgb,var(--foreground) 26%,transparent);background:color-mix(in srgb,var(--primary) 13%,var(--surface-2));cursor:pointer;text-align:left;transition:border-color .14s ease}
 .drill-kernel.suspect{border-color:var(--danger);border-style:dashed}
 .drill-side.on .drill-kernel{border-color:#5aa2ff}
-.drill-knode{display:flex;align-items:center;justify-content:center;height:38px;padding:0 14px;border-radius:999px;border:1px solid rgba(0,0,0,.34);color:#fff;font:700 12px/1 var(--font-mono)}
+.drill-knode{display:flex;align-items:center;gap:10px;height:44px;padding:0 14px 0 6px;border-radius:999px;border:1px solid rgba(0,0,0,.24);color:#fff;
+  background:linear-gradient(135deg,color-mix(in srgb,var(--sem) 86%,#fff) 0%,var(--sem) 58%,color-mix(in srgb,var(--sem) 86%,#000) 100%)}
+.drill-knode .cap-g{width:30px;height:30px;font-size:11.5px}
+.drill-knode .cap-l{font-size:13.5px;font-weight:600}
 .drill-side.on .drill-knode{box-shadow:0 0 0 2px color-mix(in srgb,#5aa2ff 70%,transparent)}
 .drill-kernel-s{margin-top:5px;text-align:center;font:500 9px/1 var(--font-mono);color:var(--foreground-muted)}
 .drill-kernel-b{align-self:center;margin-top:6px;padding:3px 9px;border-radius:999px;background:var(--danger);color:#fff;font:700 9px/1 var(--font-mono)}
@@ -1576,7 +1704,8 @@ body.task-launcher #launcher{display:flex}
 .lc-h1{font:var(--text-display);letter-spacing:-.01em;margin:0}
 .lc-sub{font:var(--text-body);color:var(--foreground-secondary);margin:0}
 /* 层级 2：两张任务入口卡片（§5.3 同等视觉权重，无默认主次） */
-.lc-cards{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.lc-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+@media (max-width:1180px){.lc-cards{grid-template-columns:1fr 1fr}}
 @media (max-width:820px){.lc-cards{grid-template-columns:1fr}}
 .tcard{position:relative;display:flex;flex-direction:column;gap:12px;padding:18px;text-align:left;
   background:var(--surface-1);border:1px solid var(--border-default);border-radius:var(--radius-lg);
@@ -1589,6 +1718,8 @@ body.task-launcher #launcher{display:flex}
   box-shadow:var(--shadow-lg),0 0 0 3px color-mix(in srgb,var(--op-sem-rope) 20%,transparent)}
 .t-net:hover,.t-net:focus-within{border-color:color-mix(in srgb,var(--op-sem-attention) 60%,transparent);
   box-shadow:var(--shadow-lg),0 0 0 3px color-mix(in srgb,var(--op-sem-attention) 20%,transparent)}
+.t-op:hover,.t-op:focus-within{border-color:color-mix(in srgb,var(--op-sem-act) 60%,transparent);
+  box-shadow:var(--shadow-lg),0 0 0 3px color-mix(in srgb,var(--op-sem-act) 20%,transparent)}
 .tcard:active{transform:translateY(-1px)}
 .tcard:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
 .tcard.is-preselected{border-color:var(--primary);box-shadow:0 0 0 3px var(--state-selected)}
@@ -1604,6 +1735,7 @@ body.task-launcher #launcher{display:flex}
 .tcard-tag svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .t-mig .tcard-tag{color:var(--op-sem-rope);background:color-mix(in srgb,var(--op-sem-rope) 13%,transparent);border-color:color-mix(in srgb,var(--op-sem-rope) 28%,transparent)}
 .t-net .tcard-tag{color:var(--op-sem-attention);background:color-mix(in srgb,var(--op-sem-attention) 13%,transparent);border-color:color-mix(in srgb,var(--op-sem-attention) 28%,transparent)}
+.t-op .tcard-tag{color:var(--op-sem-act);background:color-mix(in srgb,var(--op-sem-act) 13%,transparent);border-color:color-mix(in srgb,var(--op-sem-act) 28%,transparent)}
 .tcard-h{font:var(--text-title-1);margin:0}
 .tcard-say{font:var(--text-body);color:var(--foreground-secondary);margin:0;
   padding-left:10px;border-left:2px solid var(--border-strong)}
@@ -1888,8 +2020,8 @@ select.cfg-in{font-family:var(--font-sans);cursor:pointer}
           <div class="side-row algo-srow" id="migRefRow" hidden><span class="side-lbl">Reference</span><span class="cmp-mini"><i class="algo-dot" style="background:var(--success)"></i>PyTorch / Megatron semantic algorithm</span></div>
           <div class="side-row algo-srow" id="migCandRow" hidden><span class="side-lbl">Candidate</span><span class="cmp-mini"><i class="algo-dot" style="background:var(--primary)"></i>NPU / MindSpeed / PyPTO / CANN fused implementation</span></div>
           <div class="side-row"><span class="side-lbl" id="cmpLbl">对比基线</span><span class="cmp-mini" id="cmpVal">910B ⟵ A100</span></div>
-          <div class="side-row"><span class="side-lbl">场景</span><button class="toggle" id="scenBtn" title="切换 训练 / 推理">训练 ⇄</button></div>
-          <div class="side-row"><span class="side-lbl">rank · step</span><span style="display:flex;gap:6px"><select class="hsel" id="rankSel" title="TP rank · 首错可能随 rank 漂移"></select><select class="hsel" id="stepSel" title="训练 step"></select></span></div>
+          <div class="side-row" id="scenRow"><span class="side-lbl">场景</span><button class="toggle" id="scenBtn" title="切换 训练 / 推理">训练 ⇄</button></div>
+          <div class="side-row" id="rankRow"><span class="side-lbl">rank · step</span><span style="display:flex;gap:6px"><select class="hsel" id="rankSel" title="TP rank · 首错可能随 rank 漂移"></select><select class="hsel" id="stepSel" title="训练 step"></select></span></div>
         </section>
         <section class="side-sec">
           <div class="side-k">判定阈值 <span class="help" data-tip="判断某个算子/层是否越界的标准：cosine 相似度下限 + rel-p99 相对误差上限。任一不满足即判为异常。预设 严格/标准/宽松 一键切换：阈值越严，首错越往前移。">?</span></div>
@@ -1903,10 +2035,13 @@ select.cfg-in{font-family:var(--font-sans);cursor:pointer}
           <div class="side-row"><span class="side-lbl">rel-p99 ≤</span><input class="thr-in" id="thRel" value="1e-2"></div>
         </section>
         <div id="migSide" class="mig-side"></div>
+        <div id="opdevSide" class="op-side"></div>
         <section class="side-sec" id="peelStatusSec">
           <div class="side-k">状态 <span class="help" data-tip="首错 = 前向序上第一个越界的算子/层，点击可在图上定位。">?</span></div>
           <div class="fb-chip side-chip" id="fbChip" title="首错状态 · 点击在整网图上定位"><span class="dot"></span><span id="fbText">首错定位中…</span></div>
         </section>
+        <!-- 算子准入预检：横切门禁（整网调试 / 迁移验证 两类任务共用），内容由 renderPreflight() 渲染 -->
+        <section class="side-sec" id="preflightSec" data-open="0"></section>
       </div>
     </aside>
     <div class="splitter" id="splitSide" title="拖动调整左侧面板宽度（双击复位）"></div>
@@ -2016,6 +2151,8 @@ select.cfg-in{font-family:var(--font-sans);cursor:pointer}
       <div class="pane-body graph-pane">
         <!-- §8 关联任务来源条：常驻（非 3s 淡出），可回看来源任务；仅关联任务显示 -->
         <div id="srcBar" class="src-bar" hidden></div>
+        <!-- 算子开发态（workMode='opdev'）：CPU golden ↔ AscendC 逐步对标画布 -->
+        <div id="opdevStage" class="op-stage" style="display:none"><div class="op-scroll" id="opdevScroll"></div></div>
         <div id="migStage" class="mig-stage" style="display:none">
           <div class="mig-head" id="migHead"></div>
           <div class="mig-scroll"><svg id="migSvg" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMin meet" hidden></svg><div id="migAlgoView" class="algo-view"></div></div>
@@ -2300,6 +2437,153 @@ const COMPAT = [
   { k: 'version', label: '版本 version', ok: true, detail: 'commit 记录在案', cand: 'vLLM 0.6.3', badGold: 'vLLM 0.6.1', why: '版本不同 → 算子实现差异，非目标 bug' },
 ];
 function comparable() { return COMPAT.every((c) => c.ok); }
+
+/* ==================================================================================
+   算子加速库入口准入预检（横切门禁 · preflight）
+   诉求②：在算子加速库入口拦截「不支持的参数组合」，给出明确报错，让开发者在整网运行
+   之前发现，避免问题以「精度异常」的形式扩散。
+
+   产品定位：**不是第四类任务，是横切门禁**——它同时服务整网调试 / 迁移验证 / 算子开发
+   三类任务，形态与「可比性」完全同构（左栏一枚 chip + 可折叠面板 + 点击模拟）。
+
+   与诉求①的连接点 = **分流器**：遇到精度差异，第一个问题不是「精度问题出在哪」，
+   而是「这到底是不是精度问题」。命中准入项时，首错结论处产出分流卡（见 pfTriageCard）。
+
+   三级严重度（误报成本极高 → 只有确定性约束才 block）：
+     block 阻断  确定性约束越界（对齐 / 支持集 / 取值范围）—— 静态可判
+     warn  提示  会触发静默降级或隐式转换 → 精度基线已变但调用方无感知
+     info  信息  有更优路径可选，不影响正确性
+   默认全部「未命中」= 已排除非精度因素；点任一项模拟命中（与 toggleCompat 同一交互习惯）。
+   ================================================================================== */
+const PREFLIGHT = [
+  {
+    k: 'align', code: 'E1032', sev: 'block', hit: false,
+    label: 'Shape / 对齐约束', op: 'Sparse FlashAttention', opId: 'attention_core',
+    what: 'head_dim=72 不在融合算子支持集 {64, 80, 96, 128} 内',
+    why: 'Cube 按 16×16 分形块组织计算，head_dim 需 8 对齐并落在融合 kernel 已实现的支持集内',
+    form: '越界 / 未定义行为',
+    formWhy: '尾块按 pad 后长度搬运，会多读入未初始化数据 → 表现为局部数值偏差',
+    how: ['pad 到 80（+3% 算力，语义不变）', '走非融合路径（精度基线一致，约慢 1.8×）', '升级到支持集已扩展的 CANN 版本'],
+  },
+  {
+    k: 'fallback', code: 'W2007', sev: 'warn', hit: false,
+    label: '静默降级 fallback', op: 'RMSNorm', opId: null,
+    what: 'eps=1e-7 低于融合算子支持下限 1e-6 → 已静默退回小算子路径',
+    why: '融合 kernel 内部以 bf16 计算 eps 偏置，低于 1e-6 会被直接吸收为 0，故库侧主动退回',
+    form: '静默 fallback',
+    formWhy: '结果「能算」，但精度基线已经变了，调用方完全无感知',
+    how: ['显式声明 fallback 并留痕（推荐）', 'eps 提到 1e-6 走融合路径', '固定走非融合路径以对齐 golden 基线'],
+  },
+  {
+    k: 'layout', code: 'W2015', sev: 'warn', hit: false,
+    label: '排布 layout 隐式转换', op: 'Sparse FlashAttention', opId: 'attention_core',
+    what: '入参为 ND，融合算子内部要求 FRACTAL_NZ → 插入了隐式 TransData',
+    why: '隐式转换会带来一次额外的搬运与尾块 pad，尾块元素的物理落位与 golden 的逻辑序不再对应',
+    form: '隐式转换',
+    formWhy: '误差集中在尾块、逻辑上散乱而物理上连续 —— 极易被误判为数值/累加问题',
+    how: ['入口显式转 NZ 并复用（消除每次调用的隐式搬运）', '用「② 排布仿真」确认差异元素的物理落位', '尾块 shape 对齐到 16 的整数倍'],
+  },
+  {
+    k: 'dtype', code: 'E1041', sev: 'block', hit: false,
+    label: 'dtype 组合', op: 'Router · TopK', opId: null,
+    what: 'input=bf16 与 indices=int64 的组合不在支持矩阵内',
+    why: '融合 kernel 只实现了 (bf16,int32) 与 (fp16,int32) 两条 dtype 通路',
+    form: '越界 / 未定义行为',
+    formWhy: '高 32 位被截断，超过 int32 范围的 index 会指向错误的 expert',
+    how: ['indices 转 int32（当前 vocab/expert 数远小于 2^31）', '走非融合 router 路径'],
+  },
+  {
+    k: 'attrs', code: 'I3004', sev: 'info', hit: false,
+    label: '可选更优路径', op: 'Gate Up Projection', opId: null,
+    what: '当前走通用 MatMul，存在可用的 fused SwiGLU 路径',
+    why: '不影响正确性，仅性能与中间态数量',
+    form: '信息',
+    formWhy: '融合后中间态减少，但同时会减少可对标点（精度定位粒度变粗）',
+    how: ['保持现状以获得更细的可对标点', '追求性能时切 fused SwiGLU 并接受粒度损失'],
+  },
+];
+const PF_SEV = {
+  block: { label: '阻断', text: '不支持', cls: 'block' },
+  warn: { label: '提示', text: '降级', cls: 'warn' },
+  info: { label: '信息', text: '可选', cls: 'info' },
+};
+function pfHits() { return PREFLIGHT.filter((p) => p.hit); }
+function pfBlocked() { return PREFLIGHT.some((p) => p.hit && p.sev === 'block'); }
+/* 某个算子命中的准入项 —— 分流卡的数据源（只取会改变数值行为的 block/warn） */
+function pfHitsForOp(opId) { return PREFLIGHT.filter((p) => p.hit && p.sev !== 'info' && p.opId && p.opId === opId); }
+function pfChipState() {
+  const hits = pfHits();
+  if (!hits.length) return { cls: 'ok', text: `准入 ✓ 通过 · ${PREFLIGHT.length} 项已检查` };
+  const nb = hits.filter((p) => p.sev === 'block').length, nw = hits.filter((p) => p.sev === 'warn').length;
+  const parts = [];
+  if (nb) parts.push(`${nb} 项不支持`);
+  if (nw) parts.push(`${nw} 项静默降级`);
+  return { cls: nb ? 'block' : 'warn', text: `准入 ${nb ? '✗' : '⚠'} ${parts.join(' · ') || '有提示'}` };
+}
+function pfItemHtml(p) {
+  const sv = PF_SEV[p.sev];
+  return `<div class="pf-item ${p.hit ? 'hit ' : ''}${sv.cls}" onclick="togglePreflight('${p.k}')" title="${p.hit ? '点击 = 已修复 / 未命中' : '点击 = 模拟命中该准入项'}">
+    <div class="pf-ih"><span class="pf-mk2"></span><span class="pf-code">${p.code}</span><span class="pf-lbl">${esc(p.label)}</span><span class="pf-st">${p.hit ? sv.text : '通过'}</span></div>
+    ${p.hit ? `<div class="pf-body">
+      <div class="pf-kv"><span class="pf-k">算子</span><b>${esc(p.op)}</b></div>
+      <div class="pf-kv"><span class="pf-k">What</span>${esc(p.what)}</div>
+      <div class="pf-kv"><span class="pf-k">Why</span>${esc(p.why)}</div>
+      <div class="pf-kv"><span class="pf-k">形态</span><b>${esc(p.form)}</b> · ${esc(p.formWhy)}</div>
+      <div class="pf-kv"><span class="pf-k">How</span></div>
+      <ol class="pf-how">${p.how.map((h) => `<li>${esc(h)}</li>`).join('')}</ol>
+    </div>` : ''}
+  </div>`;
+}
+function renderPreflight() {
+  const host = document.getElementById('preflightSec'); if (!host) return;
+  const st = pfChipState(), open = host.dataset.open === '1';
+  const note = pfHits().length
+    ? `<b style="color:${pfBlocked() ? 'var(--danger)' : 'var(--warning)'}">${pfBlocked() ? '存在不支持的参数组合' : '存在静默降级'}</b> → 这些问题会以<b>精度异常</b>的形式扩散，建议整网运行前修复。`
+    : '入口参数组合全部在支持矩阵内 → <b style="color:var(--success)">非精度因素已排除</b>。<span style="color:var(--foreground-muted)">点任一项模拟命中</span>';
+  host.innerHTML = `
+    <div class="side-k">算子准入预检 <span class="help" data-tip="在算子加速库入口检查参数组合是否落在支持矩阵内，在整网运行之前发现问题，避免它以精度异常的形式扩散。阻断=确定性约束越界；提示=会触发静默降级/隐式转换，精度基线已变。">?</span></div>
+    <button class="pf-chip ${st.cls}" onclick="togglePfPanel()" title="展开预检报告"><span class="pf-mk"></span><span>${esc(st.text)}</span><span class="pf-chev" id="pfChev">${open ? '▾' : '▸'}</span></button>
+    <div class="pf-panel" id="pfPanel" ${open ? '' : 'hidden'}>
+      <div class="pf-note">${note}</div>
+      <div class="pf-list">${PREFLIGHT.map(pfItemHtml).join('')}</div>
+      <div class="pf-act"><button class="btn" onclick="runPreflightSession()" title="在集成终端里跑一次 run-before-run 全量预检">▸ 运行预检</button></div>
+    </div>`;
+}
+function togglePfPanel() {
+  const host = document.getElementById('preflightSec'); if (!host) return;
+  host.dataset.open = host.dataset.open === '1' ? '0' : '1';
+  renderPreflight();
+}
+function togglePreflight(k) {
+  const p = PREFLIGHT.find((x) => x.k === k); if (!p) return;
+  p.hit = !p.hit;
+  const host = document.getElementById('preflightSec'); if (host) host.dataset.open = '1';
+  renderPreflight();
+  if (drillId) renderDrill();          /* 分流卡随之刷新 */
+  toast(p.hit ? `模拟命中 ${p.code} · ${p.label}` : `${p.code} 已恢复通过`);
+}
+/* 分流卡：首错结论处的第一道判断 —— 先回答「这到底是不是精度问题」。
+   未命中 = 非精度因素已排除，可继续按数值问题归因；命中 = 差异很可能来自执行路径变更。 */
+function pfTriageCard(opId, opLabel) {
+  const hits = pfHitsForOp(opId);
+  if (!hits.length) {
+    return `<div class="pf-triage"><span class="pf-ti">✓</span><div class="pf-tb">
+      <div class="pf-tt">准入预检未命中 · 可按精度问题继续归因</div>
+      ${esc(opLabel || '本算子')} 的入口参数组合全部落在支持矩阵内，<b>未发生静默降级或隐式转换</b>；
+      本次差异不是「不支持的参数组合」伪装成的精度异常，可继续做数值/累加归因。
+      <div class="pf-tacts"><button class="btn" onclick="togglePfPanel()">查看预检项</button></div></div></div>`;
+  }
+  const h = hits[0], sv = PF_SEV[h.sev];
+  return `<div class="pf-triage hit"><span class="pf-ti">⚠</span><div class="pf-tb">
+    <div class="pf-tt">命中准入预检 ${h.code} · ${esc(h.label)}</div>
+    ${esc(h.what)}<br>
+    <b>此差异很可能不是数值/累加精度问题，而是参数组合不受支持导致的执行路径变更</b>（形态：${esc(h.form)}）。
+    建议先修复准入项再重跑对标，否则下面的数值归因会指向错误的方向。
+    <div class="pf-tacts">
+      <button class="btn" onclick="togglePfPanel()">查看预检项 ${h.code}</button>
+      <button class="btn" onclick="toast('已按数值问题继续归因 · 准入项 ${h.code} 仍未修复')">仍按数值问题继续</button>
+    </div></div></div>`;
+}
 /* rank 维度：infer 全 rank 一致命中；train 仅 TP 后半 shard（rank4-7）命中 —— 演示首错随 rank 漂移 */
 function rankBad(r) { const rr = r === undefined ? S.rank : r; return S.scenario === 'train' ? rr >= 4 : true; }
 
@@ -3976,9 +4260,15 @@ function runTermSession(restart) {
     { out: '' },
     { prompt: true },
   ];
+  _termPlay(S, PR);
+}
+/* 打字机播放引擎（从 runTermSession 抽出，供 pypto preflight 等其它会话脚本复用）
+   step：{cmd} 键入命令 / {out,d} 输出行 / {prompt} 结尾光标 */
+function _termPlay(steps, PR) {
+  const body = document.getElementById('termBody'); if (!body) return;
   let t = 0;
   const push = (html, cls) => { const div = document.createElement('div'); if (cls) div.className = cls; div.innerHTML = html; body.appendChild(div); body.scrollTop = body.scrollHeight; return div; };
-  S.forEach((step) => {
+  steps.forEach((step) => {
     if (step.cmd) {
       const line = { el: null };
       _termTimers.push(setTimeout(() => { line.el = push(PR + '<span class="t-cmd"></span><span class="term-cursor"></span>'); }, t));
@@ -3998,6 +4288,48 @@ function runTermSession(restart) {
       t += (step.d || 120);
     }
   });
+}
+/* pypto preflight —— run-before-run 全量准入预检会话（诉求②）。
+   价值点不是「跑到第 18 层抛异常」，而是整网真跑之前一次性把全网算子调用过一遍支持矩阵。 */
+function runPreflightSession() {
+  const p = document.getElementById('termPanel');
+  if (p && p.hidden) toggleTerm(true);
+  const body = document.getElementById('termBody'); if (!body) return;
+  _termTimers.forEach(clearTimeout); _termTimers = [];
+  if (p) p.dataset.played = '1';
+  body.innerHTML = '';
+  const M = _termModel(), PR = _termPrompt(M);
+  const hits = pfHits(), nb = hits.filter((h) => h.sev === 'block').length, nw = hits.filter((h) => h.sev === 'warn').length;
+  const SEVMARK = { block: '<span class="t-err">✗</span>', warn: '<span class="t-warn">⚠</span>', info: '<span class="t-dim">─</span>' };
+  const S = [
+    { cmd: 'pypto preflight --model ' + M.model.toLowerCase() + ' --backend 910b --dry-run' },
+    { out: '<span class="t-dim">[pypto]</span> load capability manifest · <span class="t-path">cann_ops_v8.0.manifest.json</span> <span class="t-ok">✓</span>' },
+    { out: '<span class="t-dim">[pypto]</span> 图遍历 · 不执行 kernel · 只校验入口参数组合', d: 320 },
+    { out: '  <span class="t-ok">[' + '█'.repeat(28) + ']</span> ' + M.N + ' layers · 1284 op calls scanned', d: 520 },
+    { out: '' },
+    { out: '<span class="t-dim">code   sev     op                       finding</span>' },
+  ];
+  if (!hits.length) {
+    S.push({ out: '<span class="t-ok">  ✓ 0 blocking · 0 fallback · 全部参数组合落在支持矩阵内</span>', d: 340 });
+    S.push({ out: '' });
+    S.push({ out: '<span class="t-dim">[pypto]</span> 结论：<span class="t-ok">准入通过</span> · 后续若出现差异，可直接按精度问题归因' });
+  } else {
+    hits.forEach((h) => {
+      const cls = h.sev === 'block' ? 't-err' : h.sev === 'warn' ? 't-warn' : 't-dim';
+      S.push({ out: `<span class="${cls}">${h.code}</span>  ${SEVMARK[h.sev]} ${PF_SEV[h.sev].label}  <span class="t-hl">${h.op}</span>  <span class="${cls}">${h.what}</span>`, d: 300 });
+      S.push({ out: `       <span class="t-dim">└ 原因：${h.why}</span>` });
+      S.push({ out: `       <span class="t-dim">  建议：${h.how[0]}</span>` });
+    });
+    S.push({ out: '' });
+    S.push({
+      out: '<span class="t-dim">[pypto]</span> 结论：<span class="' + (nb ? 't-err' : 't-warn') + '">' + (nb ? nb + ' 项不支持' : '') + (nb && nw ? ' · ' : '') + (nw ? nw + ' 项静默降级' : '')
+        + '</span> 将以<span class="t-warn">精度异常</span>的形式扩散，建议整网运行前修复', d: 360,
+    });
+    S.push({ out: '<span class="t-dim">[pypto]</span> exit code ' + (nb ? '<span class="t-err">1</span>（可被 CI 拦截）' : '<span class="t-warn">0</span>（提示级不阻断，但精度基线已变）') });
+  }
+  S.push({ out: '' });
+  S.push({ prompt: true });
+  _termPlay(S, PR);
 }
 
 function renderActiveGraph(options = {}) {
@@ -4988,6 +5320,19 @@ function setMainView(v) {
 function syncViewDom() {
   syncSideCopy();
   const migStage = document.getElementById('migStage');
+  const opStage = document.getElementById('opdevStage');
+  if (opStage) opStage.style.display = workMode === 'opdev' ? '' : 'none';
+  if (workMode === 'opdev') {                              /* 算子开发态：中央只放 golden↔AscendC 对标视图 */
+    if (migStage) migStage.style.display = 'none';
+    if (els.stage) els.stage.style.display = 'none';
+    if (els.sideWrap) els.sideWrap.hidden = true;
+    ['graphOnlyTools', 'sideOnlyTools', 'migToolsHead'].forEach((id) => { const e = document.getElementById(id); if (e) e.style.display = 'none'; });
+    const crumb0 = document.getElementById('graphCrumb'); if (crumb0) crumb0.hidden = true;
+    const ht0 = document.getElementById('headTitle'); if (ht0) ht0.hidden = false;
+    updateCenterHead(); renderLegend();
+    return;
+  }
+  ['migToolsHead'].forEach((id) => { const e = document.getElementById(id); if (e) e.style.display = ''; });
   if (workMode === 'migration') {                          /* 迁移模式：中央显双泳道，隐藏 peel 的 stage/侧视图 */
     if (migStage) migStage.style.display = '';
     if (els.stage) els.stage.style.display = 'none';
@@ -5014,6 +5359,12 @@ function syncViewDom() {
   updateArchLayoutTools();
 }
 function updateCenterHead() {
+  if (workMode === 'opdev') {
+    const t = currentTask();
+    if (els.centerTitle) els.centerTitle.textContent = `CPU golden ↔ AscendC 逐步对标 · ${(t && t.object) || 'SoftmaxCustom'}`;
+    if (els.graphMeta) els.graphMeta.textContent = 'golden 一行接口 → AscendC N 个执行步骤 · ◆ 可对标点 / ◇ 无基线中间态 · ▲ 首次差异';
+    return;
+  }
   if (workMode === 'migration') {
     if (migArchDiff != null) {
       /* 二级 = 层内语义映射：主语是算法在该层的实现差异 */
@@ -5389,7 +5740,7 @@ function sfaPanelHtml(L) {
   const outRows = `<span class="drill-io"><b>${esc(SFA_OUT.label)}</b><em>${esc(SFA_OUT.shape)}</em></span>`;
   const hwChip = (t, c) => `<span class="hw-chip" style="--hw:${c}"><svg viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="2"/><path d="M10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4"/></svg>${t}</span>`;
   const semc = (o) => migSemOn ? (SEM[o.sem] || SEM.io) : 'color-mix(in srgb,var(--foreground) 30%,var(--surface-2))';
-  const refSteps = SFA_REF_STEPS.map((o, i) => `<button type="button" class="drill-step" style="background:${semc(o)}" onclick="sfaPick('fuse')" title="${esc(o.label)} —— 属于被融合的语义子图，不能与 kernel 内部逐个数值比较">${esc(o.label)}</button>${i < SFA_REF_STEPS.length - 1 ? '<div class="drill-rail"></div>' : ''}`).join('');
+  const refSteps = SFA_REF_STEPS.map((o, i) => `<button type="button" class="drill-step" style="--sem:${semc(o)}" onclick="sfaPick('fuse')" title="${esc(o.label)} —— 属于被融合的语义子图，不能与 kernel 内部逐个数值比较"><span class="cap-g">fx</span><span class="cap-l">${esc(o.label)}</span><span class="cap-k">Op</span></button>${i < SFA_REF_STEPS.length - 1 ? '<div class="drill-rail"></div>' : ''}`).join('');
   return `<div class="drill-scroll"><div class="drill-col">
     <div class="drill-run">
       <span class="drill-run-k">运行上下文</span>
@@ -5418,7 +5769,7 @@ function sfaPanelHtml(L) {
         <div class="drill-side-h">${hwChip('NPU', 'var(--primary)')}NPU Candidate<em>融合实现 · MindSpeed / PyPTO / CANN · 910B</em></div>
         <div class="drill-side-b">
           <button type="button" class="drill-kernel${outBad ? ' suspect' : ''}" onclick="sfaPick('fuse')" title="融合 kernel —— 内部 tensor 未采集，按黑盒展示">
-            <span class="drill-knode" style="background:${migSemOn ? SEM.attention : 'color-mix(in srgb,var(--foreground) 30%,var(--surface-2))'}">${esc(ALGO_OBJ.name)}</span>
+            <span class="drill-knode" style="--sem:${migSemOn ? SEM.attention : 'color-mix(in srgb,var(--foreground) 30%,var(--surface-2))'}"><span class="cap-g">fx</span><span class="cap-l">${esc(ALGO_OBJ.name)}</span><span class="cap-k">Fused</span></span>
             <span class="drill-kernel-s">fused kernel · MindSpeed / PyPTO / CANN</span>
             ${outBad ? '<span class="drill-kernel-b">异常范围已收敛至该算法边界</span>' : ''}
             <span class="drill-box">
@@ -6650,6 +7001,7 @@ function updateWorkModeChrome() {
   renderSourceBar();          /* §8 来源条常驻，由「是否关联任务」决定，不再定时淡出 */
   document.body.classList.toggle('wm-migration', workMode === 'migration');
   document.body.classList.toggle('wm-peel', workMode === 'peel');
+  document.body.classList.toggle('wm-opdev', workMode === 'opdev');
   if (workMode !== 'migration') migToggleArchBack(false);   /* 离开迁移模式时收起「返回整网逐层对比」*/
   syncWmSeg();
   updateTaskNavCmp();
@@ -6672,6 +7024,15 @@ const TASK_KIND = {
   'network-debug': {
     label: '整网调试', full: '整网→算子精度调试', wm: 'peel', cls: 'k-net',
     icon: '<svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M17.5 14v3.5M14 17.5h7"/></svg>',
+  },
+  /* 第三类任务（§ AscendC 洞察文档 §6.1）：CPU golden ↔ AscendC kernel 逐步对标。
+     与前两类是**不同的对标关系**——golden 是语义参考实现（fp32 / 无 tiling / 无排布），
+     即「定义」而非「另一个实现」，因此可以直接断言「首次差异」而不是「首差候选」；
+     对象是单个算子内部的执行步骤，不是整网逐层；用户是算子开发工程师，时机在整网跑之前。
+     故独立成任务类型，不并入迁移工作台。 */
+  'operator-precision': {
+    label: '算子精度', full: 'CPU golden ↔ AscendC 逐步对标', wm: 'opdev', cls: 'k-op',
+    icon: '<svg viewBox="0 0 24 24"><path d="M4 6h5M4 12h5M4 18h5"/><path d="M15 4v16"/><path d="m12 8 3-4 3 4"/><rect x="12" y="12" width="8" height="7" rx="1.5"/></svg>',
   },
 };
 const TASK_STATUS = {
@@ -6696,6 +7057,12 @@ const TASKS = [
     model: 'pangu', scenario: 'train', rank: 4, step: 0, thresholds: { cos: 0.999, rel: 1e-2 },
     baselineRun: 'run_gpu_0721', candidateRun: 'run_npu_0721', commit: 'abc123f',
     object: 'Sparse FlashAttention', stage: '融合内部证据采集中', status: 'running', updated: '26 分钟前', linkedFrom: null,
+  },
+  {
+    id: 'precision-operator-4802', num: 4802, type: 'operator-precision', name: 'SoftmaxCustom 算子精度验证',
+    model: 'pangu', scenario: 'train', rank: 0, step: 0, thresholds: { cos: 0.999, rel: 1e-2 },
+    baselineRun: 'golden_cpu_fp32', candidateRun: 'ascendc_910b_bf16', commit: 'abc123f',
+    object: 'SoftmaxCustom', stage: '首次差异夹逼中 · 可对标点 3/7', status: 'running', updated: '12 分钟前', linkedFrom: null,
   },
   {
     id: 'precision-migration-4760', num: 4760, type: 'migration-precision', name: 'LayerNorm 迁移精度验证',
@@ -6773,6 +7140,21 @@ const TASK_CARDS = [
     outputs: ['首差层', '下游传播范围', '首错算子', '内部证据与修复回归'],
     cta: '创建整网调试任务',
     hint: '适合：只知道最终指标或输出异常，不知道问题位置。',
+  },
+  {
+    type: 'operator-precision', cls: 't-op',
+    tag: '算子开发态 · 整网跑之前',
+    tagIcon: '<svg viewBox="0 0 24 24"><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/><circle cx="12" cy="12" r="4"/></svg>',
+    h: '对标 CPU golden 与 AscendC',
+    say: '我在写 AscendC 算子，结果跟 golden 对不上',
+    flow: [
+      { t: 'CPU golden', c: 'is-ref' }, { t: '1→N Expand' }, { t: 'First Divergence', c: 'is-bad' },
+    ],
+    when: ['自研 / 改写 AscendC kernel 后自验证', 'golden 一行接口在 AscendC 里拆成多步，无法细粒度映射', '数据按 NZ 排布，dump 出来人眼对不上', '没有可靠断点，只能 dump + printf'],
+    inputs: ['CPU golden 脚本（fp32 参考实现）', 'AscendC kernel 与 Tiling 配置', '用例矩阵 shape × dtype × layout', '可对标点标注（哪些中间量有 golden 语义）'],
+    outputs: ['首次差异所在的执行步骤', '夹逼区间（相邻两个可对标点之间）', '数值/累加 还是 搬运/排布', '最小复现 case'],
+    cta: '创建算子精度任务',
+    hint: '适合：算子开发/自验证期，希望在整网跑起来之前就把差异夹住。',
   },
 ];
 const ARROW_SVG = '<span class="tf-arrow"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>';
@@ -6880,7 +7262,7 @@ function renderCreateForm(type, ctx) {
     ${sel('训练/推理场景', 'cfScen', [['train', '训练'], ['infer', '推理']], c.scenario || S.scenario)}
     ${sel('rank', 'cfRank', Array.from({ length: 8 }, (_, i) => [String(i), `rank${i}`]), String(c.rank != null ? c.rank : S.rank))}
     ${sel('step', 'cfStep', STEPS.map((s) => [String(s), `step${s}`]), String(c.step != null ? c.step : S.step))}
-    ${f(type === 'network-debug' ? 'Golden run' : 'Reference run', 'cfBase', c.baselineRun || 'run_gpu_0721')}
+    ${f(type === 'network-debug' ? 'Golden run' : type === 'operator-precision' ? 'CPU golden run' : 'Reference run', 'cfBase', c.baselineRun || (type === 'operator-precision' ? 'golden_cpu_fp32' : 'run_gpu_0721'))}
     ${f('Candidate run', 'cfCand', c.candidateRun || 'run_npu_0721')}
     ${f('commit', 'cfCommit', c.commit || 'abc123f')}
     ${f('artifact', 'cfArtifact', c.artifactId || '4830')}
@@ -6896,6 +7278,15 @@ function renderCreateForm(type, ctx) {
     ${f('共同输入边界', 'cfIn', 'attn.input · [B,S,H] bf16')}
     ${f('共同输出边界', 'cfOut', 'attn.output · [B,S,H] bf16')}
     ${f('内部 tensor 采集范围', 'cfInner', '融合 kernel 内部可采样点（尽力而为）', true)}
+  </div></div>` : type === 'operator-precision' ? `<div class="cfg-sec"><div class="cfg-k">算子精度专属配置</div><div class="cfg-grid">
+    ${f('AscendC 算子', 'cfOp', c.suspectedObject || 'SoftmaxCustom', true)}
+    ${f('CPU golden 参考实现', 'cfGolden', 'golden/softmax_ref.py · numpy fp32 标量实现', true)}
+    ${f('kernel 源文件', 'cfKernel', 'softmax_custom.cpp · AscendC', true)}
+    ${f('用例 shape', 'cfShape', '[1, 40, 4096, 4096]')}
+    ${sel('dtype', 'cfDtype', [['bf16', 'bf16'], ['fp16', 'fp16'], ['fp32', 'fp32']], 'bf16')}
+    ${sel('数据排布 layout', 'cfLayout', [['NZ', 'FRACTAL_NZ'], ['ND', 'ND'], ['ZN', 'ZN']], 'NZ')}
+    ${f('Tiling · block × loop', 'cfTiling', '8 blocks × 16 loops')}
+    ${f('可对标点标注', 'cfAnchor', '有 golden 语义等价物的中间量（其余为无基线中间态）', true)}
   </div></div>` : `<div class="cfg-sec"><div class="cfg-k">整网调试专属配置</div><div class="cfg-grid">
     ${f('整网模型与输出目标', 'cfTarget', 'Decoder ×N · logits / loss 对齐', true)}
     ${f('层级采集范围', 'cfRange', 'L0 – L(N-1) 全层输出')}
@@ -6912,17 +7303,17 @@ function confirmCreate() {
   const v = (id) => { const e = document.getElementById(id); return e ? e.value.trim() : ''; };
   const num = ++taskSeq;
   const model = v('cfModel') || 'pangu';
-  const obj = type === 'migration-precision' ? (v('cfObj') || '算法对象') : null;
+  const obj = type === 'migration-precision' ? (v('cfObj') || '算法对象') : type === 'operator-precision' ? (v('cfOp') || 'AscendC 算子') : null;
   const cosIn = type === 'network-debug' ? parseFloat(v('cfCos')) : (link && link.thresholds ? link.thresholds.cosine : CFG.cos);
   const relIn = type === 'network-debug' ? parseFloat(v('cfRel')) : (link && link.thresholds ? link.thresholds.relP99 : CFG.rel);
   const t = {
-    id: `precision-${type === 'network-debug' ? 'network' : 'migration'}-${num}`, num, type,
-    name: type === 'migration-precision' ? `${obj} 迁移精度验证` : `${modelName(model)} 整网精度调试`,
+    id: `precision-${type === 'network-debug' ? 'network' : type === 'operator-precision' ? 'operator' : 'migration'}-${num}`, num, type,
+    name: type === 'migration-precision' ? `${obj} 迁移精度验证` : type === 'operator-precision' ? `${obj} 算子精度验证` : `${modelName(model)} 整网精度调试`,
     model, scenario: v('cfScen') || 'train', rank: parseInt(v('cfRank'), 10) || 0, step: parseInt(v('cfStep'), 10) || 0,
     thresholds: { cos: isFinite(cosIn) ? cosIn : 0.999, rel: isFinite(relIn) ? relIn : 1e-2 },
     baselineRun: v('cfBase'), candidateRun: v('cfCand'), commit: v('cfCommit'), object: obj,
     /* §10 新建任务的初始阶段只能是「待分析」，不得预置任何根因结论 */
-    stage: type === 'migration-precision' ? '待分析 · 共同输入可比性' : '待分析 · 双端可比性',
+    stage: type === 'migration-precision' ? '待分析 · 共同输入可比性' : type === 'operator-precision' ? '待分析 · golden 可对标点标注' : '待分析 · 双端可比性',
     status: 'running', updated: '刚刚',
     /* §8 关联任务：复用来源证据，但拥有独立状态与结论；不反向修改来源任务历史结论 */
     linkedFrom: link ? {
@@ -6962,7 +7353,9 @@ function openTask(id) {
   renderSourceBar();
   renderTaskList();
   updateFbChip();
-  if (workMode === 'migration') {
+  if (workMode === 'opdev') {
+    renderOpdevSide(); renderOpdevView(); renderOpdevSummary();
+  } else if (workMode === 'migration') {
     renderMigrationSide(); renderMigrationView(); migFit(); renderMigrationSummary();
   } else {
     mainView = 'side'; syncViewDom();
@@ -7018,6 +7411,7 @@ function refreshMigration() {
   if (migSelLayer != null) renderMigrationInspector(migSelLayer); else renderMigrationSummary();
 }
 function renderSummary() {
+  if (workMode === 'opdev') { renderOpdevSummary(); return; }           /* 算子开发态右栏走 golden 对标摘要 */
   if (workMode === 'migration') { renderMigrationSummary(); return; }   /* 迁移模式右栏走迁移摘要 */
   els.inspTitle.textContent = '精度概览 · Inspector';
   els.inspMeta.textContent = '整网逐算子精度 · 点击任一算子下钻';
@@ -7424,6 +7818,13 @@ function syncThCosRange() {
 }
 function updateThCosLive() {
   const el = document.getElementById('thCosLive'); if (!el) return;
+  /* 算子开发态没有「层」的概念：阈值影响的是可对标点是否越界，不是首错层 */
+  if (workMode === 'opdev') {
+    const sq = typeof opSqueeze === 'function' ? opSqueeze() : { firstFail: -1 };
+    if (sq.firstFail < 0) { el.textContent = '全部达标'; el.style.color = 'var(--success)'; }
+    else { el.textContent = '首次差异'; el.style.color = 'var(--danger)'; }
+    return;
+  }
   if (!comparable()) { el.textContent = '不可比'; el.style.color = 'var(--foreground-muted)'; return; }
   const fb = layerFirstBad();
   if (fb < 0) { el.textContent = '全网达标'; el.style.color = 'var(--success)'; }
@@ -7439,6 +7840,13 @@ const SIDE_COPY = {
     h2Tip: '开源算法迁移到 NPU 后的精度对齐工作台：openPangu-2.0-Flash 是业务上下文，真正被迁移和调试的是其中的算法模块（Sparse FlashAttention）。此面板配置迁移对象与判定阈值；中间用整网图定位算法所在层、再下钻双流映射，右侧看边界结论与证据缺口。',
     objTip: '迁移对象是算法模块，不是整个模型。Reference = PyTorch/Megatron 语义算法（A100），Candidate = NPU/MindSpeed/PyPTO/CANN 融合实现（910B）。自动可比的只有算法边界 input/output —— reference 的多个语义步骤在 NPU 侧被融合成单个 kernel，融合内部 tensor 未采集。',
   },
+  /* 算子开发态：golden 是「定义」不是「另一个实现」→ 措辞用「首次差异」而非「首差候选」 */
+  opdev: {
+    h2: '精度调试', detailH: 'CPU golden ↔ AscendC 逐步对标', meta: '精度任务 · 任务详情', objK: '算子对象',
+    cmpLbl: '对标基线', cmpVal: 'CPU golden fp32',
+    h2Tip: '算子开发态精度验证工作台：CPU golden 是语义参考实现（fp32 / 无 tiling / 无排布），是判定基准而非另一个实现，因此可以直接断言「首次差异」。golden 一行接口在 AscendC 里展开成 N 个执行步骤，只有少数步骤存在可对标点，首次差异被夹逼在相邻两个可对标点之间。',
+    objTip: '对象是单个 AscendC 算子的内部执行步骤，不是整网。golden = CPU 标量 fp32 参考实现；candidate = AscendC kernel（含 Tiling 切分、UB/L1/L0C 搬运、多核并行）。◆ = 可对标点（有 golden 语义等价物）；◇ = 无基线中间态。',
+  },
   peel: {
     h2: '精度调试', detailH: '整网→算子精度调试', meta: '精度任务 · 任务详情', objK: '调试对象',
     cmpLbl: '对比基线', cmpVal: '910B ⟵ A100',
@@ -7447,7 +7855,7 @@ const SIDE_COPY = {
   },
 };
 function syncSideCopy() {
-  const c = SIDE_COPY[workMode === 'migration' ? 'migration' : 'peel'];
+  const c = SIDE_COPY[workMode === 'migration' ? 'migration' : workMode === 'opdev' ? 'opdev' : 'peel'];
   const set = (id, t) => { const e = document.getElementById(id); if (e) e.textContent = t; };
   const tip = (id, t) => { const e = document.getElementById(id); if (e) e.setAttribute('data-tip', t); };
   set('sideH2', c.h2); set('sideMeta', c.meta); set('sideObjK', c.objK); set('cmpLbl', c.cmpLbl); set('cmpVal', c.cmpVal);
@@ -8116,6 +8524,7 @@ function judgeTab(d, o, io, jg, rcos, rrel) {
       <b>核心判断：${esc(jg[1])}</b>
       <div class="jc-meta">msprobe 异常场景 = ${jg[0]} · MEM_${o.mt} · #${o.mag}</div>
       <div class="jc-sum">${sumText}</div></div></div>
+    ${o.anom === 'crit' ? pfTriageCard(drillId, d.title) : ''}
     <div class="dsec">
       <div class="dsec-h">Dump 对比<span class="dsec-sub">${esc(o.sym)} · input vs output</span></div>
       <div class="io">
@@ -8346,6 +8755,312 @@ function drillEvidence(o) {
 }
 
 /* ===================== init ===================== */
+/* ==================================================================================
+   算子开发态工作台（workMode='opdev'）· CPU golden ↔ AscendC 逐步对标
+   —— 诉求①的正面回答。
+
+   核心事实（决定了这套视图长什么样）：
+   golden 是**接口语义**（一行 torch.softmax），AscendC 是**执行语义**（Tiling 切块 →
+   CopyIn 到 UB → 多个 Vec/Cube 子步 → CopyOut）。两者是 **1:N 展开，且多数中间态在
+   golden 里根本不存在**。所以「逐算子对标」在这里会结构性失效。
+
+   可行的做法：找出这条 1:N 链上**存在可对标语义边界**的那几个点（◆ 可对标点），
+   只在这些点比对，把首次差异**夹逼**到相邻两个可对标点之间。
+   ⇒ 节点必须显式区分 ◆ 可对标点 / ◇ 无基线中间态。诚实地画出「这里没有基线」，
+      比给每个节点编一个分数更有用，也是夹逼区间可读的前提。
+
+   本模块不写 PREC / computePrecision / migration 数据，与另两类任务完全隔离。
+   ================================================================================== */
+const OPDEV = {
+  op: 'SoftmaxCustom', kernel: 'softmax_custom.cpp',
+  goldenCall: 'torch.softmax(x, dim=-1)', goldenImpl: 'golden/softmax_ref.py · numpy fp32 标量实现',
+  shape: '[1, 40, 4096, 4096]', dtype: 'bf16', layout: 'FRACTAL_NZ',
+  blocks: 8, loops: 16,
+  /* anchor=true → 有 golden 语义等价物，可给判定；false → 无基线中间态，只有数值与执行坐标 */
+  steps: [
+    /* sem 走整网架构图同一套 SEM 色板：搬运=comm / 归约=norm / 逐元素算术=linear / 超越函数=act */
+    { id: 'copyin', name: 'CopyIn(x)', api: 'DataCopy', mem: 'GM→UB', sem: 'comm', anchor: true, base: 1.000000 },
+    { id: 'rmax', name: 'ReduceMax(x)', api: 'ReduceMax', mem: 'UB', sem: 'norm', anchor: true, base: 0.999992 },
+    { id: 'sub', name: 'Sub(x − max)', api: 'Sub', mem: 'UB', sem: 'linear', anchor: false },
+    { id: 'exp', name: 'Exp', api: 'Exp', mem: 'UB', sem: 'act', anchor: false },
+    { id: 'rsum', name: 'ReduceSum(exp)', api: 'ReduceSum', mem: 'UB', sem: 'norm', anchor: true, base: 0.993120, hint: 'bf16 归约累加' },
+    { id: 'div', name: 'Div(exp / sum)', api: 'Div', mem: 'UB', sem: 'linear', anchor: false },
+    { id: 'copyout', name: 'CopyOut(y)', api: 'DataCopy', mem: 'UB→GM', sem: 'comm', anchor: true, base: 0.993500 },
+  ],
+};
+let opdevState = { block: 4, loop: 11, sel: null, sim: false };
+/* 确定性合成：尾块（block≥4）与靠后的迭代累加更久 → 误差更大。无随机，切 tile 可复现。 */
+function opStepCos(st) {
+  if (!st.anchor) return null;
+  if (st.base >= 0.99999) return st.base;
+  const b = opdevState.block, l = opdevState.loop;
+  const tail = b >= OPDEV.blocks / 2 ? 1 : 0.42;                       /* 尾块放大 */
+  const grow = 0.55 + 0.45 * (l / (OPDEV.loops - 1));                  /* 累加轮次越多越差 */
+  return 1 - (1 - st.base) * tail * grow;
+}
+function opStepBad(st) { const c = opStepCos(st); return c !== null && c < CFG.cos; }
+/* 夹逼：首次差异落在「最后一个达标的可对标点」与「第一个越界的可对标点」之间（含后者） */
+function opSqueeze() {
+  const S2 = OPDEV.steps;
+  let lastPass = -1, firstFail = -1;
+  for (let i = 0; i < S2.length; i++) {
+    if (!S2[i].anchor) continue;
+    if (opStepBad(S2[i])) { firstFail = i; break; }
+    lastPass = i;
+  }
+  return { lastPass, firstFail, from: lastPass + 1, to: firstFail };
+}
+function opAnchorCount() { return OPDEV.steps.filter((s) => s.anchor).length; }
+/* ---------- 中央：golden 1→N 映射带（同时承担执行流程图职责，竖向 = 执行顺序） ---------- */
+function renderOpdevView() {
+  const host = document.getElementById('opdevScroll'); if (!host) return;
+  const S2 = OPDEV.steps, sq = opSqueeze();
+  const W = 1080, rowH = 96, top = 92, GX = 20, GW = 300, SX = 452, SW = 462, NH = 46;
+  const H = top + S2.length * rowH + 22;
+  const rowY = (i) => top + i * rowH;
+  const gcy = top + (S2.length * rowH) / 2 - rowH / 2 + NH / 2;
+  /* 固定 height 会在窄面板下留一大块死白（viewBox letterbox）→ 用 aspect-ratio 让高度跟着宽度缩 */
+  let s = `<svg class="op-band" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" style="aspect-ratio:${W}/${H};height:auto;max-height:${H}px">`;
+  /* 节点样式 = 本文件整网架构图（pass-ir capsule）那套：渐变胶囊 + 左侧 fx 字形徽章 +
+     白字左对齐 + 右侧小号类型标签。渐变按 accent 生成，与 capsule 的 --node-accent 同一观感。 */
+  const accents = { golden: 'var(--success)' };
+  S2.forEach((st) => { accents[st.sem || 'io'] = SEM[st.sem] || SEM.io; });
+  s += '<defs>' + Object.entries(accents).map(([k, c]) => `<linearGradient id="opg-${k}" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="color-mix(in srgb,${c} 86%,#ffffff)"/>
+      <stop offset="58%" stop-color="${c}"/>
+      <stop offset="100%" stop-color="color-mix(in srgb,${c} 86%,#000000)"/></linearGradient>`).join('') + '</defs>';
+  /* capsule 通用绘制：与架构图节点同构（glyph 徽章 / 左标签 / 右类型标签） */
+  const capsule = (x, y, w, h, key, label, kind, opts) => {
+    const o = opts || {}, cy = y + h / 2, gr = Math.min(13, h / 2 - 6);
+    const rk = o.ring || { s: 'rgba(0,0,0,.24)', w: 1 };
+    let r = `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${h / 2}" fill="url(#opg-${key})" stroke="${rk.s}" stroke-width="${rk.w}"${o.dim ? ' opacity="' + o.dim + '"' : ''}/>`;
+    r += `<circle cx="${x + 8 + gr}" cy="${cy}" r="${gr}" fill="rgba(10,16,22,.62)"/>`;
+    r += `<text x="${x + 8 + gr}" y="${(cy + 3.6).toFixed(1)}" class="op-glyph" text-anchor="middle">fx</text>`;
+    r += `<text x="${x + 8 + gr * 2 + 12}" y="${(cy + 4.4).toFixed(1)}" class="op-stxt">${label}</text>`;
+    if (kind) r += `<text x="${x + w - 14}" y="${(cy + 3.6).toFixed(1)}" class="op-kind" text-anchor="end">${kind}</text>`;
+    return r;
+  };
+  s += `<text x="${GX}" y="30" class="op-kick">CPU GOLDEN · 接口语义</text>`;
+  s += `<text x="${SX}" y="30" class="op-kick">ASCENDC · 执行语义（1 → ${S2.length} 展开）</text>`;
+  s += `<text x="${SX}" y="48" class="op-ssub">◆ 可对标点 ${opAnchorCount()} 个 · ◇ 无基线中间态 ${S2.length - opAnchorCount()} 个</text>`;
+  /* 夹逼区间底纹：画在连线与节点之下 */
+  if (sq.firstFail >= 0) {
+    const y0 = rowY(sq.from) - 28, hh = (sq.to - sq.from) * rowH + NH + 28 + 24;
+    s += `<rect x="${SX - 14}" y="${y0}" width="${SW + 28}" height="${hh}" rx="10" fill="color-mix(in srgb,var(--danger) 7%,transparent)" stroke="color-mix(in srgb,var(--danger) 34%,transparent)" stroke-dasharray="5 4"/>`;
+    s += `<text x="${SX}" y="${y0 + 15}" class="op-kick" style="fill:var(--danger)">夹逼区间 · 首次差异落在这几步之间</text>`;
+  }
+  /* golden 侧：一张卡（一行接口）*/
+  /* golden 也走算子胶囊样式（与整网架构图算子一致），附属信息放胶囊下方 */
+  s += capsule(GX, gcy - NH / 2, GW, NH, 'golden', 'torch.softmax', 'Golden');
+  s += `<text x="${GX + 8}" y="${gcy + NH / 2 + 17}" class="op-below">(x, dim=-1) · golden/softmax_ref.py</text>`;
+  s += `<text x="${GX + 8}" y="${gcy + NH / 2 + 31}" class="op-below">numpy fp32 · 标量实现 · 无 tiling / 无排布</text>`;
+  s += `<text x="${GX + 8}" y="${gcy + NH / 2 + 45}" class="op-below" style="fill:var(--success)">judgement baseline</text>`;
+  /* 1→N 连线：实线 = 有可对标点（线上标 cosine）；虚线 = 无基线中间态 */
+  S2.forEach((st, i) => {
+    const y = rowY(i) + NH / 2, x1 = GX + GW, x2 = SX;
+    const bad = opStepBad(st), inSq = sq.firstFail >= 0 && i >= sq.from && i <= sq.to;
+    const col = st.anchor ? (bad ? 'var(--danger)' : 'color-mix(in srgb,var(--success) 62%,transparent)')
+      : inSq ? 'color-mix(in srgb,var(--danger) 46%,transparent)' : 'color-mix(in srgb,var(--foreground) 20%,transparent)';
+    s += `<path d="M${x1},${gcy} C${x1 + 74},${gcy} ${x2 - 74},${y} ${x2},${y}" fill="none" stroke="${col}" stroke-width="${st.anchor ? 1.5 : 1.1}"${st.anchor ? '' : ' stroke-dasharray="4 4"'}/>`;
+    /* 标签贴在步骤侧（每行一个），不放曲线中点 —— 中点会让 N 条标签全挤在 golden 卡右缘 */
+    /* y 是节点中心 = 连线落点；标签要抬到节点上缘之上，否则会被曲线穿过 */
+    const c = opStepCos(st), lx = x2 - 12, ly = rowY(i) - 9;
+    s += c !== null
+      ? `<text x="${lx}" y="${ly.toFixed(1)}" class="op-smet${bad ? ' bad' : ''}" text-anchor="end">cos ${c.toFixed(5)}</text>`
+      : `<text x="${lx}" y="${ly.toFixed(1)}" class="op-ssub" text-anchor="end">无 golden 基线</text>`;
+  });
+  /* AscendC 步骤节点 */
+  const pillTag = (x, cy, txt, fill, txtCls, atEnd, stroke) => {
+    const tw = txt.length * 6.6 + 14, x0 = atEnd ? x - tw : x;
+    return `<rect x="${x0.toFixed(1)}" y="${(cy - 8).toFixed(1)}" width="${tw.toFixed(1)}" height="16" rx="8" fill="${fill}"${stroke ? ` stroke="${stroke}"` : ''}/>`
+      + `<text x="${(x0 + tw / 2).toFixed(1)}" y="${(cy + 3.4).toFixed(1)}" class="${txtCls}" text-anchor="middle">${txt}</text>`;
+  };
+  S2.forEach((st, i) => {
+    const y = rowY(i), cy = y + NH / 2, bad = opStepBad(st), first = i === sq.to && sq.firstFail >= 0;
+    const sel = opdevState.sel === st.id, cos = opStepCos(st);
+    /* 描边=精度状态：首次差异 red-500 强环 / 越界传播 amber / 达标沿用架构图的黑 24% 细描边 */
+    const rk = first ? { s: 'var(--danger)', w: 2.4 } : bad ? { s: 'var(--warning)', w: 1.8 }
+      : sel ? { s: 'var(--foreground)', w: 1.6 } : { s: 'rgba(0,0,0,.24)', w: 1 };
+    /* ◇ 无基线中间态：同一套胶囊，只是整体压暗读作「安静」（没有判定，不该抢注意力）*/
+    s += `<g class="op-node" onclick="opSelectStep('${st.id}')">`
+      + capsule(SX, y, SW, NH, st.sem || 'io', esc(st.name), st.anchor ? '◆ 可对标' : '◇ 无基线', { ring: rk, dim: st.anchor ? null : '.66' })
+      + `<text x="${SX + 10}" y="${y + NH + 15}" class="op-below">${esc(st.api)} · MEM_${esc(st.mem)}${st.hint ? ' · ' + esc(st.hint) : ''}</text>`
+      + (cos !== null ? pillTag(SX + SW - 78, y + 3, cos.toFixed(5), 'rgba(12,12,16,.86)', `op-cosbadge${first ? ' crit' : bad ? ' warn' : ''}`, true, first ? 'var(--danger)' : bad ? 'var(--warning)' : 'rgba(255,255,255,.24)') : '')
+      + '</g>';
+    if (first) {
+      /* tag 放胶囊右外侧：左侧是 1→N 连线密集区、上方是上一行算子的说明行 */
+      s += `<rect x="${SX + SW + 24}" y="${cy - 10.5}" width="76" height="21" rx="10.5" fill="var(--danger)"/>`;
+      s += `<text x="${SX + SW + 62}" y="${cy + 4}" class="op-fbtag" text-anchor="middle">▲ 首次差异</text>`;
+    }
+  });
+  s += '</svg>';
+  host.innerHTML = s + opConclusionHtml() + opTimelineHtml() + (opdevState.sim ? opLayoutLocatorHtml() : '');
+}
+function opConclusionHtml() {
+  const sq = opSqueeze(), S2 = OPDEV.steps;
+  if (sq.firstFail < 0) {
+    return `<div class="op-concl" style="background:linear-gradient(135deg,color-mix(in srgb,var(--success) 11%,var(--surface-1)) 0%,var(--surface-1) 62%)">
+      <span class="oc-i" style="color:var(--success)">✓</span><div class="oc-b">
+      <div class="oc-t">当前 tile 全部可对标点达标</div>
+      <code style="color:var(--success);background:color-mix(in srgb,var(--success) 12%,transparent)">${esc(OPDEV.goldenCall)}</code> 展开 ${S2.length} 步，${opAnchorCount()} 个可对标点全部在阈值内 —— 换个 block / loop 继续排查尾块。
+      </div></div>`;
+  }
+  const span = S2.slice(sq.from, sq.to + 1).map((x) => x.name).join(' → ');
+  return `<div class="op-concl"><span class="oc-i">▲</span><div class="oc-b">
+    <div class="oc-t">首次差异被夹逼在 ${esc(S2[sq.lastPass].name)} 与 ${esc(S2[sq.to].name)} 之间</div>
+    <code>${esc(OPDEV.goldenCall)}</code> 一行 → AscendC 展开 <b>${S2.length}</b> 步；可对标点 <b>${opAnchorCount()}</b> 个。
+    <b>${esc(S2[sq.lastPass].name)}</b> 仍达标（cos ${opStepCos(S2[sq.lastPass]).toFixed(5)}），到 <b>${esc(S2[sq.to].name)}</b> 已越界（cos ${opStepCos(S2[sq.to]).toFixed(5)} &lt; ${CFG.cos}）。
+    中间 <b>${esc(span)}</b> 无 golden 基线，<b>只能夹逼、不能点名</b> —— 这就是可对标点能给到的最细粒度。
+  </div></div>`;
+}
+/* 没有可靠断点 → 不假装有断点，给「可回放的执行坐标」：按 tile / 按迭代步进 */
+function opTimelineHtml() {
+  const b = opdevState.block, l = opdevState.loop;
+  return `<div class="op-tl">
+    <div class="op-tl-h"><span class="op-tl-k">执行坐标</span>
+      <span class="op-tl-sub">断点不可用 → 按 tile / 迭代回放带执行坐标的快照（dump 是全量无结构的，printf 会破坏时序）</span></div>
+    <div class="op-tl-row"><span class="op-tl-lbl">block_idx</span>
+      <input type="range" min="0" max="${OPDEV.blocks - 1}" step="1" value="${b}" oninput="opSetCoord('block',this.value)">
+      <span class="op-tl-val">${b} / ${OPDEV.blocks - 1}${b >= OPDEV.blocks / 2 ? ' 尾块' : ''}</span></div>
+    <div class="op-tl-row"><span class="op-tl-lbl">loop_it</span>
+      <input type="range" min="0" max="${OPDEV.loops - 1}" step="1" value="${l}" oninput="opSetCoord('loop',this.value)">
+      <span class="op-tl-val">${l} / ${OPDEV.loops - 1}</span></div>
+    <div class="op-tl-note">多核 / 多 tile 下「首次差异」有歧义：这里给的是<b>执行序首次</b>（当前 block×loop 快照内第一个越界的可对标点），不是全局元素序首次。切 block / loop 可复现同一结论。</div>
+  </div>`;
+}
+function opSetCoord(k, v) { opdevState[k] = parseInt(v, 10) || 0; renderOpdevView(); renderOpdevSummary(); }
+function opSelectStep(id) { opdevState.sel = opdevState.sel === id ? null : id; renderOpdevView(); renderOpdevSummary(); }
+/* ---------- 左栏：算子标识 / 用例 / 可对标点覆盖 ---------- */
+function renderOpdevSide() {
+  const host = document.getElementById('opdevSide'); if (!host) return;
+  const sq = opSqueeze();
+  const cover = OPDEV.steps.map((st, i) => {
+    const cls = opStepBad(st) ? 'bad' : st.anchor ? 'anchor' : (sq.firstFail >= 0 && i >= sq.from && i < sq.to ? 'span' : '');
+    return `<div class="op-cov ${cls}" title="${esc(st.name)} · ${st.anchor ? '可对标点' : '无基线中间态'}"></div>`;
+  }).join('');
+  const row = (k, v) => `<div class="op-krow"><span>${esc(k)}</span><span class="ok-v">${esc(v)}</span></div>`;
+  host.innerHTML = `
+    <section class="side-sec">
+      <div class="side-k">算子与 golden <span class="help" data-tip="golden 是语义参考实现（fp32 / 无 tiling / 无排布），是判定基准而不是另一个实现；因此这里可以直接说「首次差异」，不用说「首差候选」。">?</span></div>
+      ${row('AscendC 算子', OPDEV.op)}
+      ${row('kernel', OPDEV.kernel)}
+      ${row('golden 调用', OPDEV.goldenCall)}
+      ${row('golden 实现', 'numpy fp32 标量')}
+    </section>
+    <section class="side-sec">
+      <div class="side-k">用例 <span class="help" data-tip="shape × dtype × layout × Tiling 四维用例矩阵；layout 决定逻辑坐标与物理地址的映射方式，是「数值问题 vs 搬运问题」分类的关键。">?</span></div>
+      ${row('shape', OPDEV.shape)}
+      ${row('dtype', OPDEV.dtype)}
+      ${row('layout', OPDEV.layout)}
+      ${row('Tiling', `${OPDEV.blocks} blocks × ${OPDEV.loops} loops`)}
+    </section>
+    <section class="side-sec">
+      <div class="side-k">可对标点覆盖 <span class="help" data-tip="◆ = 有 golden 语义等价物、能给判定；◇ = 无基线中间态，只有数值与执行坐标。首次差异只能夹逼在相邻两个可对标点之间。">?</span></div>
+      <div class="op-krow"><span>覆盖</span><span class="ok-v">${opAnchorCount()} / ${OPDEV.steps.length} 步</span></div>
+      <div class="op-cover">${cover}</div>
+      <div class="pf-note" style="margin-top:8px">绿=可对标点 · 红=越界 · 琥珀=夹逼区间内的无基线步 · 灰=无基线中间态</div>
+    </section>`;
+}
+/* ---------- 右栏 Inspector：结论 / 分流 / 分类 / 下一步 ---------- */
+function renderOpdevSummary() {
+  if (!els.inspBody) return;
+  const sq = opSqueeze(), S2 = OPDEV.steps;
+  els.inspTitle.textContent = 'golden 对标 · Inspector';
+  els.inspMeta.textContent = `${OPDEV.op} · CPU golden fp32 ↔ AscendC ${OPDEV.dtype}`;
+  if (els.inspBack) els.inspBack.hidden = true;
+  const tile = (k, v) => `<div class="mig-tile"><div class="tl">${k}</div><div class="tv">${v}</div></div>`;
+  const tiles = `<div class="mig-tiles c3">${tile('展开步骤', S2.length)}${tile('可对标点', `${opAnchorCount()}/${S2.length}`)}${tile('执行坐标', `b${opdevState.block}·it${opdevState.loop}`)}</div>`;
+  /* 中央结论条已经把「夹逼在哪两步之间、为什么不能点名」讲完了，右栏不复述，只给两端点指标 */
+  const bound = (nm, cos, cls) => `<div class="op-bound ${cls}"><span class="ob-n">${esc(nm)}</span><span class="ob-c">${cos}</span></div>`;
+  const head = sq.firstFail < 0
+    ? `<div class="isec"><div class="icard"><div class="ikick" style="color:var(--success)">首次差异 · 当前 tile</div>
+        <div style="font:var(--text-body-sm);color:var(--foreground-secondary)">${opAnchorCount()} 个可对标点全部达标。</div></div></div>`
+    : `<div class="isec"><div class="ikick">首次差异 · 夹逼区间</div>
+        ${bound(S2[sq.lastPass].name, opStepCos(S2[sq.lastPass]).toFixed(5), 'ok')}
+        <div class="op-bound-mid">中间 ${sq.to - sq.from} 步无 golden 基线</div>
+        ${bound(S2[sq.to].name, opStepCos(S2[sq.to]).toFixed(5), 'bad')}</div>`;
+  /* 分流器：先回答「这到底是不是精度问题」 */
+  const triage = `<div class="isec">${pfTriageCard('attention_core', OPDEV.op)}</div>`;
+  /* 数值 vs 排布：这才是 NZ 排布场景真正要分开的两类根因 */
+  const cls = `<div class="isec"><div class="ikick">差异分类 · 数值 还是 搬运</div>
+    <div class="note-box">误差随 <b>loop_it 单调增大</b>、随<b>尾块 block≥${OPDEV.blocks / 2} 放大</b>且集中在归约步 → <b>数值 / 累加类</b>。
+    判别规则：逻辑聚集 + 物理分散 = 数值类；逻辑散乱 + 物理连续 = 搬运 / 排布类。</div>
+    <div style="margin-top:8px"><button class="btn" style="width:100%;justify-content:center" onclick="opOpenLayoutSim()">${opdevState.sim ? '收起排布落位视图' : '用「排布仿真」确认差异元素的物理落位 →'}</button></div></div>`;
+  const next = `<div class="isec"><div class="ikick">下一步</div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <button class="btn" style="justify-content:center" onclick="opRunTrace()">▸ pypto kernel-trace · 采样该区间的中间态</button>
+      <button class="btn" style="justify-content:center" onclick="toast('已生成最小复现 case：shape ${OPDEV.shape} · ${OPDEV.dtype} · block${opdevState.block} · loop${opdevState.loop}')">生成最小复现 case</button>
+    </div></div>`;
+  els.inspBody.innerHTML = tiles + head + triage + cls + next;
+}
+/* 差异落位器：复用已有的 ② 排布仿真（ND / FRACTAL_NZ / ZN 真实地址公式 + 2D↔1D 联动）。
+   注意不跳去 peel 的算子下钻——那是另一个任务的现场，跨过去会污染上下文；就地展开。
+   它回答的是 NZ 排布下「人眼对不上」的那半个问题：差异元素在逻辑上长什么样、落到物理内存哪里。 */
+function opOpenLayoutSim() {
+  opdevState.sim = !opdevState.sim;
+  if (opdevState.sim) { S.simLayout = 'NZ'; S.simRun = true; }
+  renderOpdevView();
+  renderOpdevSummary();
+  if (opdevState.sim) {
+    requestAnimationFrame(() => {
+      const h = document.getElementById('opLocator');
+      if (h) h.scrollIntoView({ block: 'start', behavior: 'smooth' });
+      simScrollToTail();
+    });
+  }
+}
+function opLayoutLocatorHtml() {
+  return `<div class="op-tl" id="opLocator" style="margin-top:12px">
+    <div class="op-tl-h"><span class="op-tl-k">差异落位 · 2D 逻辑矩阵 ↔ 1D 物理内存</span>
+      <span class="op-tl-sub">同一批差异元素，在逻辑坐标与物理地址两种视角下各是什么形状</span>
+      <button class="btn" style="margin-left:auto;font-size:11px;padding:4px 9px" onclick="opOpenLayoutSim()">收起</button></div>
+    <div class="side-row" style="margin-bottom:8px"><span class="side-lbl">排布格式</span><select class="hsel" onchange="setSimLayout(this.value)">
+      <option value="ND"${S.simLayout === 'ND' ? ' selected' : ''}>ND（行主序）</option>
+      <option value="NZ"${S.simLayout === 'NZ' ? ' selected' : ''}>FRACTAL_NZ（16×16 分形）</option>
+      <option value="ZN"${S.simLayout === 'ZN' ? ' selected' : ''}>ZN（16×16 转置）</option></select></div>
+    <div id="simVizHost">${simVizInner()}</div>
+  </div>`;
+}
+function opRunTrace() {
+  const p = document.getElementById('termPanel');
+  if (p && p.hidden) toggleTerm(true);
+  const body = document.getElementById('termBody'); if (!body) return;
+  _termTimers.forEach(clearTimeout); _termTimers = [];
+  if (p) p.dataset.played = '1';
+  body.innerHTML = '';
+  const M = _termModel(), PR = _termPrompt(M);
+  const sq = opSqueeze(), S2 = OPDEV.steps;
+  const T = [
+    { cmd: `pypto kernel-trace --op ${OPDEV.op} --golden ${OPDEV.goldenCall.split('(')[0]} --block ${opdevState.block} --loop ${opdevState.loop}` },
+    { out: '<span class="t-dim">[pypto]</span> hook AscendC kernel <span class="t-path">' + OPDEV.kernel + '</span> · 按 tile 轻量采样（非全量 dump）<span class="t-ok">✓</span>' },
+    { out: '<span class="t-dim">[pypto]</span> golden = <span class="t-path">numpy fp32</span>   candidate = <span class="t-warn">AscendC · ' + OPDEV.dtype + ' · ' + OPDEV.layout + '</span>' },
+    { out: '<span class="t-dim">[pypto]</span> 展开 ' + S2.length + ' 步 · 可对标点 ' + opAnchorCount() + ' 个 · 其余为无基线中间态', d: 320 },
+    { out: '' },
+    { out: '<span class="t-dim">step                anchor   cosine     status</span>' },
+  ];
+  S2.forEach((st) => {
+    const c = opStepCos(st), bad = opStepBad(st);
+    const nm = (st.name + '                    ').slice(0, 20);
+    T.push({
+      out: c === null
+        ? `<span class="t-dim">${nm}  ◇        —          no baseline</span>`
+        : `${bad ? '<span class="t-hl">' + nm + '</span>' : '<span class="t-dim">' + nm + '</span>'}  ◆        ${bad ? '<span class="t-err">' + c.toFixed(5) + '</span>' : '<span class="t-ok">' + c.toFixed(5) + '</span>'}    ${bad ? '<span class="t-err">✗ DIVERGE</span>' : '<span class="t-ok">ok</span>'}`,
+      d: 130,
+    });
+  });
+  T.push({ out: '' });
+  if (sq.firstFail >= 0) {
+    T.push({ out: `<span class="t-err">▲ 首次差异</span> 夹逼在 <span class="t-cmd">${S2[sq.lastPass].name}</span> ~ <span class="t-cmd">${S2[sq.to].name}</span>（中间 ${sq.to - sq.from} 步无 golden 基线）`, d: 340 });
+    T.push({ out: '<span class="t-dim">[pypto]</span> class = <span class="t-warn">数值/累加</span> · 误差随 loop_it 单调增、尾块放大 → bf16 归约累加' });
+    T.push({ out: '<span class="t-dim">[pypto]</span> 建议：ReduceSum 累加升 fp32 复测  ·  <span class="t-ok">pypto repro --op ' + OPDEV.op + ' --block ' + opdevState.block + '</span>' });
+  } else {
+    T.push({ out: '<span class="t-ok">✓ 当前 tile 全部可对标点达标</span>' });
+  }
+  T.push({ out: '' });
+  T.push({ prompt: true });
+  _termPlay(T, PR);
+}
+
 function init() {
   Object.assign(els, {
     stage: document.getElementById('stage'),
@@ -8475,6 +9190,7 @@ function init() {
   renderActiveGraph();
   requestAnimationFrame(fitSide);
   updateFbChip();
+  renderPreflight();      /* 算子准入预检门禁（横切，两类任务共用） */
   renderSummary();
   applyModel('pangu');    /* 默认调试对象 = openPangu-2.0-Flash */
   /* 工作台外壳预热（启动中心态下被 .task-launcher 隐藏，打开任务时无需重建） */
