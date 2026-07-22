@@ -317,37 +317,55 @@
 }
 
 .pto-model-graphviz-metric-badge {
-  fill: color-mix(in srgb, var(--surface-4) 84%, transparent);
+  fill: #d1d5db;
   stroke: none;
   stroke-width: 0;
+  filter: drop-shadow(0 1px 2px color-mix(in srgb, #000 24%, transparent));
+}
+
+.pto-model-graphviz-metric-badge[data-metric-heat='cold'] {
+  fill: #bfdbfe;
+}
+
+.pto-model-graphviz-metric-badge[data-metric-heat='warm'] {
+  fill: #fde68a;
+}
+
+.pto-model-graphviz-metric-badge[data-metric-heat='hot'] {
+  fill: #fdba74;
+}
+
+.pto-model-graphviz-metric-badge[data-metric-heat='critical'] {
+  fill: #fb7185;
 }
 
 .pto-model-graphviz-metric-badge-text {
-  fill: var(--foreground);
+  fill: #111827;
   font-family: var(--font-mono);
-  font-size: var(--font-size-label-xs);
-  font-weight: var(--font-weight-semibold);
+  font-size: 15px;
+  font-weight: var(--font-weight-bold);
   pointer-events: none;
+  letter-spacing: -0.02em;
+}
+
+.pto-model-graphviz-metric-badge-text[data-metric-heat='cold'] {
+  fill: #172554;
+}
+
+.pto-model-graphviz-metric-badge-text[data-metric-heat='warm'] {
+  fill: #422006;
+}
+
+.pto-model-graphviz-metric-badge-text[data-metric-heat='hot'] {
+  fill: #431407;
+}
+
+.pto-model-graphviz-metric-badge-text[data-metric-heat='critical'] {
+  fill: #4c0519;
 }
 
 .pto-model-graphviz-report-node-badge-text {
   font-size: 9.5px;
-}
-
-.pto-model-graphviz-repeat-badge {
-  fill: var(--surface-3);
-  stroke: var(--model-graphviz-line-soft);
-  stroke-width: 0.8px;
-}
-
-.pto-model-graphviz-repeat-badge-text {
-  fill: var(--model-graphviz-node-type);
-  font-family: var(--font-mono);
-  font-size: 9px;
-  font-weight: var(--font-weight-semibold);
-  text-anchor: middle;
-  dominant-baseline: central;
-  pointer-events: none;
 }
 
 .pto-model-graphviz-toggle {

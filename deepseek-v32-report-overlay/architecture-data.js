@@ -216,6 +216,7 @@
           instanceIndices: repeatCount > 1 ? item.instanceIndices : undefined,
           repeatRange: item.repeatRange || undefined,
           metricBadge: !layout.collapsed && item.kind === "op" ? (report?.metricShort || undefined) : undefined,
+          metricValue: !layout.collapsed && item.kind === "op" ? report?.timeSharePct : undefined,
           ...common,
         });
         return;

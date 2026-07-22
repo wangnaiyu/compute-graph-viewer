@@ -389,6 +389,15 @@
     return item.children.reduce((count, child) => count + 1 + operatorTreeDescendantCount(child), 0);
   }
 
+  function metricHeatLevel(value) {
+    const metric = Number(value);
+    if (!Number.isFinite(metric)) return "neutral";
+    if (metric >= 10) return "critical";
+    if (metric >= 5) return "hot";
+    if (metric >= 1) return "warm";
+    return "cold";
+  }
+
   function renderOperatorTreeItem(item, depth) {
     const isGroup = !item.nodeId;
     const report = item.nodeId ? REPORTS[item.nodeId] : null;
@@ -413,7 +422,7 @@
       ${toggle}
       <button type="button" class="mapped-node-button operator-tree-node-button" data-node-id="${escapeHtml(item.nodeId)}" aria-current="${item.nodeId === state.selectedNodeId ? "true" : "false"}">
         <span class="node-name">${escapeHtml(label)}</span>
-        <span class="node-metric">${escapeHtml(report.metricShort)}</span>
+        <span class="node-metric" data-metric-heat="${metricHeatLevel(report.timeSharePct)}">${escapeHtml(report.metricShort)}</span>
       </button>
     `;
     const children = expanded ? item.children.map((child) => renderOperatorTreeItem(child, depth + 1)).join("") : "";

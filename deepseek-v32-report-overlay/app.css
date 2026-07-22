@@ -294,9 +294,42 @@ button.operator-tree-toggle:hover {
 }
 
 .node-metric {
-  color: var(--foreground-muted);
-  font: var(--text-mono);
+  min-width: 50px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: #d1d5db;
+  color: #111827;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+  letter-spacing: -0.02em;
   white-space: nowrap;
+  box-shadow: 0 1px 2px color-mix(in srgb, #000 18%, transparent);
+}
+
+.node-metric[data-metric-heat="cold"] {
+  background: #bfdbfe;
+  color: #172554;
+}
+
+.node-metric[data-metric-heat="warm"] {
+  background: #fde68a;
+  color: #422006;
+}
+
+.node-metric[data-metric-heat="hot"] {
+  background: #fdba74;
+  color: #431407;
+}
+
+.node-metric[data-metric-heat="critical"] {
+  background: #fb7185;
+  color: #4c0519;
 }
 
 .architecture-pane-body {

@@ -955,36 +955,15 @@
       'stroke-dasharray': isRepeat ? '3 2' : null,
     }));
 
+    const repeatCount = Number(cluster.repeatCount || cluster.instanceIndices?.length || 0);
     if (!cluster.reportPriority) {
       const label = createSvgElement('text', {
         class: 'pto-model-graphviz-cluster-label',
         x: cluster.x + 20,
         y: cluster.y + 18,
       });
-      label.textContent = cluster.label || cluster.id;
+      label.textContent = `${cluster.label || cluster.id}${isRepeat && repeatCount > 1 ? ` ×${repeatCount}` : ''}`;
       group.appendChild(label);
-    }
-
-    const repeatCount = Number(cluster.repeatCount || cluster.instanceIndices?.length || 0);
-    if (isRepeat && repeatCount > 1) {
-      const repeatLabel = `×${repeatCount}`;
-      const repeatWidth = estimateTextWidth(repeatLabel, 28, 42);
-      group.appendChild(createSvgElement('rect', {
-        class: 'pto-model-graphviz-repeat-badge',
-        x: cluster.x + 14,
-        y: cluster.y + 28,
-        width: repeatWidth,
-        height: 18,
-        rx: 9,
-        ry: 9,
-      }));
-      const repeatText = createSvgElement('text', {
-        class: 'pto-model-graphviz-repeat-badge-text',
-        x: cluster.x + 14 + repeatWidth / 2,
-        y: cluster.y + 37,
-      });
-      repeatText.textContent = repeatLabel;
-      group.appendChild(repeatText);
     }
 
     if (cluster.collapsible !== false) {
@@ -1116,12 +1095,25 @@
     const metric = String(node.metricBadge || '').trim();
     if (!metric) return;
 
-    const badgeHeight = 18;
-    const badgeWidth = estimateTextWidth(metric, 36, 54);
-    const right = node.width / 2 - 10;
+    const rawMetricValue = Number(node.metricValue);
+    const metricValue = Number.isFinite(rawMetricValue) ? rawMetricValue : Number.parseFloat(metric);
+    const heat = !Number.isFinite(metricValue)
+      ? 'neutral'
+      : metricValue >= 10
+        ? 'critical'
+        : metricValue >= 5
+          ? 'hot'
+          : metricValue >= 1
+            ? 'warm'
+            : 'cold';
+    const badgeHeight = 30;
+    const badgeWidth = estimateTextWidth(metric, 70, 94);
+    const right = node.width / 2 - 8;
     const x = right - badgeWidth;
     group.appendChild(createSvgElement('rect', {
       class: 'pto-model-graphviz-metric-badge',
+      'data-metric-heat': heat,
+      'data-metric-value': Number.isFinite(metricValue) ? metricValue : '',
       x,
       y: -badgeHeight / 2,
       width: badgeWidth,
@@ -1131,8 +1123,9 @@
     }));
     const label = createSvgElement('text', {
       class: 'pto-model-graphviz-metric-badge-text',
+      'data-metric-heat': heat,
       x: x + badgeWidth / 2,
-      y: 0.4,
+      y: 0.6,
       'text-anchor': 'middle',
       'dominant-baseline': 'central',
     });
@@ -1178,43 +1171,23 @@
     group.appendChild(rect);
 
     const repeatCount = Number(node.repeatCount || node.instanceIndices?.length || 0);
-    const hasRepeatBadge = node.collapsed && repeatCount > 1;
-    if (hasRepeatBadge) {
-      const repeatLabel = `×${repeatCount}`;
-      const repeatWidth = estimateTextWidth(repeatLabel, 28, 42);
-      group.appendChild(createSvgElement('rect', {
-        class: 'pto-model-graphviz-repeat-badge',
-        x: -node.width / 2 + 10,
-        y: -9,
-        width: repeatWidth,
-        height: 18,
-        rx: 9,
-        ry: 9,
-      }));
-      const repeatText = createSvgElement('text', {
-        class: 'pto-model-graphviz-repeat-badge-text',
-        x: -node.width / 2 + 10 + repeatWidth / 2,
-        y: 0,
-      });
-      repeatText.textContent = repeatLabel;
-      group.appendChild(repeatText);
-    }
+    const hasRepeatCount = node.collapsed && repeatCount > 1;
 
     const metricBadge = String(node.metricBadge || '').trim();
-    const contentX = metricBadge ? -20 : 0;
+    const contentX = metricBadge ? -34 : 0;
     const label = createSvgElement('text', {
       class: 'pto-model-graphviz-node-label',
-      x: node.collapsed ? (hasRepeatBadge ? 12 : -8) : contentX,
+      x: node.collapsed ? -8 : contentX,
       y: visualKind === 'tensor' || node.hideTypeLabel || node.glyph ? 0 : -4,
       fill: NODE_TEXT_COLOR,
     });
-    label.textContent = node.label || node.id;
+    label.textContent = `${node.label || node.id}${hasRepeatCount ? ` ×${repeatCount}` : ''}`;
     group.appendChild(label);
 
     if (visualKind !== 'tensor' && !node.hideTypeLabel && !node.glyph) {
       const type = createSvgElement('text', {
         class: 'pto-model-graphviz-node-type',
-        x: node.collapsed ? (hasRepeatBadge ? 12 : -8) : contentX,
+        x: node.collapsed ? -8 : contentX,
         y: 12,
         fill: NODE_TYPE_COLOR,
       });
