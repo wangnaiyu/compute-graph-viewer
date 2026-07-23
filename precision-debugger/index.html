@@ -4592,11 +4592,17 @@ function injectArchCss(doc) {
        不再是底下那层 SVG rect 的 fill —— 上面那些只改 rect 的规则对胶囊无效。算子染色关时必须把
        `--node-accent` 本身压成中性灰，胶囊才会真正变灰（tensor 卡走同一个变量，一并覆盖）。 */
     + ':root.arch-nocolor .opv-pass-ir-capsule-host *{--node-accent:#6d6d73!important}'
+    + ':root.arch-nocolor .opv-pass-ir-capsule-host .op-pill{background:#484850!important;box-shadow:0 2px 5px rgba(0,0,0,.28)!important}'
+    + ':root.arch-nocolor .opv-pass-ir-capsule-host .op-pill-name{color:#fff!important}'
+    + ":root[data-theme='light'].arch-nocolor .opv-pass-ir-capsule-host .op-pill{background:#b9bbc1!important;box-shadow:0 2px 5px rgba(0,0,0,.12)!important}"
+    + ":root[data-theme='light'].arch-nocolor .opv-pass-ir-capsule-host .op-pill-name,:root[data-theme='light'].arch-nocolor .opv-pass-ir-capsule-host .tensor-rect-name{color:#181a1f!important;text-shadow:none!important}"
+    + ":root[data-theme='light'].arch-nocolor .opv-pass-ir-capsule-host .op-pill-type,:root[data-theme='light'].arch-nocolor .opv-pass-ir-capsule-host .op-pill-badge{color:rgba(0,0,0,.45)!important}"
+    + ":root[data-theme='light'].arch-nocolor .pto-model-graphviz-node.prec-crit .op-pill-name,:root[data-theme='light'].arch-nocolor .pto-model-graphviz-node.prec-high .op-pill-name{color:#fff!important}"
     + ':root.arch-nocolor .pto-model-graphviz-node.prec-crit .opv-pass-ir-capsule-host *{--node-accent:#ff4b7b!important}'
     + ':root.arch-nocolor .pto-model-graphviz-node.prec-high .opv-pass-ir-capsule-host *{--node-accent:#ffaa3b!important}'
     + ':root.arch-nocolor .pto-model-graphviz-node.prec-crit .opv-pass-ir-capsule-host .op-pill{background:linear-gradient(180deg,#ff5d86,#d81f45)!important}'
     + ':root.arch-nocolor .pto-model-graphviz-node.prec-high .opv-pass-ir-capsule-host .op-pill{background:linear-gradient(180deg,#ffb454,#e0851f)!important}'
-    + ":root[data-theme='light'].arch-nocolor .opv-pass-ir-capsule-host .op-pill{background:linear-gradient(180deg,#c2c4c9,#a9abb1)!important}"
+    + ':root.arch-nocolor .pto-model-graphviz-node.prec-crit .op-pill,:root.arch-nocolor .pto-model-graphviz-node.prec-high .op-pill{box-shadow:0 2px 6px rgba(0,0,0,.3)!important}'
     + ":root[data-theme='light'].arch-nocolor .pto-model-graphviz-node.prec-crit .op-pill-name,:root[data-theme='light'].arch-nocolor .pto-model-graphviz-node.prec-high .op-pill-name{color:#fff!important}"
     + ':root.arch-nocolor .pto-model-graphviz-node.prec-crit,:root.arch-nocolor .pto-model-graphviz-node.prec-high{opacity:1!important}'
     + ':root.arch-nocolor .pto-model-graphviz-node.prec-crit .op-pill-name,:root.arch-nocolor .pto-model-graphviz-node.prec-high .op-pill-name,:root.arch-nocolor .pto-model-graphviz-node.prec-crit .pto-model-graphviz-node-label,:root.arch-nocolor .pto-model-graphviz-node.prec-high .pto-model-graphviz-node-label{fill:#fff!important;color:#fff!important;text-shadow:0 1px 2px rgba(0,0,0,.5)}'
