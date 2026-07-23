@@ -2545,8 +2545,8 @@ select.cfg-in{font-family:var(--font-sans);cursor:pointer}
             <span class="tsep"></span>
             <span class="seg-lbl">算子染色</span>
             <span class="seg" id="colorModeSeg" title="整网格子染色方式">
-              <button class="segbtn" data-c="off" onclick="setColorMode('off')" title="不染色（中性）">关</button>
-              <button class="segbtn on" data-c="cat" onclick="setColorMode('cat')" title="按算子类别：归一化/线性/位置·激活/注意力">类别</button>
+              <button class="segbtn on" data-c="off" onclick="setColorMode('off')" title="不染色（中性）">关</button>
+              <button class="segbtn" data-c="cat" onclick="setColorMode('cat')" title="按算子类别：归一化/线性/位置·激活/注意力">类别</button>
               <button class="segbtn" data-c="dual" onclick="setColorMode('dual')" title="双轴：含 matmul=蓝/无=灰 · 左侧条=有权重">含matmul·权重</button>
             </span>
             <span class="tsep"></span>
@@ -2584,8 +2584,8 @@ select.cfg-in{font-family:var(--font-sans);cursor:pointer}
           <span class="tsep"></span>
           <span class="seg-lbl">算子染色</span>
           <span class="seg" id="graphSemSeg" title="层内计算图算子按类别染色 / 中性（关掉更聚焦精度定位）">
-            <button class="segbtn" data-s="off" onclick="setGraphSem(false)" title="中性卡面，突出首错/传播精度色">关</button>
-            <button class="segbtn on" data-s="on" onclick="setGraphSem(true)" title="按算子类别染色">类别</button>
+            <button class="segbtn on" data-s="off" onclick="setGraphSem(false)" title="中性卡面，突出首错/传播精度色">关</button>
+            <button class="segbtn" data-s="on" onclick="setGraphSem(true)" title="按算子类别染色">类别</button>
           </span>
           </span>
           <!-- 布局方向对「层内架构图」与「二级层内 diff 的两张架构图」都适用 → 独立于 graphOnlyTools，
@@ -2610,8 +2610,8 @@ select.cfg-in{font-family:var(--font-sans);cursor:pointer}
           <span id="migToolsHead">
             <span class="seg-lbl">算子染色</span>
             <span class="seg" id="migSemSeg" title="整网热力图算子格是否按算子类别染色（关掉更聚焦精度红黄）">
-              <button class="segbtn" data-ms="off" onclick="setMigSem(false)">关</button>
-              <button class="segbtn on" data-ms="on" onclick="setMigSem(true)">开</button>
+              <button class="segbtn on" data-ms="off" onclick="setMigSem(false)">关</button>
+              <button class="segbtn" data-ms="on" onclick="setMigSem(true)">开</button>
             </span>
             <span class="tsep"></span>
             <span class="seg-lbl">精度染色</span>
@@ -2890,8 +2890,8 @@ let laneSel = null;                    /* 跨视图联动：选中某算子(lane
 let viewLayer = null;                  /* 已下钻进入的层（front view）· null=首错层 */
 let side3d = false;                     /* 整网侧视图 2D / 3D */
 let orbit = { rx: -16, ry: -32, z: 1 }; /* 3D 默认：等距斜视，深度轴投影为「左下→右上」 */
-let colorMode = 'cat';                   /* 整网染色图层：'cat' 类别 · 'dual' 双轴(是否matmul/有无权重) · 'off' 关 */
-let graphSem = true;                      /* 层内计算图：算子按类别染色(true) / 中性(false)——关掉让精度红/黄更聚焦 */
+let colorMode = 'off';                    /* 精度场景默认关闭算子染色（聚焦精度红/黄）：'cat'/'dual'/'off' */
+let graphSem = false;                     /* 精度场景默认关闭：算子按类别染色(true) / 中性(false)——关掉让精度红/黄更聚焦 */
 const NODE_NEUTRAL = 'color-mix(in srgb, var(--foreground) 36%, var(--ide-pane-bg))';   /* 关闭算子染色时的中性卡面（抬亮拉开图底、与 tensor 等亮，文字才看得清） */
 /* 算子类别配色 —— 对齐参考 openpangu modelviz 的领域色板（sem:* → opv:* → hex）
    norm=sky · linear=indigo · attention=blue · rope=violet · act=violet · gate=amber · moe=orange · mlp=violet · comm=cyan · embedding=teal · head=deep-violet */
@@ -3212,7 +3212,7 @@ let migExpand = { prefix: false, tail: false };  /* 折叠区间是否展开 */
 let migDiffOpen = true;                   /* 默认（未选中态）首差层的层内 Diff 是否展开（可点首差行收起/展开） */
 let migArchDiff = null;                    /* 非 null=进入某层「完整架构图 Diff」全画布下钻视图 */
 let migColorOn = true;                   /* 精度染色：是否叠加首差/下游传播的精度色 */
-let migSemOn = true;                     /* 算子染色：整网热力图算子格是否按算子类别染色（关→中性格）· 默认开，须与工具条 segbtn「开」一致 */
+let migSemOn = false;                    /* 精度场景默认关闭算子染色（须与工具条 segbtn「关」一致） */
 let migGeom = null;                      /* 矩阵渲染几何（供 hover 描边定位）*/
 let migShowRisk = false;                 /* 是否突出映射风险 */
 /* 证据工作台状态：原型中由节点选择驱动，展示自动粗→细采集与偶现问题实验闭环。 */
@@ -4564,6 +4564,8 @@ function injectArchCss(doc) {
     + '.pto-model-graphviz-node.prec-high rect{stroke:#ffb454!important;stroke-width:2px!important;filter:drop-shadow(0 0 6px rgba(255,170,59,.5))}'
     + '@media (prefers-reduced-motion:reduce){.pto-model-graphviz-node.prec-crit rect{animation:none;filter:drop-shadow(0 0 7px rgba(255,75,123,.65))}}'
     + '.pto-model-graphviz-node.prec-dim{opacity:.28}'
+    + ':root.arch-nocolor .pto-model-graphviz-node.prec-dim{opacity:.62!important}'
+    + ':root.arch-nocolor .pto-model-graphviz-node .pto-model-graphviz-node-label{text-shadow:0 1px 2px rgba(0,0,0,.55)}'
     + '.prec-cosbadge rect{fill:rgba(12,12,16,.82)}'
     + '.prec-cosbadge text{font-family:var(--font-mono);font-size:15px;font-weight:700}'
     + '.prec-cosbadge.c-crit rect{stroke:#ff4b7b;stroke-width:1.4}.prec-cosbadge.c-crit text{fill:#ff85a6}'
@@ -4589,7 +4591,21 @@ function injectArchCss(doc) {
     /* Pass-IR capsule 版引擎：节点可见颜色来自 foreignObject 里 HTML 卡片的 `--node-accent`（渐变胶囊），
        不再是底下那层 SVG rect 的 fill —— 上面那些只改 rect 的规则对胶囊无效。算子染色关时必须把
        `--node-accent` 本身压成中性灰，胶囊才会真正变灰（tensor 卡走同一个变量，一并覆盖）。 */
-    + ':root.arch-nocolor .opv-pass-ir-capsule-host *{--node-accent:#5a5a5e!important}'
+    + ':root.arch-nocolor .opv-pass-ir-capsule-host *{--node-accent:#6d6d73!important}'
+    + ':root.arch-nocolor .opv-pass-ir-capsule-host .op-pill{background:#484850!important;box-shadow:0 2px 5px rgba(0,0,0,.28)!important}'
+    + ':root.arch-nocolor .opv-pass-ir-capsule-host .op-pill-name{color:#fff!important}'
+    + ":root[data-theme='light'].arch-nocolor .opv-pass-ir-capsule-host .op-pill{background:#b9bbc1!important;box-shadow:0 2px 5px rgba(0,0,0,.12)!important}"
+    + ":root[data-theme='light'].arch-nocolor .opv-pass-ir-capsule-host .op-pill-name,:root[data-theme='light'].arch-nocolor .opv-pass-ir-capsule-host .tensor-rect-name{color:#181a1f!important;text-shadow:none!important}"
+    + ":root[data-theme='light'].arch-nocolor .opv-pass-ir-capsule-host .op-pill-type,:root[data-theme='light'].arch-nocolor .opv-pass-ir-capsule-host .op-pill-badge{color:rgba(0,0,0,.45)!important}"
+    + ":root[data-theme='light'].arch-nocolor .pto-model-graphviz-node.prec-crit .op-pill-name,:root[data-theme='light'].arch-nocolor .pto-model-graphviz-node.prec-high .op-pill-name{color:#fff!important}"
+    + ':root.arch-nocolor .pto-model-graphviz-node.prec-crit .opv-pass-ir-capsule-host *{--node-accent:#ff4b7b!important}'
+    + ':root.arch-nocolor .pto-model-graphviz-node.prec-high .opv-pass-ir-capsule-host *{--node-accent:#ffaa3b!important}'
+    + ':root.arch-nocolor .pto-model-graphviz-node.prec-crit .opv-pass-ir-capsule-host .op-pill{background:linear-gradient(180deg,#ff5d86,#d81f45)!important}'
+    + ':root.arch-nocolor .pto-model-graphviz-node.prec-high .opv-pass-ir-capsule-host .op-pill{background:linear-gradient(180deg,#ffb454,#e0851f)!important}'
+    + ':root.arch-nocolor .pto-model-graphviz-node.prec-crit .op-pill,:root.arch-nocolor .pto-model-graphviz-node.prec-high .op-pill{box-shadow:0 2px 6px rgba(0,0,0,.3)!important}'
+    + ":root[data-theme='light'].arch-nocolor .pto-model-graphviz-node.prec-crit .op-pill-name,:root[data-theme='light'].arch-nocolor .pto-model-graphviz-node.prec-high .op-pill-name{color:#fff!important}"
+    + ':root.arch-nocolor .pto-model-graphviz-node.prec-crit,:root.arch-nocolor .pto-model-graphviz-node.prec-high{opacity:1!important}'
+    + ':root.arch-nocolor .pto-model-graphviz-node.prec-crit .op-pill-name,:root.arch-nocolor .pto-model-graphviz-node.prec-high .op-pill-name,:root.arch-nocolor .pto-model-graphviz-node.prec-crit .pto-model-graphviz-node-label,:root.arch-nocolor .pto-model-graphviz-node.prec-high .pto-model-graphviz-node-label{fill:#fff!important;color:#fff!important;text-shadow:0 1px 2px rgba(0,0,0,.5)}'
     + ":root[data-theme='light'].arch-nocolor .opv-pass-ir-capsule-host *{--node-accent:#c2c4c9!important}";
   (doc.head || doc.documentElement).appendChild(st);
 }
@@ -4640,7 +4656,7 @@ function decorateArch() {
     if (p.st === 'crit') n.classList.add('prec-crit'); else n.classList.add('prec-high');
     const rect = n.querySelector('rect'); if (!rect) return;
     const rw = parseFloat(rect.getAttribute('width') || 0), rx = parseFloat(rect.getAttribute('x') || 0), ry = parseFloat(rect.getAttribute('y') || 0), cx = rx + rw / 2;
-    const g = doc.createElementNS(NS, 'g'); g.setAttribute('class', 'prec-cosbadge c-' + p.st); g.setAttribute('transform', 'translate(' + (rx + rw - 6) + ',' + (ry - 4) + ')');
+    const g = doc.createElementNS(NS, 'g'); g.setAttribute('class', 'prec-cosbadge c-' + p.st); g.setAttribute('transform', 'translate(' + (rx + rw - 6) + ',' + (ry - 16) + ')');
     const bw = 84, bg = doc.createElementNS(NS, 'rect'); bg.setAttribute('x', -bw); bg.setAttribute('y', -14); bg.setAttribute('width', bw); bg.setAttribute('height', 26); bg.setAttribute('rx', 13);
     const tx = doc.createElementNS(NS, 'text'); tx.setAttribute('x', -bw / 2); tx.setAttribute('y', 5); tx.setAttribute('text-anchor', 'middle'); tx.textContent = p.cos.toFixed(3);
     g.appendChild(bg); g.appendChild(tx); n.appendChild(g);
@@ -6775,12 +6791,16 @@ function migApplyDiffMarks(doc) {
     const rx = parseFloat(rect.getAttribute('x') || 0), ry = parseFloat(rect.getAttribute('y') || 0);
     const rw = parseFloat(rect.getAttribute('width') || 0), rh = parseFloat(rect.getAttribute('height') || 0);
     n.classList.add('mig-changed');
-    const g = doc.createElementNS(NS, 'g'); g.setAttribute('class', 'mig-diff-mark'); g.setAttribute('pointer-events', 'none');
-    const fr = doc.createElementNS(NS, 'rect');   /* 虚线外框：包住整个算子 */
+    /* 外框单独一层，**插到节点最底层**（画在 foreignObject 胶囊背后）：只露胶囊外 4px 的描边，
+       不叠在胶囊之上 —— 否则 foreignObject 合成会把节点洗白（已 A/B 验证）。 */
+    const gf = doc.createElementNS(NS, 'g'); gf.setAttribute('class', 'mig-diff-mark'); gf.setAttribute('pointer-events', 'none');
+    const fr = doc.createElementNS(NS, 'rect');
     fr.setAttribute('x', rx - 4); fr.setAttribute('y', ry - 4); fr.setAttribute('width', rw + 8); fr.setAttribute('height', rh + 8);
     fr.setAttribute('rx', 9); fr.setAttribute('fill', 'none'); fr.setAttribute('stroke', rule.c);
     fr.setAttribute('stroke-width', '1.8'); fr.setAttribute('stroke-dasharray', '5 3'); fr.setAttribute('opacity', '.95');
-    g.appendChild(fr);
+    gf.appendChild(fr); n.insertBefore(gf, n.firstChild);
+    /* 标签 chip 在节点上方（ry-19），不与胶囊本体重叠，留在上层 */
+    const g = doc.createElementNS(NS, 'g'); g.setAttribute('class', 'mig-diff-mark'); g.setAttribute('pointer-events', 'none');
     const label = '⇒ ' + rule.t, w = rule.t.length * 11 + 22;
     const chip = doc.createElementNS(NS, 'rect');
     chip.setAttribute('x', rx - 4); chip.setAttribute('y', ry - 19); chip.setAttribute('width', w); chip.setAttribute('height', 15);
@@ -6943,7 +6963,7 @@ function migDecorateArch() {
     if (p.st === 'crit') n.classList.add('prec-crit'); else n.classList.add('prec-high');
     const rect = n.querySelector('rect'); if (!rect) return;
     const rw = parseFloat(rect.getAttribute('width') || 0), rx = parseFloat(rect.getAttribute('x') || 0), ry = parseFloat(rect.getAttribute('y') || 0), cx = rx + rw / 2;
-    const g = doc.createElementNS(NS, 'g'); g.setAttribute('class', 'prec-cosbadge c-' + p.st); g.setAttribute('transform', 'translate(' + (rx + rw - 6) + ',' + (ry - 4) + ')');
+    const g = doc.createElementNS(NS, 'g'); g.setAttribute('class', 'prec-cosbadge c-' + p.st); g.setAttribute('transform', 'translate(' + (rx + rw - 6) + ',' + (ry - 16) + ')');
     const bw = 84, bg = doc.createElementNS(NS, 'rect'); bg.setAttribute('x', -bw); bg.setAttribute('y', -14); bg.setAttribute('width', bw); bg.setAttribute('height', 26); bg.setAttribute('rx', 13);
     const tx = doc.createElementNS(NS, 'text'); tx.setAttribute('x', -bw / 2); tx.setAttribute('y', 5); tx.setAttribute('text-anchor', 'middle'); tx.textContent = p.cos.toFixed(3);
     g.appendChild(bg); g.appendChild(tx); n.appendChild(g);
@@ -7322,7 +7342,7 @@ function archDecorateLayerFrame() {
     if (p.st === 'crit') n.classList.add('prec-crit'); else n.classList.add('prec-high');
     const rect = n.querySelector('rect'); if (!rect) return;
     const rw = parseFloat(rect.getAttribute('width') || 0), rx = parseFloat(rect.getAttribute('x') || 0), ry = parseFloat(rect.getAttribute('y') || 0), cx = rx + rw / 2;
-    const g = doc.createElementNS(NS, 'g'); g.setAttribute('class', 'prec-cosbadge c-' + p.st); g.setAttribute('transform', 'translate(' + (rx + rw - 6) + ',' + (ry - 4) + ')');
+    const g = doc.createElementNS(NS, 'g'); g.setAttribute('class', 'prec-cosbadge c-' + p.st); g.setAttribute('transform', 'translate(' + (rx + rw - 6) + ',' + (ry - 16) + ')');
     const bw = 84, bg = doc.createElementNS(NS, 'rect'); bg.setAttribute('x', -bw); bg.setAttribute('y', -14); bg.setAttribute('width', bw); bg.setAttribute('height', 26); bg.setAttribute('rx', 13);
     const tx = doc.createElementNS(NS, 'text'); tx.setAttribute('x', -bw / 2); tx.setAttribute('y', 5); tx.setAttribute('text-anchor', 'middle'); tx.textContent = p.cos.toFixed(3);
     g.appendChild(bg); g.appendChild(tx); n.appendChild(g);
