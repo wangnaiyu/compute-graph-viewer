@@ -6791,12 +6791,16 @@ function migApplyDiffMarks(doc) {
     const rx = parseFloat(rect.getAttribute('x') || 0), ry = parseFloat(rect.getAttribute('y') || 0);
     const rw = parseFloat(rect.getAttribute('width') || 0), rh = parseFloat(rect.getAttribute('height') || 0);
     n.classList.add('mig-changed');
-    const g = doc.createElementNS(NS, 'g'); g.setAttribute('class', 'mig-diff-mark'); g.setAttribute('pointer-events', 'none');
-    const fr = doc.createElementNS(NS, 'rect');   /* 虚线外框：包住整个算子 */
+    /* 外框单独一层，**插到节点最底层**（画在 foreignObject 胶囊背后）：只露胶囊外 4px 的描边，
+       不叠在胶囊之上 —— 否则 foreignObject 合成会把节点洗白（已 A/B 验证）。 */
+    const gf = doc.createElementNS(NS, 'g'); gf.setAttribute('class', 'mig-diff-mark'); gf.setAttribute('pointer-events', 'none');
+    const fr = doc.createElementNS(NS, 'rect');
     fr.setAttribute('x', rx - 4); fr.setAttribute('y', ry - 4); fr.setAttribute('width', rw + 8); fr.setAttribute('height', rh + 8);
     fr.setAttribute('rx', 9); fr.setAttribute('fill', 'none'); fr.setAttribute('stroke', rule.c);
     fr.setAttribute('stroke-width', '1.8'); fr.setAttribute('stroke-dasharray', '5 3'); fr.setAttribute('opacity', '.95');
-    g.appendChild(fr);
+    gf.appendChild(fr); n.insertBefore(gf, n.firstChild);
+    /* 标签 chip 在节点上方（ry-19），不与胶囊本体重叠，留在上层 */
+    const g = doc.createElementNS(NS, 'g'); g.setAttribute('class', 'mig-diff-mark'); g.setAttribute('pointer-events', 'none');
     const label = '⇒ ' + rule.t, w = rule.t.length * 11 + 22;
     const chip = doc.createElementNS(NS, 'rect');
     chip.setAttribute('x', rx - 4); chip.setAttribute('y', ry - 19); chip.setAttribute('width', w); chip.setAttribute('height', 15);
